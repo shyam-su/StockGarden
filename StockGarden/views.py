@@ -18,40 +18,40 @@ def BrandDeleteView(request):
     return render(request, 'home.html',)
 
 def CategoryListView(request):
-    return render(request, 'home.html',)
+    return render(request, 'category.html',)
 
 def CategoryCreateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'category_create.html',)
 
 def CategoryUpdateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'category_update.html',)
 
 def CategoryDeleteView(request):
-    return render(request, 'home.html',)
+    return render(request, 'category_delete.html',)
 
 def ProductListView(request):
-    return render(request, 'home.html',)
+    return render(request, 'products.html',)
 
 def ProductCreateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'product_create.html',)
 
 def ProductUpdateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'product_update.html',)
 
 def ProductDeleteView(request):
-    return render(request, 'home.html',)
+    return render(request, 'product_delete.html',)
 
 def SalesListView(request):
-    return render(request, 'home.html',)
+    return render(request, 'sales.html',)
 
 def SalesCreateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'sale_create.html',)
 
 def SalesUpdateView(request):
     return render(request, 'home.html',)
 
 def SalesDeleteView(request):
-    return render(request, 'home.html',)
+    return render(request, 'sale_delete.html',)
 
 def VendorListView(request):
     return render(request, 'home.html',)
@@ -66,16 +66,16 @@ def VendorDeleteView(request):
     return render(request, 'home.html',)
 
 def PurchaseListView(request):
-    return render(request, 'home.html',)
+    return render(request, 'purchases.html',)
 
 def PurchaseCreateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'purchases_create.html',)
 
 def PurchaseUpdateView(request):
     return render(request, 'home.html',)
 
 def PurchaseDeleteView(request):
-    return render(request, 'home.html',)
+    return render(request, 'purchase_delete.html',)
 
 def RepairListView(request):
     return render(request, 'home.html',)
@@ -102,16 +102,16 @@ def RepairDetailDeleteView(request):
     return render(request, 'home.html',)
 
 def InvoiceListView(request):
-    return render(request, 'home.html',)
+    return render(request, 'invoice.html',)
 
 def InvoiceCreateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'invoice_create.html',)
 
 def InvoiceUpdateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'invoice_update.html',)
 
 def InvoiceDeleteView(request):
-    return render(request, 'home.html',)
+    return render(request, 'invoice_delete.html',)
 
 def ReportListView(request):
     return render(request, 'home.html',)

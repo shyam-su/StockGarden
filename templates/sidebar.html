@@ -78,7 +78,7 @@
                     <i class="fa fa-folder me-2"></i> Products
                 </a>
                 <ul class="dropdown-menu bg-dark border-0" aria-labelledby="productsDropdown">
-                    <li><a class="dropdown-item text-light {% if request.resolver_match.url_name == 'product' %}active{% endif %}" href="{% url 'product' %}">All Products</a></li>
+                    <li><a class="dropdown-item text-light {% if request.resolver_match.url_name == 'product' %}active{% endif %}" href="{% url 'product' %}">Products</a></li>
                     <li><a class="dropdown-item text-light" href="{% url 'category' %}">Categories</a></li>
                     <li><a class="dropdown-item text-light" href="{% url 'brand' %}">Brand</a></li>
                 </ul>

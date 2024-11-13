@@ -1,4 +1,4 @@
-{% extends "store/base.html" %}
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}
@@ -12,7 +12,7 @@
             <div class="card shadow-sm border-light">
                 <div class="card-body">
                     <h1 class="text-center mb-4">
-                        Add Product
+                        Update Product
                     </h1>
                     <form method="POST" enctype="multipart/form-data">
                         {% csrf_token %}
