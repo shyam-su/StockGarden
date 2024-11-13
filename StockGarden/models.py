@@ -1,11 +1,9 @@
 from django.db import models
-from django.contrib.auth import get_user_model
+from user.models import User
 
 
 
 # Create your models here.
-User = get_user_model()
-
 class Brand(models.Model):
     name=models.CharField(max_length=255,blank=False,null=False,verbose_name="Brand Name",db_index=True)
     image=models.ImageField(upload_to='media/brand_imgs/', blank=True,default=True)
@@ -44,7 +42,7 @@ class Vendor(models.Model):
     
 
     def __str__(self):
-        return self.name
+        return self.company_name
 
 class Product(models.Model):
     vendor= models.ForeignKey(Vendor, on_delete=models.CASCADE,null=True, blank=True,db_index=True)
@@ -86,7 +84,7 @@ class Sales(models.Model):
 
 class Purchase(models.Model):
     vendor = models.ForeignKey(Vendor,on_delete=models.CASCADE)
-    product = models.CharField(max_length=300)
+    product = models.ForeignKey(Product,on_delete=models.CASCADE,null=True, blank=True,db_index=True,default="No Available")
     quantity = models.IntegerField()
     price = models.IntegerField()
     created_at=models.DateTimeField(auto_now_add=True)
