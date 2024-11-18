@@ -6,14 +6,17 @@ def LoginView(request):
 
 
 def UserListView(request):
-    return render(request, 'user_list.html')
+    return render(request, 'user.html')
 
 def UserCreateView(request):
-    pass
+    return render(request, 'user_create.html')
 
 def UserUpdateView(request):
-    pass
+    return render(request, 'user_update.html')
 
 def UserDeleteView(request):
-    pass
+    return render(request, 'user_delete.html')
+
+def LogoutView(request):
+    return render(request,"user is logout")
 

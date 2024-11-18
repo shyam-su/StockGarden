@@ -8,11 +8,11 @@
         <div class="card shadow-sm rounded p-3">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <h4 class="display-6 mb-0 text-success">Products</h4>
+                    <h4 class="display-6 mb-0 text-success">Repair</h4>
                 </div>
                 <div class="col-md-6 d-flex justify-content-end gap-2">
-                    <a class="btn btn-success btn-sm rounded-pill shadow-sm" href="{% url 'product_create' %}">
-                        <i class="fa-solid fa-plus"></i> Add Item
+                    <a class="btn btn-success btn-sm rounded-pill shadow-sm" href="{% url 'repair_create' %}">
+                        <i class="fa-solid fa-plus"></i> Add Repair
                     </a>
                     <a class="btn btn-success btn-sm rounded-pill shadow-sm" href="">
                         <i class="fa-solid fa-download"></i> Export to Excel
@@ -20,7 +20,7 @@
                 </div>
             </div>
             <form class="input-group mt-4" role="search" id="searchform" action="" method="get" accept-charset="utf-8">
-                <input id="searchbox" name="q" type="text" class="form-control border-0 rounded-pill shadow-sm" placeholder="Find products">
+                <input id="searchbox" name="q" type="text" class="form-control border-0 rounded-pill shadow-sm" placeholder="Find products for Repair">
                 <button class="btn btn-outline-success rounded-pill shadow-sm" type="submit">
                     <i class="fa-solid fa-search"></i>
                 </button>
@@ -33,15 +33,13 @@
             <thead class="thead-light">
                 <tr>
                     <th scope="col"><a href="">ID <i class="fa-solid fa-sort"></i></a></th>
-                    <th scope="col">Name <i class="fa-solid fa-sort"></i></th>
-                    <th scope="col">Brand <i class="fa-solid fa-sort"></i></th>
-                    <th scope="col">Category <i class="fa-solid fa-sort"></i></th>
-                    <th scope="col">Description <i class="fa-solid fa-sort"></i></th>
-                    <th scope="col">Price <i class="fa-solid fa-sort"></i></th>
-                    <th scope="col">Imei <i class="fa-solid fa-sort"></i></th>
-                    <th scope="col">Image <i class="fa-solid fa-sort"></i></th>
-                    <th scope="col">Stock <i class="fa-solid fa-sort"></i></th>
-                    <th scope="col">Vendor <i class="fa-solid fa-sort"></i></th>
+                    <th scope="col">Customer Name <i class="fa-solid fa-sort"></i></th>
+                    <th scope="col">Product Name <i class="fa-solid fa-sort"></i></th>
+                    <th scope="col">Device Model <i class="fa-solid fa-sort"></i></th>
+                    <th scope="col">Issue Description <i class="fa-solid fa-sort"></i></th>
+                    <th scope="col">Recive Date <i class="fa-solid fa-sort"></i></th>
+                    <th scope="col">Pick Up Date <i class="fa-solid fa-sort"></i></th>
+                    <th scope="col">Status <i class="fa-solid fa-sort"></i></th>
                     <th scope="col">Action</th>
                 </tr>
             </thead>

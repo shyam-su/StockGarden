@@ -68,11 +68,13 @@
 
                 </a>
             </li>
+            <hr>
             <li class="nav-item mb-2">
-                <a class="nav-link text-light {% if request.resolver_match.url_name == 'purchaseslist' %}active{% endif %}" href="{% url 'user_list' %}">
+                <a class="nav-link text-light {% if request.resolver_match.url_name == 'purchaseslist' %}active{% endif %}" href="{% url 'user' %}">
                     <i class="fa fa-users me-2"></i> Accounts
                 </a> 
             </li>
+            <hr>
             <li class="nav-item mb-2 dropdown">
                 <a class="nav-link text-light {% if request.resolver_match.url_name == 'productslist' %}active{% endif %} dropdown-toggle" href="#" id="productsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fa fa-folder me-2"></i> Products
@@ -83,6 +85,7 @@
                     <li><a class="dropdown-item text-light" href="{% url 'brand' %}">Brand</a></li>
                 </ul>
             </li>
+            <hr>
             <li class="nav-item mb-2 dropdown">
                 <a class="nav-link text-light {% if request.resolver_match.url_name == 'productslist' %}active{% endif %} dropdown-toggle" href="#" id="productsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fa-solid fa-layer-group me-2"></i> Stock Master
@@ -93,21 +96,24 @@
                     <li><a class="dropdown-item text-light" href="{% url 'purchase' %}">Purchase</a></li>
                 </ul>
             </li>
+            <hr>
             <li class="nav-item mb-2 dropdown">
                 <a class="nav-link text-light {% if request.resolver_match.url_name == 'productslist' %}active{% endif %} dropdown-toggle" href="#" id="productsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fa-solid fa-screwdriver-wrench me-2"></i> RepairRack
+                    <i class="fa-solid fa-screwdriver-wrench me-2"></i> Repair Rack
                 </a>
                 <ul class="dropdown-menu bg-dark border-0" aria-labelledby="productsDropdown">
-                    <li><a class="dropdown-item text-light" href="{% url 'repair' %}">Repair Orders</a></li>
+                    <li><a class="dropdown-item text-light" href="{% url 'repair' %}">Repair</a></li>
                     <li><a class="dropdown-item text-light" href="{% url 'repair_detail' %}">Repair Details</a></li>
                 </ul>
             </li>
             </li>
+            <hr>
             <li class="nav-item mb-2">
                 <a class="nav-link text-light {% if request.resolver_match.url_name == 'invoicelist' %}active{% endif %}" href="{% url 'invoice' %}">
                     <i class="fa-solid fa-receipt me-2"></i> Invoices
                 </a>
             </li>
+            <hr>
             <li class="nav-item mb-2">
                 <a class="nav-link text-light {% if request.resolver_match.url_name == 'bill_list' %}active{% endif %}" href="{% url 'report' %}">
                     <i class="fa-solid fa-file-invoice me-2"></i> Reports
@@ -117,7 +123,12 @@
         </ul>
     </div>
 
-    <!-- Sidebar Footer -->
+     <!-- Sidebar Footer -->
+    <div class="sidebar-footer position-absolute bottom-0 w-100 text-center py-3 bg-dark border-top border-secondary">
+        <a class="btn btn-danger btn-sm w-75" href="{% url 'logout' %}">
+            <i class="fa fa-sign-out me-2"></i> Logout
+        </a>
+    </div>
 </aside>
 
 <!-- Bootstrap Bundle with Popper.js -->

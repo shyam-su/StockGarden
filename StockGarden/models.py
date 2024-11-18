@@ -1,5 +1,7 @@
 from django.db import models
 from user.models import User
+from django.utils.text import slugify
+import uuid
 
 
 
@@ -30,10 +32,10 @@ class Category(models.Model):
     
 class Vendor(models.Model):
     name = models.ForeignKey(User, on_delete=models.CASCADE,null=True, blank=True,verbose_name="Party Name",db_index=True)
-    email = models.EmailField(unique=True)
+    company_name = models.CharField(max_length=200, blank=True,verbose_name="Company Name")
     address = models.CharField(max_length=300,blank=False,null=False)
     contact_no = models.CharField(max_length=15)
-    company_name = models.CharField(max_length=200)
+    email = models.EmailField(unique=True)
     created_at=models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -54,11 +56,19 @@ class Product(models.Model):
     categories = models.ForeignKey(Category, on_delete=models.CASCADE,null=True, blank=True,db_index=True)
     stock=models.IntegerField(null=True, blank=True,db_index=True)
     brand = models.ForeignKey('Brand', on_delete=models.CASCADE, null=True, blank=True,db_index=True)
+    slug = models.SlugField(max_length=255,null=True, blank=True,db_index=True)
     created_at=models.DateTimeField(auto_now_add=True)
     
     class Meta:
         verbose_name = "Product"
         indexes = [models.Index(fields=['name','description','price','image','categories','stock','brand'])]
+        
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+            while Product.objects.filter(slug=self.slug).exists(): 
+                self.slug = f"{self.slug}-{str(uuid.uuid4())[:8]}"
+        return super(Product, self).save(*args, **kwargs)
 
 
     def __str__(self):
@@ -70,8 +80,10 @@ class Sales(models.Model):
     product = models.ForeignKey(Product,on_delete=models.CASCADE)
     quantity = models.IntegerField()
     price = models.IntegerField()
+    total = models.IntegerField()
     contact_no = models.CharField(max_length=15,null=True, blank=True)
-    created_at=models.DateTimeField(auto_now_add=True)
+    expiring_date = models.DateTimeField(null=True, blank=True)
+    created_at=models.DateTimeField(auto_now_add=True,verbose_name="Sale Date")
     
     class Meta:
         verbose_name = "Seller"
@@ -85,8 +97,10 @@ class Sales(models.Model):
 class Purchase(models.Model):
     vendor = models.ForeignKey(Vendor,on_delete=models.CASCADE)
     product = models.ForeignKey(Product,on_delete=models.CASCADE,null=True, blank=True,db_index=True,default="No Available")
+    description = models.TextField(max_length=300, blank=True, null=True)
     quantity = models.IntegerField()
     price = models.IntegerField()
+    total_value = models.DecimalField(max_digits=10, decimal_places=2)
     created_at=models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -104,18 +118,17 @@ class Repair(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
-    product_id = models.CharField(max_length=100) 
+    product_name = models.CharField(max_length=100) 
     device_model = models.CharField(max_length=100)
     name = models.ForeignKey(User, on_delete=models.CASCADE,null=True, blank=True,verbose_name="Customer Name",db_index=True)
     issue_description = models.TextField() 
     in_date = models.DateTimeField(auto_now_add=True) 
     out_date = models.DateTimeField(null=True, blank=True) 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in-progress')
-    notes = models.TextField(blank=True)
     
     class Meta:
         verbose_name = "Repair Order"
-        indexes = [models.Index(fields=['product_id','device_model','name','in_date','status'])]
+        indexes = [models.Index(fields=['product_name','device_model','in_date','status'])]
     
     def __str__(self):
         return f"{self.device_model} - {self.status} ({self.name})"
@@ -133,6 +146,7 @@ class RepairDetail(models.Model):
     id = models.AutoField(primary_key=True)
     repair_order = models.ForeignKey(Repair, related_name='repair_details', on_delete=models.CASCADE)
     repair_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    fixed_description = models.TextField() 
     repair_action = models.CharField(choices=STATUS_CHOICES, max_length=100)
     action_date = models.DateTimeField(auto_now_add=True)
     

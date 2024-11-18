@@ -6,16 +6,16 @@ def home(request):
     return render(request, 'home.html',)
 
 def BrandListView(request):
-    return render(request, 'home.html',)
+    return render(request, 'brand.html',)
 
 def BrandCreateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'brand_create.html',)
 
 def BrandUpdateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'brand_update.html',)
 
 def BrandDeleteView(request):
-    return render(request, 'home.html',)
+    return render(request, 'brand_delete.html',)
 
 def CategoryListView(request):
     return render(request, 'category.html',)
@@ -54,16 +54,16 @@ def SalesDeleteView(request):
     return render(request, 'sale_delete.html',)
 
 def VendorListView(request):
-    return render(request, 'home.html',)
+    return render(request, 'vendor.html',)
 
 def VendorCreateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'vendor_create.html',)
 
 def VendorUpdateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'vendor_update.html',)
 
 def VendorDeleteView(request):
-    return render(request, 'home.html',)
+    return render(request, 'vendor_delete.html',)
 
 def PurchaseListView(request):
     return render(request, 'purchases.html',)
@@ -78,28 +78,28 @@ def PurchaseDeleteView(request):
     return render(request, 'purchase_delete.html',)
 
 def RepairListView(request):
-    return render(request, 'home.html',)
+    return render(request, 'repair.html',)
 
 def RepairCreateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'repair_create.html',)
 
 def RepairUpdateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'brand_update.html',)
 
 def RepairDeleteView(request):
-    return render(request, 'home.html',)
+    return render(request, 'repair_delete.html',)
 
 def RepairDetailListView(request):
-    return render(request, 'home.html',)
+    return render(request, 'repair_detail.html',)
 
 def RepairDetailCreateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'repair_detail_create.html',)
 
 def RepairDetailUpdateView(request):
-    return render(request, 'home.html',)
+    return render(request, 'repair_detail_update.html',)
 
 def RepairDetailDeleteView(request):
-    return render(request, 'home.html',)
+    return render(request, 'repair_detail_delete.html',)
 
 def InvoiceListView(request):
     return render(request, 'invoice.html',)
