@@ -8,7 +8,7 @@ urlpatterns = [
     path('', home, name='home'),
     
     path('brand/', BrandListView, name='brand'),
-    path('Brand/create/', BrandCreateView,name='brand_create'),
+    path('brand/create/', BrandCreateView, name='brand_create'),
     path('brand/<int:pk>/update/', BrandUpdateView,name='brand_update'),
     path('brand/<int:pk>/delete/', BrandDeleteView,name='brand_delete'),
     

@@ -4,12 +4,10 @@ from django.utils.text import slugify
 import uuid
 
 
-
 # Create your models here.
 class Brand(models.Model):
     name=models.CharField(max_length=255,blank=False,null=False,verbose_name="Brand Name",db_index=True)
-    image=models.ImageField(upload_to='media/brand_imgs/', blank=True,default=True)
-    created_at=models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)  
     
     class Meta:
         verbose_name = "Brand"

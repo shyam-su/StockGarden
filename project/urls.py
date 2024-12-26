@@ -17,10 +17,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path,include
 from user.views import LoginView
+from debug_toolbar.toolbar import debug_toolbar_urls
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('login/', LoginView, name='user-login'),
     path('', include('user.urls')),
     path('', include('StockGarden.urls')),
-]
+
+]+ debug_toolbar_urls()
