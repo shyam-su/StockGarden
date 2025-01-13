@@ -102,6 +102,7 @@ class Purchase(models.Model):
     created_at=models.DateTimeField(auto_now_add=True)
     
     class Meta:
+        ordering = ['id']
         verbose_name = "Purchase"
         indexes = [models.Index(fields=['product','vendor',])]
     
@@ -120,13 +121,14 @@ class Repair(models.Model):
     device_model = models.CharField(max_length=100)
     name = models.ForeignKey(User, on_delete=models.CASCADE,null=True, blank=True,verbose_name="Customer Name",db_index=True)
     issue_description = models.TextField() 
-    in_date = models.DateTimeField(auto_now_add=True) 
     out_date = models.DateTimeField(null=True, blank=True) 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in-progress')
+    created_at=models.DateTimeField(auto_now_add=True)
+
     
     class Meta:
-        verbose_name = "Repair Order"
-        indexes = [models.Index(fields=['product_name','device_model','in_date','status'])]
+        verbose_name = "Repair"
+        indexes = [models.Index(fields=['product_name','device_model','status'])]
     
     def __str__(self):
         return f"{self.device_model} - {self.status} ({self.name})"
@@ -146,14 +148,15 @@ class RepairDetail(models.Model):
     repair_cost = models.DecimalField(max_digits=10, decimal_places=2)
     fixed_description = models.TextField() 
     repair_action = models.CharField(choices=STATUS_CHOICES, max_length=100)
-    action_date = models.DateTimeField(auto_now_add=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+
     
     class Meta:
         verbose_name = "Repair Detail"
-        indexes = [models.Index(fields=['repair_order','repair_action','action_date'])]
+        indexes = [models.Index(fields=['repair_order','repair_action'])]
     
     def __str__(self):
-        return f"{self.repair_order.device_model} - {self.repair_action} ({self.action_date})"
+        return f"{self.repair_order.device_model} - {self.repair_action} "
 
 
  

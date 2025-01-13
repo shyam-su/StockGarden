@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container-fluid"> 
+    <div class="row">
+        <div class="col-12"> 
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Repair Details</h5> 
+                    <a href="{% url 'repair_detail_create' %}" class="btn btn-primary btn-sm">Add New</a>
+                </div>
+                <div class="card-body">      
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="table-primary text-center">
+                                <tr>
+                                    <th style="text-align: left;">ID</th>
+                                    <th style="text-align: left;">Repair Order</th>
+                                    <th style="text-align: left;">Repair Cost</th>
+                                    <th style="text-align: left;">Fixed Description Name</th>
+                                    <th style="text-align: left;">Repair Action</th>
+                                    <th style="text-align: left;">Action Date</th>
+                                    <th style="text-align: left;">Date</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                {% for repd in repairdetail %}
+                                <tr>
+                                    <td style="text-align: left;">{{ repd.id }}</td>
+                                    <td style="text-align: left;">{{ repd.repair_order }}</td>
+                                    <td style="text-align: left;">{{ repd.repair_cost }}</td>
+                                    <td style="text-align: left;">{{ repd.fixed_description }}</td>
+                                    <td style="text-align: left;">{{ repd.repair_action }}</td>
+                                    <td style="text-align: left;">{{ repd.action_date }}</td>
+                                    <td style="text-align: left;">{{ repd.created_at|date:"M d, Y" }}</td>
+                                    <td class="text-center">
+                                        <a href="{% url 'repair_detail_delete' pk=repd.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                        <a href="{% url 'repair_detail_update' pk=repd.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+
+                <!-- Pagination -->
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if repairdetail.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ repairdetail.previous_page_number }}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        <!-- Page Numbers -->
+                        {% for num in repairdetail.paginator.page_range %}
+                            {% if repairdetail.number == num %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                            {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if repairdetail.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ repairdetail.next_page_number }}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ repairdetail.paginator.num_pages }}" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

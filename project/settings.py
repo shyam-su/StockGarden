@@ -151,13 +151,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # This is where uploaded media fil
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # configure the logging
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
+            'format': '{levelname} {asctime} {name} {message}',
             'style': '{',
         },
         'simple': {
@@ -178,15 +177,11 @@ LOGGING = {
             'formatter': 'verbose',
         },
     },
-    'loggers': {
-        'my_app': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'DEBUG',
     },
 }
-
 
 
 # CACHES = {

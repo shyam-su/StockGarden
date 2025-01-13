@@ -17,15 +17,15 @@ urlpatterns = [
     path('category/<int:pk>/update/', CategoryUpdateView,name='category_update'),
     path('category/<int:pk>/delete/', CategoryDeleteView,name='category_delete'),
     
-    path('sales/', SalesListView, name='sales'),
-    path('sales/create/', SalesCreateView,name='sales_create'),
-    path('sales/<int:pk>/update/', SalesUpdateView,name='sales_update'),
-    path('sales/<int:pk>/delete/', SalesDeleteView,name='sales_delete'),
-    
     path('product/', ProductListView, name='product'),
     path('product/create/', ProductCreateView,name='product_create'),
     path('product/<int:pk>/update/', ProductUpdateView,name='product_update'),
     path('product/<int:pk>/delete/', ProductDeleteView,name='product_delete'),
+    
+    path('sales/', SalesListView, name='sales'),
+    path('sales/create/', SalesCreateView,name='sales_create'),
+    path('sales/<int:pk>/update/', SalesUpdateView,name='sales_update'),
+    path('sales/<int:pk>/delete/', SalesDeleteView,name='sales_delete'),
     
     path('vendor/', VendorListView, name='vendor'),
     path('vendor/create/', VendorCreateView,name='vendor_create'),
@@ -43,19 +43,16 @@ urlpatterns = [
     path('repair/<int:pk>/delete/', RepairDeleteView,name='repair_delete'),
     
     path('repair_detail/', RepairDetailListView, name='repair_detail'),
-    path('repair_detail/create/', RepairDetailCreateView,name='repair_detail_create'),
+    path('repair_detail/create/', RepairDetailCreate,name='repair_detail_create'),
     path('repair_detail/<int:pk>/update/', RepairDetailUpdateView,name='repair_detail_update'),
     path('repair_detail/<int:pk>/delete/', RepairDetailDeleteView,name='repair_detail_delete'),
     
     path('invoice/', InvoiceListView, name='invoice'),
     path('invoice/create/', InvoiceCreateView,name='invoice_create'),
     path('invoice/<int:pk>/update/', InvoiceUpdateView,name='invoice_update'),
-    path('invoice/<int:pk>/delete/', InvoiceDeleteView,name='invoice_delete'),
+    path('invoice/<int:pk>/print/', Invoiceprint,name='invoice_print'),
     
     path('report/', ReportListView, name='report'),
-    path('report/create/', ReportCreateView,name='report_create'),
-    path('report/<int:pk>/update/', ReportUpdateView,name='report_update'),
-    path('report/<int:pk>/delete/', ReportDeleteView,name='report_delete'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

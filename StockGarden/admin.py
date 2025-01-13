@@ -37,12 +37,12 @@ class PurchaseAdmin(admin.ModelAdmin):
     
 @admin.register(Repair)
 class RepairOrderAdmin(admin.ModelAdmin):
-    list_display=('product_name','device_model','issue_description','in_date','out_date','status')
+    list_display=('product_name','device_model','issue_description','created_at','out_date','status')
     list_filter=('product_name','device_model','status',)
     
 @admin.register(RepairDetail)
 class RepairDetailAdmin(admin.ModelAdmin):
-    list_display=('repair_order','repair_cost','repair_action','action_date')
+    list_display=('repair_order','repair_cost','repair_action','created_at')
     list_filter=('repair_order','repair_action',)
 
 @admin.register(Invoice)

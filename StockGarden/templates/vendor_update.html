@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container-fluid"> 
+    <div class="row">
+        <div class="col-12"> 
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        {% if brand %}
+                            Edit Brand
+                        {% else %}
+                            Create Brand
+                        {% endif %}
+                    </h5> 
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data"> 
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter Brand Name" 
+                            {% if brand %} value="{{ brand.name }}" {% endif %}>
+                        </div>
+
+                        {% if brand %}
+                            <button type="submit" class="btn btn-primary">Save changes</button>
+                        {% else %}
+                            <button type="submit" class="btn btn-primary">Create</button>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

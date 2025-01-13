@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container-fluid"> 
+    <div class="row">
+        <div class="col-12"> 
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        {% if repair %}
+                            Edit Repair
+                        {% else %}
+                            Create Repair
+                        {% endif %}
+                    </h5> 
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data"> 
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Product Name</label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter Product Name" 
+                            {% if repair %} value="{{ repair.product_name }}" {% endif %}>
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Device Model</label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter Device Model" 
+                            {% if repair %} value="{{ repair.device_model }}" {% endif %}>
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter Brand Name" 
+                            {% if repair %} value="{{ repair.name }}" {% endif %}>
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Issue Description</label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter Issue Description" 
+                            {% if repair %} value="{{ repair.issue_description }}" {% endif %}>
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Out Date</label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter Out Date" 
+                            {% if repair %} value="{{ repair.out_date }}" {% endif %}>
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Status</label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter Status" 
+                            {% if repair %} value="{{ repair.status }}" {% endif %}>
+                        </div>
+
+                        {% if repair %}
+                            <button type="submit" class="btn btn-primary">Save changes</button>
+                        {% else %}
+                            <button type="submit" class="btn btn-primary">Create</button>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
