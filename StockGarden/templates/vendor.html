@@ -18,7 +18,7 @@
                                     <th style="text-align: left;">ID</th>
                                     <th style="text-align: left;">Name</th>
                                     <th style="text-align: left;">Company Name</th>
-                                    <th style="text-align: left;">address</th>
+                                    <th style="text-align: left;">Address</th>
                                     <th style="text-align: left;">Contact No</th>
                                     <th style="text-align: left;">Email</th>
                                     <th style="text-align: left;">Date</th>
@@ -29,11 +29,11 @@
                                 {% for ven in vendors %}
                                 <tr>
                                     <td style="text-align: left;">{{ ven.id }}</td>
-                                    <td style="text-align: left;">{{ ven.name }}</td>
-                                    <td style="text-align: left;">{{ ven.company_name }}</td>
-                                    <td style="text-align: left;">{{ ven.address }}</td>
+                                    <td style="text-align: left;">{{ ven.name|slice:":8" }}</td>
+                                    <td style="text-align: left;">{{ ven.company_name|slice:":20" }}</td>
+                                    <td style="text-align: left;">{{ ven.address|slice:":13" }}</td>
                                     <td style="text-align: left;">{{ ven.contact_no }}</td>
-                                    <td style="text-align: left;">{{ ven.email }}</td>
+                                    <td style="text-align: left;">{{ ven.email|slice:":10" }}</td>
                                     <td style="text-align: left;">{{ ven.created_at|date:"M d, Y" }}</td>
                                     <td class="text-center">
                                         <a href="{% url 'vendor_update' pk=ven.id %}" class="btn btn-sm btn-success me-1">Update</a>

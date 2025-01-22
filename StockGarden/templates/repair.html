@@ -29,10 +29,10 @@
                                 {% for repa in repair %}
                                 <tr>
                                     <td style="text-align: left;">{{ repa.id }}</td>
-                                    <td style="text-align: left;">{{ repa.product_name }}</td>
-                                    <td style="text-align: left;">{{ repa.device_model }}</td>
-                                    <td style="text-align: left;">{{ repa.name }}</td>
-                                    <td style="text-align: left;">{{ repa.issue_description }}</td>
+                                    <td style="text-align: left;">{{ repa.product_name|slice:":12" }}</td>
+                                    <td style="text-align: left;">{{ repa.device_model|slice:":8" }}</td>
+                                    <td style="text-align: left;">{{ repa.name|slice:":10" }}</td>
+                                    <td style="text-align: left;">{{ repa.issue_description|slice:":20" }}</td>
                                     <td style="text-align: left;">{{ repa.out_date }}</td>
                                     <td style="text-align: left;">{{ repa.status }}</td>
                                     <td class="text-center">

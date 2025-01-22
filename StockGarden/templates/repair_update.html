@@ -1,65 +1,74 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
-<div class="container-fluid"> 
+<div class="container-fluid">
     <div class="row">
-        <div class="col-12"> 
+        <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        {% if repair %}
-                            Edit Repair
-                        {% else %}
-                            Create Repair
-                        {% endif %}
-                    </h5> 
+                    <h5 class="mb-0">Update Repair</h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" enctype="multipart/form-data"> 
+                    <form method="post">
                         {% csrf_token %}
                         
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Product Name</label>
-                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter Product Name" 
-                            {% if repair %} value="{{ repair.product_name }}" {% endif %}>
+                        <!-- First Row -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_name">Name</label>
+                                    {{ form.name }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_product_name">Product Name</label>
+                                    {{ form.product_name }}
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Device Model</label>
-                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter Device Model" 
-                            {% if repair %} value="{{ repair.device_model }}" {% endif %}>
+                        
+                        <!-- Second Row -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_device_model">Device Model</label>
+                                    {{ form.device_model }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_issue_description">Issue Description</label>
+                                    {{ form.issue_description }}
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter Brand Name" 
-                            {% if repair %} value="{{ repair.name }}" {% endif %}>
+                        
+                        <!-- Third Row -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_out_date">Out Date</label>
+                                    {{ form.out_date }}
+                                    <small class="form-text text-muted">Format: YYYY-MM-DD</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_status">Status</label>
+                                    {{ form.status }}
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Issue Description</label>
-                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter Issue Description" 
-                            {% if repair %} value="{{ repair.issue_description }}" {% endif %}>
+                        
+                        <!-- Submit Button -->
+                        <div class="form-group text-right">
+                            <button type="submit" class="btn btn-success">Update Repair</button>
                         </div>
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Out Date</label>
-                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter Out Date" 
-                            {% if repair %} value="{{ repair.out_date }}" {% endif %}>
-                        </div>
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Status</label>
-                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter Status" 
-                            {% if repair %} value="{{ repair.status }}" {% endif %}>
-                        </div>
-
-                        {% if repair %}
-                            <button type="submit" class="btn btn-primary">Save changes</button>
-                        {% else %}
-                            <button type="submit" class="btn btn-primary">Create</button>
-                        {% endif %}
                     </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock content %}

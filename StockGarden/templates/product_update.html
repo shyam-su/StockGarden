@@ -7,24 +7,70 @@
         <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        {% if product %}
-                            Edit Product
-                        {% else %}
-                            Create Product
-                        {% endif %}
-                    </h5>
+                    <h5 class="mb-0">Create Product</h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" enctype="multipart/form-data">
+                    <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
-                        {{ form.as_p }}  <!-- Dynamically render all fields from the ProductForm -->
+                        
+                        <!-- Vendor and Product Name -->
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.vendor.id_for_label }}">Vendor</label>
+                                {{ form.vendor }}
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.name.id_for_label }}">Product Name</label>
+                                {{ form.name }}
+                            </div>
+                        </div>
 
-                        {% if product %}
-                            <button type="submit" class="btn btn-primary">Save Changes</button>
-                        {% else %}
-                            <button type="submit" class="btn btn-primary">Create Product</button>
-                        {% endif %}
+                        <!-- Description and Price -->
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.description.id_for_label }}">Description</label>
+                                {{ form.description }}
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.price.id_for_label }}">Price</label>
+                                {{ form.price }}
+                            </div>
+                        </div>
+
+                        <!-- IMEI and Image -->
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.Imei.id_for_label }}">IMEI</label>
+                                {{ form.Imei }}
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.image.id_for_label }}">Image</label>
+                                {{ form.image }}
+                            </div>
+                        </div>
+
+                        <!-- Categories and Stock -->
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.categories.id_for_label }}">Categories</label>
+                                {{ form.categories }}
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.stock.id_for_label }}">Stock Quantity</label>
+                                {{ form.stock }}
+                            </div>
+                        </div>
+
+                        <!-- Brand and Slug -->
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.brand.id_for_label }}">Brand</label>
+                                {{ form.brand }}
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-primary">{{ action }} Create</button>
                     </form>
                 </div>
             </div>

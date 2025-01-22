@@ -1,24 +1,38 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
-<div class="container-fluid"> 
+<div class="container-fluid">
     <div class="row">
-        <div class="col-12"> 
+        <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Create Brand</h5> 
+                    <h5 class="mb-0">Create Brand</h5>
                 </div>
                 <div class="card-body">
-                    <form method="post">
+                    <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
-                        {{ form.as_p }}
-                        <button type="submit" class="btn btn-primary">Create</button>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="brand_name" class="form-label">Brand Name</label>
+                                {{ form.name }}
+                            </div>
+                            <div class="form-group">
+                                <label for="id_image">Brand Image</label>
+                                {{ form.image }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 text-end">
+                                <button type="submit" class="btn btn-primary">Create</button>
+                                <a href="{% url 'brand' %}" class="btn btn-secondary">Cancel</a>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock content %}

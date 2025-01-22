@@ -1,56 +1,57 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        {% if repairdetail %}
-                            Update Repair Details
-                        {% else %}
-                            Create Repair Details
-                        {% endif %}
-                    </h5>
+                    <h5 class="mb-0">Update Repair Detail</h5>
                 </div>
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
                         
-                        <div class="form-group">
-                            <label for="repair_order">Repair Order</label>
-                            {{ form.repair_order }}
+                        <!-- First Row -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_repair_order">Repair Order</label>
+                                    {{ form.repair_order }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_repair_cost">Repair Cost</label>
+                                    {{ form.repair_cost }}
+                                </div>
+                            </div>
                         </div>
-
-                        <div class="form-group">
-                            <label for="repair_cost">Repair Cost</label>
-                            {{ form.repair_cost }}
+                        
+                        <!-- Second Row -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_fixed_description">Fixed Description</label>
+                                    {{ form.fixed_description }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_repair_action">Repair Action</label>
+                                    {{ form.repair_action }}
+                                </div>
+                            </div>
                         </div>
-
-                        <div class="form-group">
-                            <label for="fixed_description">Fixed Description</label>
-                            {{ form.fixed_description }}
+                        
+                        <!-- Submit Button -->
+                        <div class="form-group text-right">
+                            <button type="submit" class="btn btn-success">Update Repair Detail</button>
                         </div>
-
-                        <div class="form-group">
-                            <label for="repair_action">Repair Action</label>
-                            {{ form.repair_action }}
-                        </div>
-
-                        <button type="submit" class="btn btn-primary">
-                            {% if repairdetail %}
-                                Update
-                            {% else %}
-                                Create
-                            {% endif %}
-                        </button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock content %}

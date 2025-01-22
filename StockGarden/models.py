@@ -7,6 +7,7 @@ import uuid
 # Create your models here.
 class Brand(models.Model):
     name=models.CharField(max_length=255,blank=False,null=False,verbose_name="Brand Name",db_index=True)
+    image=models.ImageField(upload_to='media/brands_imgs/',null=True, blank=True,db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)  
     
     class Meta:
@@ -144,7 +145,7 @@ class RepairDetail(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
-    repair_order = models.ForeignKey(Repair, related_name='repair_details', on_delete=models.CASCADE)
+    repair_order = models.ForeignKey(Repair, related_name='repair_details', on_delete=models.CASCADE,)
     repair_cost = models.DecimalField(max_digits=10, decimal_places=2)
     fixed_description = models.TextField() 
     repair_action = models.CharField(choices=STATUS_CHOICES, max_length=100)
@@ -156,7 +157,7 @@ class RepairDetail(models.Model):
         indexes = [models.Index(fields=['repair_order','repair_action'])]
     
     def __str__(self):
-        return f"{self.repair_order.device_model} - {self.repair_action} "
+        return f"{self.repair_order.device_model}"
 
 
  

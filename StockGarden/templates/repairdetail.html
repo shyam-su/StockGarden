@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-
 {% block content %}
 
 <div class="container-fluid"> 
@@ -20,7 +19,6 @@
                                     <th style="text-align: left;">Repair Cost</th>
                                     <th style="text-align: left;">Fixed Description Name</th>
                                     <th style="text-align: left;">Repair Action</th>
-                                    <th style="text-align: left;">Action Date</th>
                                     <th style="text-align: left;">Date</th>
                                     <th style="text-align: center;">Actions</th>
                                 </tr>
@@ -29,11 +27,10 @@
                                 {% for repd in repairdetail %}
                                 <tr>
                                     <td style="text-align: left;">{{ repd.id }}</td>
-                                    <td style="text-align: left;">{{ repd.repair_order }}</td>
+                                    <td style="text-align: left;">{{ repd.repair_order|slice:":12" }}</td>
                                     <td style="text-align: left;">{{ repd.repair_cost }}</td>
-                                    <td style="text-align: left;">{{ repd.fixed_description }}</td>
+                                    <td style="text-align: left;">{{ repd.fixed_description|slice:":20" }}</td>
                                     <td style="text-align: left;">{{ repd.repair_action }}</td>
-                                    <td style="text-align: left;">{{ repd.action_date }}</td>
                                     <td style="text-align: left;">{{ repd.created_at|date:"M d, Y" }}</td>
                                     <td class="text-center">
                                         <a href="{% url 'repair_detail_delete' pk=repd.id %}" class="btn btn-sm btn-danger">Delete</a>

@@ -18,7 +18,7 @@ def home(request):
 
 def BrandListView(request):
     try:
-        brands = Brand.objects.all()
+        brands = Brand.objects.all().order_by('-id')
         paginator = Paginator(brands, 10)  
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
@@ -37,10 +37,10 @@ def BrandCreateView(request, brand_id=None):
     try:
         if brand_id:  # Check if we are updating an existing brand
             brand = get_object_or_404(Brand, id=brand_id)
-            form = BrandForm(request.POST or None, instance=brand)
+            form = BrandForm(request.POST or None, request.FILES or None, instance=brand)
             action = "Update"
         else:  # Creating a new brand
-            form = BrandForm(request.POST or None)
+            form = BrandForm(request.POST or None, request.FILES or None)
             action = "Create"
 
         if request.method == 'POST':
@@ -50,6 +50,12 @@ def BrandCreateView(request, brand_id=None):
                 return redirect('brand')  # Redirect to the brand list view after successful creation/update
 
         return render(request, 'brand_create.html', {'form': form, 'action': action})
+    
+    except Exception as e:
+        # Log or handle any unexpected errors
+        print(e)
+        messages.error(request, 'An error occurred. Please try again later.')
+        return redirect('brand')
 
     except Exception as e:
         logger.error(f"Error in BrandCreateView: {e}")
@@ -61,14 +67,14 @@ def BrandUpdateView(request, pk):
         brand = get_object_or_404(Brand, pk=pk)
 
         if request.method == 'POST':
-            form = BrandForm(request.POST, instance=brand)
+            form = BrandForm(request.POST or None, request.FILES or None, instance=brand)
             if form.is_valid():
                 form.save()
                 # Add a success message after updating
                 messages.success(request, f"The brand '{brand.name}' has been successfully updated.")
                 return redirect('brand')  # Redirect back to the brand list page after saving
         else:
-            form = BrandForm(instance=brand)
+            form = BrandForm(request.POST or None, request.FILES or None, instance=brand)
 
         return render(request, 'brand_update.html', {'form': form, 'brand': brand})
 
@@ -283,18 +289,20 @@ def SalesCreateView(request,sales_id=None):
         messages.error(request, 'An error occurred while processing the sales.')
         return render(request, '404.html', {"message": "An error occurred."})
 
-def SalesUpdateView(request,pk):
+def SalesUpdateView(request, pk):
     try:
-        sales=get_object_or_404(Sales,pk=pk)
-        if request.method == 'post':
-            form=SalesForm(request.POST or None,instance=sales)
+        sales = get_object_or_404(Sales, pk=pk)
+
+        if request.method == 'POST':  # Fixing method check
+            form = SalesForm(request.POST, instance=sales)  # Changed to request.POST
             if form.is_valid():
                 form.save()
-                messages.success(request,f'Sales updated successfully!')
-                return redirect('sales')
+                messages.success(request, f'Sales updated successfully!')
+                return redirect('sales')  # Ensure 'sales' is a valid URL name
         else:
-            form=SalesForm(instance=sales)
-        return render(request, 'sales_update.html',{'form':form,'sales':sales})
+            form = SalesForm(instance=sales)  # Initialize form without POST data
+
+        return render(request, 'sales_update.html', {'form': form, 'sales': sales})
     except Exception as e:
         logger.error(f"Error in SalesUpdateView: {e}")
         messages.error(request, 'An error occurred while processing the sales.')
@@ -308,7 +316,7 @@ def SalesDeleteView(request,pk):
             sales.delete()
             messages.success(request,f'Sales {sales_name} deleted successfully!')
             return redirect('sales')
-        return render(request, 'sale_delete.html',{'sales':sales})
+        return render(request, 'sales_delete.html',{'sales':sales})
     except Exception as e:
         logger.error(f"Error in SalesDeleteView: {e}")
         messages.error(request, 'An error occurred while processing the sales.')
@@ -331,13 +339,13 @@ def VendorListView(request):
 def VendorCreateView(request,vendor_id=None):
     try:
         if vendor_id:
-            vendor = get_object_or_404(vendor,id =vendor_id)
-            form =VendorForm(request.post or None,instance=vendor)
+            vendor = get_object_or_404(Vendor,id=vendor_id)
+            form =VendorForm(request.POST or None,instance=vendor)
             action = 'update'
         else:
-            form = VendorForm(request.post or None)
+            form = VendorForm(request.POST or None)
             action = 'create'
-        if request.method == 'post':
+        if request.method == 'POST':
             if form.is_valid():
                 form.save()
                 messages.success(request,f'Vendor {action.lower()}d successfully!')
@@ -351,8 +359,8 @@ def VendorCreateView(request,vendor_id=None):
 def VendorUpdateView(request,pk):
     try:
         vendor=get_object_or_404(Vendor,pk=pk)
-        if request.method == 'post':
-            form=VendorForm(Vendor,instance=vendor)
+        if request.method == 'POST':
+            form=VendorForm(request.POST or None,instance=vendor)
             if form.is_valid():
                 form.save()
                 messages.success(request,f'Vendor updated successfully!')
@@ -403,11 +411,11 @@ def PurchaseCreateView(request,pruchase_id=None):
         else:
             form=PurchaseForm(request.POST or None)
             action='create'
-        if request.method == 'post':
+        if request.method == 'POST':
             if form.is_valid():
                 form.save()
                 messages.success(request,f'Purchase {action.lower()}d successfully!')
-                return redirect('purchases')
+                return redirect('purchase')
         return render(request, 'purchases_create.html',{'form':form,'action':action})
     except Exception as e:
         logger.error(f"Error in PurchaseCreateView: {e}")
@@ -422,7 +430,7 @@ def PurchaseUpdateView(request,pk):
             if form.is_valid():
                 form.save()
                 messages.success(request,f'Purchase updated successfully!')
-                return redirect('purchases')
+                return redirect('purchase')
         else:
             form = PurchaseForm(instance=purchase)
             return render(request, 'purchases_update.html',{'form':form,'purchase':purchase})
@@ -435,15 +443,15 @@ def PurchaseDeleteView(request,pk):
     try:
         purchase= get_object_or_404(Purchase,pk=pk)
         if request.method == 'POST':
-            purchase_name=purchase.nam
+            purchase_name=purchase.product.name
             purchase.delete()
             messages.success(request,f'Purchase {purchase_name} deleted successfully!')
-            return redirect('purchases')
+            return redirect('purchase')
         return render(request, 'purchase_delete.html',{'purchase':purchase})
     except Exception as e:
         logger.error(f"Error in PurchaseDeleteView: {e}")
         messages.error(request, 'An error occurred while processing the purchase.')
-        return render(request, '404.html', {"message": "An error occurred."})
+        # return render(request, '404.html', {"message": "An error occurred."})
 
 def RepairListView(request):
     try:
@@ -469,7 +477,7 @@ def RepairCreateView(request,repair_id=None):
         else:
             form=RepairForm(request.POST or None)
             action='create'
-        if request.method == 'post':
+        if request.method == 'POST':
             if form.is_valid():
                 form.save()
                 messages.success(request,f'Repair {action.lower()}d successfully!')
@@ -483,7 +491,7 @@ def RepairCreateView(request,repair_id=None):
 def RepairUpdateView(request,pk):
     try:
         repair=get_object_or_404(Repair,pk=pk)
-        if request.method =='post':
+        if request.method =='POST':
             form=RepairForm(request.POST or None,instance=repair)
             if form.is_valid():
                 form.save()
@@ -499,8 +507,8 @@ def RepairUpdateView(request,pk):
 
 def RepairDeleteView(request,pk):
     try:
-        repair=get_object_or_404(RepairDetail,pk=pk)
-        if request.method == 'post':
+        repair=get_object_or_404(Repair,pk=pk)
+        if request.method == 'POST':
             repair_name=repair.name
             repair.delete()
             messages.success(request,f'Repair {repair_name} deleted successfully!')
@@ -535,11 +543,11 @@ def RepairDetailCreate(request,repairde_id=None):
         else:
             form = RepairDetailForm(request.POST or None)
             action = 'Create'
-            if request.method == 'Post':
+            if request.method == 'POST':
                 if form.is_valid():
                     form.save()
                     messages.success(request,f'Repair Detail {action.lower()}d successfully!')
-                    return redirect('repairdetail')
+                    return redirect('repair_detail')
             return render(request, 'repair_detail_create.html',{'form':form,'action':action})
     except Exception as e:
         logger.error(f"Error in RepairDetailCreateView: {e}")
@@ -554,7 +562,7 @@ def RepairDetailUpdateView(request,pk):
             if form.is_valid():
                 form.save()
                 messages.success(request,f'Repair Detail updated successfully!')
-                return redirect('repairdetail')
+                return redirect('repair_detail')
         else:
             form =RepairDetailForm(instance=repairdetail)
             return render(request, 'repair_detail_update.html', {'form': form, 'repairdetail': repairdetail})
@@ -563,18 +571,27 @@ def RepairDetailUpdateView(request,pk):
         messages.error(request, 'An error occurred while processing the repair detail.')
         return render(request, '404.html', {"message": "An error occurred."})
     
-def RepairDetailDeleteView(request,pk):
+def RepairDetailDeleteView(request, pk):
     try:
-        repairdetail=get_object_or_404(RepairDetail,pk=pk)
-        if request.method == 'post':
-            repairdetail_name=repairdetail.name
+        # Retrieve the repair detail object or raise 404
+        repairdetail = get_object_or_404(RepairDetail, pk=pk)
+
+        if request.method == 'POST':
+            # Safely access the product name
+            repairdetail_name = repairdetail.repair_order.product_name
             repairdetail.delete()
-            messages.success(request,f'Repair Detail {repairdetail_name} deleted successfully!')
-            return redirect('repairdetail')
-        return render(request, 'repair_detail_delete.html',{'repairdetail':repairdetail})
+
+            # Success message and redirect
+            messages.success(request, f"Repair Detail '{repairdetail_name}' deleted successfully!")
+            return redirect('repair_detail')  # Ensure this URL name is correct
+
+        # Render the confirmation template
+        return render(request, 'repair_detail_delete.html', {'repairdetail': repairdetail, 'deleted': False})
+
     except Exception as e:
-        logger.error(f"Error in RepairDetailDeleteView: {e}")
-        messages.error(request, 'An error occurred while processing the repair detail.')
+        # Log the error and display an error message
+        logger.error(f"Error in RepairDetailDeleteView: {e}", exc_info=True)
+        messages.error(request, 'An error occurred while processing the repair detail. Please try again later.')
         return render(request, '404.html', {"message": "An error occurred."})
 
 def InvoiceListView(request):

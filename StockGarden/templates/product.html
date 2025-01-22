@@ -2,54 +2,53 @@
 
 {% block content %}
 
-<div class="container-fluid"> 
+<div class="container-fluid">
     <div class="row">
-        <div class="col-12"> 
+        <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Products</h5> 
+                    <h5 class="mb-0">Products</h5>
                     <a href="{% url 'product_create' %}" class="btn btn-primary btn-sm">Add New</a>
                 </div>
-                <div class="card-body">      
+                <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
                             <thead class="table-primary text-center">
                                 <tr>
-                                    <th style="text-align: left;">ID</th>
-                                    <th style="text-align: left;">Name</th>
-                                    <th style="text-align: left;">Vendor</th>
-                                    <th style="text-align: left;">Description</th>
-                                    <th style="text-align: left;">Price</th>
-                                    <th style="text-align: left;">Imei</th>
-                                    <th style="text-align: left;">Image</th>
-                                    <th style="text-align: left;">Categories</th>
-                                    <th style="text-align: left;">Stock</th>
-                                    <th style="text-align: left;">Brand</th>
-                                    <th style="text-align: left;">Date</th>
-                                    <th style="text-align: center;">Actions</th>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Vendor</th>
+                                    <th>Description</th>
+                                    <th>Price</th>
+                                    <th>Imei</th>
+                                    <th>Image</th>
+                                    <th>Categories</th>
+                                    <th>Stock</th>
+                                    <th>Brand</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody">
                                 {% for pro in product %}
                                 <tr>
-                                    <td style="text-align: left;">{{ pro.id }}</td>
-                                    <td style="text-align: left;">{{ pro.name }}</td>
-                                    <td style="text-align: left;">{{ pro.vendor }}</td>
-                                    <td style="text-align: left;">{{ pro.description }}</td>
-                                    <td style="text-align: left;">{{ pro.price }}</td>
-                                    <td style="text-align: left;">{{ pro.Imei }}</td>
-                                    <td style="text-align: left;">
+                                    <td>{{ pro.id }}</td>
+                                    <td>{{ pro.name|slice:":6" }}</td>
+                                    <td>{{ pro.vendor.company_name|slice:":5" }}</td>
+                                    <td>{{ pro.description|slice:":10" }}</td>
+                                    <td>{{ pro.price|slice:":4" }}</td>
+                                    <td>{{ pro.Imei|slice:":7" }}</td>
+                                    <td>
                                         {% if pro.image %}
-                                            <img src="{{ pro.image.url }}" alt="{{ pro.name }}" style="max-width: 100px; max-height: 100px;">
+                                            <img src="{{ pro.image.url }}" alt="{{ pro.name }}" style="max-width: 80px; max-height: 70px;">
                                         {% else %}
                                             No image available
                                         {% endif %}
                                     </td>
-                                    
-                                    <td style="text-align: left;">{{ pro.categories }}</td>
-                                    <td style="text-align: left;">{{ pro.stock }}</td>
-                                    <td style="text-align: left;">{{ pro.brand }}</td>
-                                    <td style="text-align: left;">{{ pro.created_at }}</td>
+                                    <td>{{ pro.categories|slice:":5" }}</td>
+                                    <td>{{ pro.stock|slice:":5" }}</td>
+                                    <td>{{ pro.brand.name|slice:":5" }}</td>
+                                    <td>{{ pro.created_at|date:"Y-m-d"|slice:":10" }}</td>
                                     <td class="text-center">
                                         <a href="{% url 'product_update' pk=pro.id %}" class="btn btn-sm btn-success me-1">Update</a>
                                         <a href="{% url 'product_delete' pk=pro.id %}" class="btn btn-sm btn-danger">Delete</a>
@@ -60,7 +59,6 @@
                         </table>
                     </div>
                 </div>
-                
 
                 <!-- Pagination -->
                 <nav class="mt-4">
@@ -123,7 +121,6 @@
                         {% endif %}
                     </ul>
                 </nav>
-
             </div>
         </div>
     </div>

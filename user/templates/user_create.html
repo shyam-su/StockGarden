@@ -1,24 +1,78 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
-<div class="container-fluid"> 
+<div class="container-fluid">
     <div class="row">
-        <div class="col-12"> 
+        <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Create Brand</h5> 
+                    <h5 class="mb-0">Create User</h5>
                 </div>
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
-                        {{ form.as_p }}
-                        <button type="submit" class="btn btn-primary">Create</button>
+                        
+                        <!-- First Row -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_full_name">Full Name</label>
+                                    {{ form.full_name }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_address">Address</label>
+                                    {{ form.address }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Second Row -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_phone">Phone</label>
+                                    {{ form.phone }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_email">Email</label>
+                                    {{ form.email }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Third Row -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_role">Role</label>
+                                    {{ form.role }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_is_active">Active Status</label>
+                                    <div class="form-check">
+                                        {{ form.is_active }}
+                                        <label class="form-check-label" for="id_is_active">
+                                            Active
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="form-group text-right mt-4">
+                            <button type="submit" class="btn btn-primary">Create User</button>
+                        </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock content %}
