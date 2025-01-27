@@ -47,7 +47,7 @@ class RepairDetailAdmin(admin.ModelAdmin):
 
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
-    list_display=('product','price','quantity','total_price','payment_method','status','created_at','updated_at',)
+    list_display=('sales','discount','payment_method','status','created_at','updated_at',)
     list_filter = ('payment_method', 'status',)
     
     

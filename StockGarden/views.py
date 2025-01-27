@@ -6,6 +6,8 @@ import logging
 from django.core.paginator import Paginator
 from django.contrib import messages  
 import pickle as pk
+from django.db.models import Avg, Sum, Min, Max, Count
+
 
 
 
@@ -14,23 +16,44 @@ import pickle as pk
 # Set up logging
 logger = logging.getLogger(__name__)
 def home(request):
-    return render(request, 'home.html',)
+    try:
+        total = Sales.objects.aggregate(Sum('total'))
+        total_products = Product.objects.count()
+        pending_repairs = Repair.objects.filter(status='in-progress').count()
+        context={
+            'total':total,
+            'total_product':total_products,
+            'pending_repairs':pending_repairs
+        }
+        return render(request, 'home.html', context)
+    except Exception as e:
+        logger.error(f"Error in home view: {e}")
+        messages.error(request, 'An error occurred while loading the brand list.')
+    return render(request, '404.html', {"message": "An error occurred while loading the brand list."})
+
 
 def BrandListView(request):
     try:
+        # Fetch all brands and order them by ID (descending)
         brands = Brand.objects.all().order_by('-id')
-        paginator = Paginator(brands, 10)  
-        page_number = request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
+        
+        # Paginate the brands, showing 10 per page
+        paginator = Paginator(brands, 10)
+        page_number = request.GET.get('page')  # Get the current page number from the request
+        page_obj = paginator.get_page(page_number)  # Get the page object
 
+        # Context to be passed to the template
         context = {"brand": page_obj}
-        return render(request, 'brand.html', context)
+        return render(request, 'brand.html', context)  # Render the template with context
     except Exception as e:
+        # Log the exception for debugging
         logger.error(f"Error in BrandListView: {e}")
-        # Add an error message if something goes wrong
+        
+        # Add an error message to display to the user
         messages.error(request, 'An error occurred while loading the brand list.')
-
-        return render(request, '404.html', {"message": "An error occurred."})
+        
+        # Optionally, render an error page or redirect to a fallback page
+        return render(request, '404.html', {"message": "An error occurred while loading the brand list."})
 
 
 def BrandCreateView(request, brand_id=None):
@@ -113,7 +136,7 @@ def BrandDeleteView(request, pk):
 
 def CategoryListView(request):
     try:
-        category =Category.objects.all()
+        category =Category.objects.all().order_by('-id')
         paginator =Paginator(category,10)
         page_number =request.GET.get('page')
         page_obj = paginator.get_page(page_number)
@@ -181,7 +204,7 @@ def CategoryDeleteView(request,pk):
 
 def ProductListView(request):
     try:
-        product =Product.objects.all()
+        product =Product.objects.all().order_by('-id')
         paginator =Paginator(product,10)
         page_number =request.GET.get('page')
         page_obj =paginator.get_page(page_number)
@@ -257,7 +280,7 @@ def ProductDeleteView(request,pk):
 
 def SalesListView(request):
     try:
-        sales = Sales.objects.all()
+        sales = Sales.objects.all().order_by('-id')
         paginator = Paginator(sales, 10)  # Show 10 sales per page
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
@@ -618,7 +641,7 @@ def InvoiceCreateView(request,invoice_id=None):
         else:
             form=InvoiceForm(request.POST or None)
             action='create'
-        if request.method == 'post':
+        if request.method == 'POST':
             if form.is_valid():
                 form.save()
                 messages.success(request, f'Invoice {action.lower()}d successfully!')

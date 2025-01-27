@@ -174,23 +174,19 @@ class Invoice(models.Model):
         ('Full Payment', 'Full Payment'),
         ('Pending', 'Pending'),  
     }
-    name = models.ForeignKey(User, on_delete=models.CASCADE,null=True, blank=True,verbose_name="Customer Name",db_index=True)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    quantity = models.PositiveIntegerField()
-    total_price=models.DecimalField(max_digits=10, decimal_places=2)
+    sales=models.ForeignKey(Sales,on_delete=models.CASCADE)
+    discount=models.IntegerField(null=True, blank=True)
     payment_method=models.CharField(max_length=255,choices=Payment_Method ,db_index=True)
-    contact_no = models.CharField(max_length=15,null=True, blank=True)
     status=models.CharField(max_length=255,choices=Status,db_index=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
     
     class Meta:
         verbose_name = "Invoice"
-        indexes = [models.Index(fields=['product','payment_method','status'])]
+        indexes = [models.Index(fields=['sales','payment_method','status'])]
 
     def __str__(self):
-        return f"{self.quantity} x {self.product}"
+        return f"{self.sales.quantity} x {self.sales.product}"
  
 class Report(models.Model):
     Total_sells = models.IntegerField(null=True, blank=True,db_index=True)

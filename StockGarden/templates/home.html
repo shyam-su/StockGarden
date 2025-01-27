@@ -21,8 +21,15 @@
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
                                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                            Earnings (Monthly)</div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800">रु 40,000</div>
+                                            Earnings (Monthly)
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                            {% if total.total__sum %}
+                                                रु {{ total.total__sum }}
+                                            {% else %}
+                                                रु 0
+                                            {% endif %}
+                                        </div>
                                     </div>
                                     <div class="col-auto">
                                         <i class="fas fa-money-bill fa-2x text-gray-300"></i>
@@ -40,7 +47,13 @@
                                     <div class="col mr-2">
                                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                                             Products </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800">$215,000</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                {% if total_product %}
+                                                     {{ total_product }}
+                                                {% else %}
+                                                     0
+                                                {% endif %}
+                                            </div>
                                     </div>
                                     <div class="col-auto">
                                         <i class="fas fa-folder fa-2x text-gray-300"></i>
@@ -85,16 +98,22 @@
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                            Pending Repair</div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800">18</div>
+                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                            Pending Repair </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                {% if pending_repairs %}
+                                                    {{ pending_repairs }}
+                                                {% else %}
+                                                    0
+                                                {% endif %}
+                                            </div>
                                     </div>
                                     <div class="col-auto">
                                         <i class="fas fa-screwdriver-wrench fa-2x text-gray-300"></i>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div>   
                     </div>
                 </div>
 

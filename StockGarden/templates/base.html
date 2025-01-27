@@ -321,17 +321,26 @@
     <!-- Page level custom scripts -->
     <script src="{% static 'js/demo/chart-area-demo.js' %}"></script>
     <script src="{% static 'js/demo/chart-pie-demo.js' %}"></script>
+        <!-- Custom scripts for all pages-->
+    <script src="{% static 'js/sb-admin-2.min.js' %}"></script>
 
-    <script>
-        setTimeout(() => {
-    const alert = document.querySelector('.alert');
-    if (alert) {
-        alert.classList.remove('show');
-        alert.classList.add('fade');
-    }
-}, 150); // Hide the alert after 5 seconds
+    <!-- Page level plugins -->
+    <script src="{% static 'vendor/datatables/jquery.dataTables.min.js' %}"></script>
+    <script src="{% static 'vendor/datatables/dataTables.bootstrap4.min.js' %}"></script>
 
-    </script>
+    <!-- Page level custom scripts -->
+    <!-- <script src="{% static 'js/demo/datatables-demo.js' %}"></script> -->
+    <!-- Custom scripts for all pages-->
+    <script src="{% static 'js/sb-admin-2.min.js' %}"></script>
+
+    <!-- Page level plugins -->
+    <!-- <script src="{% static 'vendor/datatables/jquery.dataTables.min.js' %}"></script>
+    <script src="{% static 'vendor/datatables/dataTables.bootstrap4.min.js' %}"></script>
+
+    <!-- Page level custom scripts -->
+    <!-- <script src="{% static 'js/demo/datatables-demo.js' %}"></script> --> -->
+
+
 
 </body>
 

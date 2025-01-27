@@ -17,14 +17,14 @@
                                 <tr>
                                     <th style="text-align: left;">ID</th>
                                     <th style="text-align: left;">Name</th>
-                                    <th style="text-align: left;">product</th>
-                                    <th style="text-align: left;">price</th>
-                                    <th style="text-align: left;">quantity</th>
-                                    <th style="text-align: left;">total_price</th>
-                                    <th style="text-align: left;">payment_method</th>
-                                    <th style="text-align: left;">contact_no</th>
-                                    <th style="text-align: left;">status</th>
-                                    <th style="text-align: left;">created_at</th>
+                                    <th style="text-align: left;">Product</th>
+                                    <th style="text-align: left;">Price</th>
+                                    <th style="text-align: left;">Quantity</th>
+                                    <th style="text-align: left;">Total Price</th>
+                                    <th style="text-align: left;">Payment Method</th>
+                                    <th style="text-align: left;">Contact No</th>
+                                    <th style="text-align: left;">Status</th>
+                                    <th style="text-align: left;">Created</th>
                                     <th style="text-align: center;">Actions</th>
                                 </tr>
                             </thead>
@@ -32,18 +32,18 @@
                                 {% for invo in invoice %}
                                 <tr>
                                     <td style="text-align: left;">{{ invo.id }}</td>
-                                    <td style="text-align: left;">{{ invo.name }}</td>
-                                    <td style="text-align: left;">{{ invo.product }}</td>
-                                    <td style="text-align: left;">{{ invo.price }}</td>
-                                    <td style="text-align: left;">{{ invo.quantity }}</td>
-                                    <td style="text-align: left;">{{ invo.total_price }}</td>
+                                    <td style="text-align: left;">{{ invo.sales.name }}</td>
+                                    <td style="text-align: left;">{{ invo.sales.product }}</td>
+                                    <td style="text-align: left;">{{ invo.sales.price }}</td>
+                                    <td style="text-align: left;">{{ invo.sales.quantity }}</td>
+                                    <td style="text-align: left;">{{ invo.sales.total }}</td>
                                     <td style="text-align: left;">{{ invo.payment_method }}</td>
-                                    <td style="text-align: left;">{{ invo.contact_no }}</td>
+                                    <td style="text-align: left;">{{ invo.sales.contact_no }}</td>
                                     <td style="text-align: left;">{{ invo.status }}</td>
                                     <td style="text-align: left;">{{ invo.created_at|date:"M d, Y" }}</td>
                                     <td class="text-center">
-                                        <a href="{% url 'invoice_update' pk=invo.id %}" class="btn btn-sm btn-success me-1">Update</a>
                                         <a href="{% url 'invoice_print' pk=invo.id %}" class="btn btn-sm btn-danger">Print</a>
+                                        <a href="{% url 'invoice_update' pk=invo.id %}" class="btn btn-sm btn-success me-1">Update</a>
                                     </td>
                                 </tr>
                                 {% endfor %}

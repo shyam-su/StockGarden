@@ -279,7 +279,7 @@ class PurchaseForm(forms.ModelForm):
                     "id": "product",
                 }
             ),
-            "description": forms.TextInput(
+            "description": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter Description",
@@ -351,7 +351,7 @@ class RepairForm(forms.ModelForm):
                     "id": "device_model",
                 }
             ),
-            "issue_description": forms.TextInput(
+            "issue_description": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter Issue Description ",
@@ -402,7 +402,7 @@ class RepairDetailForm(forms.ModelForm):
                     "id": "repair_cost",
                 }
             ),
-            "fixed_description": forms.TextInput(
+            "fixed_description": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter Fixed Description",
@@ -429,49 +429,24 @@ class InvoiceForm(forms.ModelForm):
     class Meta:
         model = Invoice
         fields = [
-            "name",
-            "product",
-            "price",
-            "quantity",
-            "total_price",
+            'sales',
+            'discount',
             "payment_method",
-            "contact_no",
             "status",
         ]
         widgets = {
-            "name": forms.Select(
+            "sales": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Name",
-                    "id": "name",
+                    "placeholder": "Enter Sales",
+                    "id": "sales",
                 }
             ),
-            "product": forms.Select(
+            "discount": forms.TextInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Product Name",
-                    "id": "product",
-                }
-            ),
-            "price": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Price",
-                    "id": "price",
-                }
-            ),
-            "quantity": forms.Select(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Quantity",
-                    "id": "quantity",
-                }
-            ),
-            "total_price": forms.Select(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Total Price",
-                    "id": "total_price",
+                    "placeholder": "Enter Discount",
+                    "id": "discount",
                 }
             ),
             "payment_method": forms.Select(
@@ -479,13 +454,6 @@ class InvoiceForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Payment Method",
                     "id": "payment_method",
-                }
-            ),
-            "contact_no": forms.Select(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Contact No",
-                    "id": "contact_no",
                 }
             ),
             "status": forms.Select(
@@ -497,12 +465,8 @@ class InvoiceForm(forms.ModelForm):
             ),
         }
         labels = {
-            "name": "Customer Name",
-            "product": "Product Name",
-            "price": "Price",
-            "quantity": "Quantity",
-            "total_price": "Total Price",
+            "sales": "Customer Name",
+            "discount": "Customer Name",
             "payment_method": "Payment Method",
-            "contact_no": "Contact No",
             "status": "Status",
         }
