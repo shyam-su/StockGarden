@@ -7,6 +7,7 @@ from django.core.paginator import Paginator
 from django.contrib import messages  
 import pickle as pk
 from django.db.models import Avg, Sum, Min, Max, Count
+from django.db.models import Q
 
 
 
@@ -34,16 +35,23 @@ def home(request):
 
 def BrandListView(request):
     try:
+        query = request.GET.get('q', '')
         # Fetch all brands and order them by ID (descending)
         brands = Brand.objects.all().order_by('-id')
         
+        if query:
+            brands = brands.filter(name__icontains=query)
+
         # Paginate the brands, showing 10 per page
         paginator = Paginator(brands, 10)
         page_number = request.GET.get('page')  # Get the current page number from the request
         page_obj = paginator.get_page(page_number)  # Get the page object
 
         # Context to be passed to the template
-        context = {"brand": page_obj}
+        context = {
+            "brand": page_obj,
+            "query": query,
+            }
         return render(request, 'brand.html', context)  # Render the template with context
     except Exception as e:
         # Log the exception for debugging
@@ -136,14 +144,24 @@ def BrandDeleteView(request, pk):
 
 def CategoryListView(request):
     try:
+        query = request.GET.get('q', '').strip()
         category =Category.objects.all().order_by('-id')
+
+        if query:
+            logger.info(f"Searching for category: {query}")  # Debugging log
+            category = category.filter(
+                Q(name__icontains=query)  # Search by category name
+            )
+
+
         paginator =Paginator(category,10)
         page_number =request.GET.get('page')
         page_obj = paginator.get_page(page_number)
         print(page_obj.object_list)
         
         context={
-            "category":page_obj, 
+            "category":page_obj,
+            "query": query,  # Pass search query to template
         }
         return render(request,'category.html',context)
     except Exception as e:
@@ -204,13 +222,24 @@ def CategoryDeleteView(request,pk):
 
 def ProductListView(request):
     try:
+        query = request.GET.get('q', '')
         product =Product.objects.all().order_by('-id')
+
+        if query:
+            product = product.filter(
+                Q(name__icontains=query) |
+                Q(description__icontains=query) |
+                Q(brand__name__icontains=query) |
+                Q(categories__name__icontains=query)
+            )
+
         paginator =Paginator(product,10)
         page_number =request.GET.get('page')
         page_obj =paginator.get_page(page_number)
         
         context ={
             "product":page_obj,
+            "query": query,
         }
         return render(request, 'product.html',context)
 
@@ -280,12 +309,22 @@ def ProductDeleteView(request,pk):
 
 def SalesListView(request):
     try:
+        query = request.GET.get('q', '')
         sales = Sales.objects.all().order_by('-id')
+
+        if query:
+            sales = sales.filter(
+                Q(name__full_name__icontains=query) |  # Search by user (seller name)
+                Q(product__name__icontains=query) |  # Search by product name
+                Q(contact_no__icontains=query)  # Search by contact number
+            )
+
         paginator = Paginator(sales, 10)  # Show 10 sales per page
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
         context={
             "sales":page_obj,
+            "query": query,
         }
         return render(request, 'sales.html',context)
     except Exception as e:
@@ -347,7 +386,19 @@ def SalesDeleteView(request,pk):
 
 def VendorListView(request):
     try:
+        query = request.GET.get('q', '')
         vendor=Vendor.objects.all().order_by('-id')
+
+        if query:
+            vendor = vendor.filter(
+                Q(name__full_name__icontains=query) |  # Search by  name
+                Q(company_name__icontains=query) |      # Search by company name
+                Q(contact_no__icontains=query) |         # Search by contact number
+                Q(email__icontains=query) |
+                Q(address__icontains=query)
+            )
+
+
         paginator=Paginator(vendor,10)
         page_number=request.GET.get('page')
         page_obj=paginator.get_page(page_number)
@@ -412,7 +463,17 @@ def VendorDeleteView(request,pk):
 
 def PurchaseListView(request):
     try:
+        query = request.GET.get('q', '')
         purches=Purchase.objects.all()
+
+        if query:
+            purches = purches.filter(
+                Q(vendor__company_name__icontains=query) |  # Search by Vendor's company name
+                Q(product__name__icontains=query) |        # Search by Product name
+                Q(description__icontains=query)            # Search by Description
+            )
+
+
         pagination =Paginator(purches,10)
         page_number=request.GET.get('page')
         page_obj=pagination.get_page(page_number)
@@ -478,12 +539,22 @@ def PurchaseDeleteView(request,pk):
 
 def RepairListView(request):
     try:
+        query = request.GET.get('q', '')
         repair=Repair.objects.all()
+
+        if query:
+            repair = repair.filter(
+                Q(product_name__icontains=query) | 
+                Q(device_model__icontains=query) |
+                Q(name__full_name__icontains=query)  # Search by customer username
+            )
+
         pagination=Paginator(repair,10)
         page_number=request.GET.get('page')
         page_obj=pagination.get_page(page_number)
         context={
             'repair':page_obj,
+            'query': query,
         }
         return render(request, 'repair.html',context)
     except Exception as e:
@@ -505,6 +576,9 @@ def RepairCreateView(request,repair_id=None):
                 form.save()
                 messages.success(request,f'Repair {action.lower()}d successfully!')
                 return redirect('repair')
+            else:
+                print("Form Errors:", form.errors)  # For debugging
+                messages.error(request, 'Form is invalid.')
         return render(request, 'repair_create.html',{'form':form,'action':action})
     except Exception as e:
         logger.error(f"Error in RepairCreateView: {e}")
@@ -544,12 +618,21 @@ def RepairDeleteView(request,pk):
 
 def RepairDetailListView(request):
     try:
+        query = request.GET.get('q', '')
         repairdetail = RepairDetail.objects.all()
+
+        if query:
+            repairdetail = repairdetail.filter(
+                Q(repair_order__product_name__icontains=query) |  # You can search by repair_order product_name
+                Q(fixed_description__icontains=query) |  # Search by fixed_description
+                Q(repair_action__icontains=query)  # Search by repair_action
+            )
         pagination = Paginator(repairdetail, 10)
         page_number = request.GET.get('page') 
         page_obj = pagination.get_page(page_number)
         context = {
             'repairdetail': page_obj,
+            'query': query,
         }
         return render(request, 'repairdetail.html', context)
     except Exception as e:
@@ -686,6 +769,38 @@ def UserReportListView(request):
         logger.error(f"Error in ReportListView: {e}")
         messages.error(request, 'An error occurred while loading the report list.')
         return render(request, '404.html', {"message": "An error occurred."})
+    
+
+
+
+def global_search(request):
+    query = request.GET.get('q')
+    if query:
+        # Search in multiple models
+        products = Product.objects.filter(Q(name__icontains=query) | Q(description__icontains=query))
+        sales = Sales.objects.filter(Q(name__full_name__icontains=query) | Q(product__name__icontains=query))
+        purchases = Purchase.objects.filter(Q(vendor__company_name__icontains=query) | Q(product__name__icontains=query))
+        repairs = Repair.objects.filter(Q(product_name__icontains=query) | Q(device_model__icontains=query) | Q(name__full_name__icontains=query))
+        vendors = Vendor.objects.filter(Q(company_name__icontains=query) | Q(name__full_name__icontains=query))
+        brands = Brand.objects.filter(Q(name__icontains=query))
+        categories = Category.objects.filter(Q(name__icontains=query))
+        users = User.objects.filter(Q(full_name__icontains=query))
+
+        context = {
+            'products': products,
+            'sales': sales,
+            'purchases': purchases,
+            'repairs': repairs,
+            'vendors': vendors,
+            'brands': brands,
+            'categories': categories,
+            'users': users,
+            'query': query,
+        }
+    else:
+        context = {}
+
+    return render(request, 'search_results.html', context)
 
 def SalesReportListView(request):
     return render(request, 'product_report.html')
