@@ -7,8 +7,15 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
+    <meta name="description" content="Stock Garden - A comprehensive software solution for managing mobile shops and repair centers. Streamline inventory, sales, repairs, and customer management with ease.">
+    <meta name="author" content="Your Company Name">
+    <meta name="keywords" content="mobile shop software, mobile repair center software, inventory management, sales management, repair tracking, customer management">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="Stock Garden - Mobile Shop & Repair Center Software">
+    <meta property="og:description" content="Manage your mobile shop and repair center efficiently with Stock Garden. Track inventory, sales, repairs, and customers in one place.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.yourwebsite.com">
+    <link rel="icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
 
     <title>Stock Garden</title>
 
@@ -124,6 +131,26 @@
                 </div>
             </li>
 
+             <!-- Divider -->
+           <hr class="sidebar-divider">
+            
+           <!-- Reports - Charts -->
+           <li class="nav-item">
+               <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseReports"
+                   aria-expanded="true" aria-controls="collapseReports">
+                   <i class="fas fa-screwdriver-wrench"></i>
+                   <span>Reports</span>
+               </a>
+               <div id="collapseReports" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
+                   <div class="bg-white py-2 collapse-inner rounded">
+                       <a class="collapse-item" href="{% url 'user_report' %}">User Reports</a>
+                       <a class="collapse-item" href="{% url 'sales_report' %}">Sales Reports</a>
+                       <a class="collapse-item" href="{% url 'repair_report' %}">Repair Reports</a>
+                       <a class="collapse-item" href="{% url 'stock_report' %}">Stock Reports</a>
+                   </div>
+               </div>
+           </li>
+
            <!-- Divider -->
             <hr class="sidebar-divider">
             
@@ -134,15 +161,7 @@
                     <span>Invoices</span></a>
             </li>
 
-           <!-- Divider -->
-           <hr class="sidebar-divider">
-            
-            <!-- Reports - Charts -->
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'report' %}">
-                    <i class="fas fa-fw fa-chart-area"></i>
-                    <span>Reports</span></a>
-            </li>
+          
 
             <!-- Divider -->
             <hr class="sidebar-divider d-none d-md-block">

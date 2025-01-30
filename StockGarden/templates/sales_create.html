@@ -51,7 +51,7 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label for="{{ form.quantity.id_for_label }}">Quantity</label>
                                 {{ form.quantity }}
                                 {% if form.quantity.errors %}
@@ -60,21 +60,12 @@
                                     </div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label for="{{ form.price.id_for_label }}">Price</label>
                                 {{ form.price }}
                                 {% if form.price.errors %}
                                     <div class="invalid-feedback d-block">
                                         {{ form.price.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form.total.id_for_label }}">Total</label>
-                                {{ form.total }}
-                                {% if form.total.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.total.errors }}
                                     </div>
                                 {% endif %}
                             </div>

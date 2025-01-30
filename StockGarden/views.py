@@ -672,18 +672,27 @@ def InvoiceUpdateView(request,pk):
 def Invoiceprint(request):
     return render(request, 'invoice_print.html',)
 
-def ReportListView(request):
+def UserReportListView(request):
     try:
-        report=Report.objects.all()
-        pagination=Paginator(report, 10)
+        user=User.objects.all()
+        pagination=Paginator(user, 10)
         page_number=request.GET.get('page')
         page_obj=pagination.get_page(page_number)
         context={
             'report':page_obj,
         }
-        return render(request, 'report.html',context)
+        return render(request, 'user_report.html',context)
     except Exception as e:
         logger.error(f"Error in ReportListView: {e}")
         messages.error(request, 'An error occurred while loading the report list.')
         return render(request, '404.html', {"message": "An error occurred."})
+
+def SalesReportListView(request):
+    return render(request, 'product_report.html')
+
+def RepairReportListView(request):
+    return render(request, 'product_report.html')
+
+def StockReportListView(request):
+    return render(request, 'product_report.html')
 

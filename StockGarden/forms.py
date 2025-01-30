@@ -176,7 +176,6 @@ class SalesForm(forms.ModelForm):
             "product",
             "quantity",
             "price",
-            "total",
             "contact_no",
             "expiring_date",
         ]
@@ -209,13 +208,6 @@ class SalesForm(forms.ModelForm):
                     "id": "price",
                 }
             ),
-            "total": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Total",
-                    "id": "total",
-                }
-            ),
             "contact_no": forms.TextInput(
                 attrs={
                     "class": "form-control",
@@ -236,21 +228,10 @@ class SalesForm(forms.ModelForm):
             "product": "Product Name",
             "quantity": "Quantity",
             "price": "Price",
-            "total": "Total Price",
             "contact_no": "Contact No",
             "expiring_date": "Expiring Date",
         }
 
-        def clean(self):
-            cleaned_data = super().clean()
-            quantity = cleaned_data.get("quantity")
-            price = cleaned_data.get("price")
-
-            # Calculate total automatically
-            if quantity and price:
-                cleaned_data["total"] = quantity * price
-
-            return cleaned_data
 
 
 class PurchaseForm(forms.ModelForm):
@@ -262,7 +243,6 @@ class PurchaseForm(forms.ModelForm):
             "description",
             "quantity",
             "price",
-            "total_value",
         ]
         widgets = {
             "vendor": forms.Select(
@@ -300,13 +280,6 @@ class PurchaseForm(forms.ModelForm):
                     "id": "price",
                 }
             ),
-            "total_value": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Total Value",
-                    "id": "total_value",
-                }
-            ),
         }
         labels = {
             "vendor": "Vendor Name",
@@ -314,7 +287,6 @@ class PurchaseForm(forms.ModelForm):
             "description": "Description",
             "quantity": "Quantity",
             "price": "Price",
-            "total_value": "Total Value",
         }
 
 

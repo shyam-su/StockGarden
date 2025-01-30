@@ -84,6 +84,10 @@ class Sales(models.Model):
     expiring_date = models.DateTimeField(null=True, blank=True)
     created_at=models.DateTimeField(auto_now_add=True,verbose_name="Sale Date")
     
+    def save(self, *args, **kwargs):
+        self.total = self.quantity * self.price
+        super(Sales, self).save(*args, **kwargs)
+    
     class Meta:
         verbose_name = "Seller"
         indexes = [models.Index(fields=['name','product','price'])]
@@ -101,6 +105,10 @@ class Purchase(models.Model):
     price = models.IntegerField()
     total_value = models.DecimalField(max_digits=10, decimal_places=2)
     created_at=models.DateTimeField(auto_now_add=True)
+    
+    def save(self, *args, **kwargs):
+        self.total_value = self.quantity * self.price
+        super(Purchase, self).save(*args, **kwargs)
     
     class Meta:
         ordering = ['id']

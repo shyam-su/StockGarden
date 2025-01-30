@@ -52,7 +52,10 @@ urlpatterns = [
     path('invoice/<int:pk>/update/', InvoiceUpdateView,name='invoice_update'),
     path('invoice/<int:pk>/print/', Invoiceprint,name='invoice_print'),
     
-    path('report/', ReportListView, name='report'),
+    path('user_report/', UserReportListView, name='user_report'),
+    path('sales_report/', SalesReportListView, name='sales_report'),
+    path('repair_report/', RepairReportListView, name='repair_report'),
+    path('stock_report/', StockReportListView, name='stock_report'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

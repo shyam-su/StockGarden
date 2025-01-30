@@ -13,7 +13,7 @@
                     <form method="post">
                         {% csrf_token %}
                         
-                        <!-- First Row -->
+                        <!-- First Row: Vendor and Product -->
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -29,7 +29,7 @@
                             </div>
                         </div>
                         
-                        <!-- Second Row -->
+                        <!-- Second Row: Description -->
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="form-group">
@@ -39,24 +39,18 @@
                             </div>
                         </div>
                         
-                        <!-- Third Row -->
+                        <!-- Third Row: Quantity and Price -->
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="id_quantity">Quantity</label>
                                     {{ form.quantity }}
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="id_price">Price</label>
                                     {{ form.price }}
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="id_total_value">Total Value</label>
-                                    {{ form.total_value }}
                                 </div>
                             </div>
                         </div>
