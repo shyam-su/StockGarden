@@ -53,6 +53,8 @@ urlpatterns = [
     path('invoice/<int:pk>/print/', Invoiceprint,name='invoice_print'),
     
     path('report/', ReportListView, name='report'),
+
+    path('search/', global_search, name='global_search'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

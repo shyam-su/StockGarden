@@ -11,15 +11,30 @@ logger = logging.getLogger(__name__)
 def LoginView(request):
     return render(request, 'login.html')
 
+from django.db.models import Q
 
 def UserListView(request):
     try:
         users = User.objects.all()
+
+        # Handle search query
+        search_query = request.GET.get('search', '')
+        if search_query:
+            users = users.filter(
+                Q(full_name__icontains=search_query) |
+                Q(email__icontains=search_query) |
+                Q(phone__icontains=search_query) |
+                Q(address__icontains=search_query) |
+                Q(role__icontains=search_query)
+            )
+
+
         pagination = Paginator(users, 10)  
         page_number = request.GET.get('page')
         page_obj = pagination.get_page(page_number)
         context={
             'users': page_obj,
+            'search_query': search_query,
         }
         logger.info("Successfully retrieved user.")
         return render(request, 'user.html', context)
