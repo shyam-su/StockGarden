@@ -230,6 +230,18 @@
                                 </form>
                             </div>
                         </li>
+                               <!-- Alert Message -->
+                            <div class="alert-container" style="position: absolute; top: 10px; left: 600px; z-index: 1050; width: 300px;">
+                                {% if messages %}
+                                    {% for message in messages|slice:":1" %} <!-- Show only the first message -->
+                                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show small-alert" role="alert">
+                                        <strong>{{ message.level_tag|title }}!</strong> {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+
 
                         <div class="topbar-divider d-none d-sm-block"></div>
 
@@ -270,6 +282,29 @@
 
             </div>
             <!-- End of Main Content -->
+            <script>
+                setTimeout(function() {
+                    let alertElement = document.querySelector('.alert');
+                    if (alertElement) {
+                        alertElement.classList.remove('show');
+                        alertElement.classList.add('fade');
+                    }
+                }, 5000); // 5 seconds
+            </script>
+            
+            <!-- Custom CSS for smaller and more beautiful alert -->
+            <style>
+                .small-alert {
+                    font-size: 14px;
+                    padding: 10px 15px;
+                    border-radius: 5px;
+                    transition: opacity 0.5s ease-out;
+                }
+                .alert {
+                    max-width: 300px;
+                    margin: 0 auto;
+                }
+            </style>
 
             <!-- Footer -->
             <footer class="sticky-footer bg-white">
@@ -280,19 +315,6 @@
                 </div>
             </footer>
             <!-- End of Footer -->
-             <!-- Alert Message -->
-             <div class="alert-container" style="position: fixed; top: 50%; right: 20px; z-index: 1050; width: 300px; transform: translateY(-50%);">
-                {% if messages %}
-                    {% for message in messages|slice:":1" %} <!-- Show only the first message -->
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        <strong>{{ message.level_tag|title }}!</strong> {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                    {% endfor %}
-                {% endif %}
-            </div>
-            
-
         </div>
         <!-- End of Content Wrapper -->
 
