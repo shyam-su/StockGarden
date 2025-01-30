@@ -84,7 +84,6 @@ def BrandCreateView(request, brand_id=None):
     
     except Exception as e:
         # Log or handle any unexpected errors
-        print(e)
         messages.error(request, 'An error occurred. Please try again later.')
         return redirect('brand')
 
@@ -156,9 +155,7 @@ def CategoryListView(request):
 
         paginator =Paginator(category,10)
         page_number =request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
-        print(page_obj.object_list)
-        
+        page_obj = paginator.get_page(page_number)        
         context={
             "category":page_obj,
             "query": query,  # Pass search query to template
@@ -540,7 +537,7 @@ def PurchaseDeleteView(request,pk):
 def RepairListView(request):
     try:
         query = request.GET.get('q', '')
-        repair=Repair.objects.all()
+        repair=Repair.objects.all().order_by('id')
 
         if query:
             repair = repair.filter(
@@ -619,7 +616,7 @@ def RepairDeleteView(request,pk):
 def RepairDetailListView(request):
     try:
         query = request.GET.get('q', '')
-        repairdetail = RepairDetail.objects.all()
+        repairdetail = RepairDetail.objects.all().order_by('id')
 
         if query:
             repairdetail = repairdetail.filter(
@@ -702,7 +699,7 @@ def RepairDetailDeleteView(request, pk):
 
 def InvoiceListView(request):
     try:
-        invoice=Invoice.objects.all()
+        invoice=Invoice.objects.all().order_by('id')
         pagination=Paginator(invoice,10)
         page_number=request.GET.get('page')
         page_obj=pagination.get_page(page_number)

@@ -15,7 +15,7 @@ from django.db.models import Q
 
 def UserListView(request):
     try:
-        users = User.objects.all()
+        users = User.objects.all().order_by('id')
 
         # Handle search query
         search_query = request.GET.get('search', '')
