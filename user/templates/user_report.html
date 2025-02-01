@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+    <h2 class="mb-3">User Report</h2>
+
+    <!-- Filter Form -->
+    <form method="GET" class="mb-3 no-print">
+        <div class="row">
+            <div class="col-md-4">
+                <label for="role">Filter by Role:</label>
+                <select id="role" name="role" class="form-control">
+                    <option value="">All</option>
+                    <option value="Customer" {% if selected_role == "Customer" %}selected{% endif %}>Customer</option>
+                    <option value="Vendor" {% if selected_role == "Vendor" %}selected{% endif %}>Vendor</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">Filter</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Print Button -->
+    <div class="mb-3 no-print">
+        <button onclick="printReport()" class="btn btn-primary">🖨️ Print Report</button>
+    </div>
+
+    <script>
+        function printReport() {
+            window.print();
+        }
+    </script>
+
+    <!-- User Table -->
+    <table class="table table-bordered table-hover">
+        <thead class="table-primary">
+            <tr>
+                <th>IDs</th>
+                <th>Full Name</th>
+                <th>Address</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Created At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.full_name|default:"N/A"|slice:":6" }}</td>
+                    <td>{{ user.address|default:"N/A"|slice:":18" }}</td>
+                    <td>{{ user.phone|default:"N/A" }}</td>
+                    <td>{{ user.email|default:"N/A"|slice:":10" }}</td>
+                    <td>{{ user.role|default:"N/A" }}</td>
+                    <td>{{ user.is_active|yesno:"Yes,No" }}</td>
+                    <td>{{ user.created_at|date:"M d, Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">No users found.</td>
+                </tr>
+            {% endfor %}  </tbody>
+    </table>
+</div>
+{% endblock content %}

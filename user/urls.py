@@ -12,5 +12,8 @@ urlpatterns = [
     path('user/<int:pk>/update/', UserUpdateView,name='user_update'),
     path('user/<int:pk>/delete/', UserDeleteView,name='user_delete'),
 
+    path('user-report/', UserReportListView, name='user_report'),
+
+
 ]
 

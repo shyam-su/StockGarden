@@ -29,6 +29,26 @@
     <!-- Custom styles for this template-->
     <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
 
+
+    <style>
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+    
+            /* Hide elements from base.html */
+            .sidebar, .navbar, .footer { 
+                display: none !important; 
+            }
+    
+            /* Ensure content takes full width */
+            .container {
+                width: 100% !important;
+            }
+        }
+    </style>
+
+    
 </head>
 
 <body id="page-top">
@@ -146,6 +166,7 @@
                        <a class="collapse-item" href="{% url 'user_report' %}">User Reports</a>
                        <a class="collapse-item" href="{% url 'sales_report' %}">Sales Reports</a>
                        <a class="collapse-item" href="{% url 'repair_report' %}">Repair Reports</a>
+                       <a class="collapse-item" href="{% url 'repair_detail_report' %}">Repair Details Reports</a>
                        <a class="collapse-item" href="{% url 'stock_report' %}">Stock Reports</a>
                    </div>
                </div>

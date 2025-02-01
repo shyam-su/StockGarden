@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        .container {
+            width: 100% !important;
+        }
+    }
+</style>
+
+<div class="container mt-4">
+    <h2 class="mb-3">Repair Detail Report</h2>
+
+    <!-- Filter Form -->
+    <form method="GET" class="mb-3 no-print">
+        <div class="row">
+            <!-- Repair Order Filter -->
+            <div class="col-md-4">
+                <label for="repair_order">Filter by Repair Order:</label>
+                <select id="repair_order" name="repair_order" class="form-control">
+                    <option value="">All</option>
+                    {% for order in repair_orders %}
+                    <option value="{{ order.id }}" {% if selected_repair_order == order.id|stringformat:"s" %}selected{% endif %}>
+                        {{ order.device_model }} ({{ order.product_name }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Repair Action Filter -->
+            <div class="col-md-4">
+                <label for="repair_action">Filter by Repair Action:</label>
+                <select id="repair_action" name="repair_action" class="form-control">
+                    <option value="">All</option>
+                    <option value="in" {% if selected_repair_action == "in" %}selected{% endif %}>In</option>
+                    <option value="repairing" {% if selected_repair_action == "repairing" %}selected{% endif %}>Repairing</option>
+                    <option value="repaired" {% if selected_repair_action == "repaired" %}selected{% endif %}>Repaired</option>
+                    <option value="returned" {% if selected_repair_action == "returned" %}selected{% endif %}>Returned</option>
+                </select>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">Filter</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Print Button -->
+    <div class="mb-3 no-print">
+        <button onclick="window.print()" class="btn btn-primary">🖨️ Print Report</button>
+    </div>
+
+    <!-- Repair Details Table -->
+    <table class="table table-bordered table-hover">
+        <thead class="table-primary">
+            <tr>
+                <th>ID</th>
+                <th>Customer Name</th>
+                <th>Product Name</th>
+                <th>Device Model</th>
+                <th>Issue Description</th>
+                <th>Out Date</th>
+                <th>Status</th>
+                <th>Repair Cost</th>
+                <th>Fixed Description</th>
+                <th>Repair Action</th>
+                <th>Created At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for detail in repair_details %}
+            <tr>
+                <td>{{ detail.id }}</td>
+                <td>{{ detail.repair_order.name }}</td>
+                <td>{{ detail.repair_order.product_name }}</td>
+                <td>{{ detail.repair_order.device_model }}</td>
+                <td>{{ detail.repair_order.issue_description }}</td>
+                <td>{{ detail.repair_order.out_date|default:"-" }}</td>
+                <td>{{ detail.repair_order.status }}</td>
+                <td>${{ detail.repair_cost }}</td>
+                <td>{{ detail.fixed_description }}</td>
+                <td>{{ detail.repair_action }}</td>
+                <td>{{ detail.created_at }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="11" class="text-center">No repair details found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    
+</div>
+
+{% endblock content %}

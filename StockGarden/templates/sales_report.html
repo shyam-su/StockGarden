@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+    <div class="container mt-4">
+        <h2 class="mb-3">Sales Report</h2>
+
+        <!-- Date Range Filter Form -->
+        <form method="GET" class="mb-3 no-print">
+            <div class="row">
+                <div class="col-md-3">
+                    <label for="start_date">Start Date:</label>
+                    <input type="date" id="start_date" name="start_date" class="form-control" value="{{ request.GET.start_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date">End Date:</label>
+                    <input type="date" id="end_date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                </div>
+            </div>
+        </form>
+
+        <div class="mb-3 no-print">
+            <button onclick="printReport()" class="btn btn-primary">🖨️ Print Report</button>
+        </div>
+        
+    
+        <script>
+            function printReport() {
+                window.print();
+            }
+        </script>
+
+        <!-- Sales Summary -->
+        <div class="alert alert-info">
+            <strong>Total Quantity Sold:</strong> {{ total_quantity }}
+        </div>
+
+        <!-- Sales Table -->
+        <table class="table table-bordered table-hover">
+            <thead class="table-primary">
+                <tr>
+                    <th>ID</th>
+                    <th>Party Name</th>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                    <th>Contact No</th>
+                    <th>Expiring Date</th>
+                    <th>Sale Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in sales %}
+                <tr>
+                    <td>{{ sale.id }}</td>
+                    <td>{{ sale.name }}</td>
+                    <td>{{ sale.product }}</td>
+                    <td>{{ sale.quantity }}</td>
+                    <td>{{ sale.price }}</td>
+                    <td>{{ sale.total_amount }}</td>
+                    <td>{{ sale.contact_no }}</td>
+                    <td>{{ sale.expiring_date }}</td>
+                    <td>{{ sale.created_at }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center">No sales data available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endblock content %}

@@ -799,12 +799,95 @@ def global_search(request):
 
     return render(request, 'search_results.html', context)
 
+
+from django.db.models import F
+
 def SalesReportListView(request):
-    return render(request, 'product_report.html')
+    sales = Sales.objects.annotate(total_amount=F('quantity') * F('price'))
+
+    # Get filter parameters
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    if start_date and end_date:
+        sales = sales.filter(created_at__date__range=[start_date, end_date])
+
+    # Calculate totals
+    total_quantity = sales.aggregate(Sum('quantity'))['quantity__sum'] or 0
+
+    context = { 
+        'sales': sales,
+        'total_quantity': total_quantity,
+    }
+    return render(request, 'sales_report.html', context)
 
 def RepairReportListView(request):
     return render(request, 'product_report.html')
 
 def StockReportListView(request):
     return render(request, 'product_report.html')
+
+
+def RepairReportListView(request):
+    # Get filter parameters from request
+    status = request.GET.get('status', '')  
+    customer_id = request.GET.get('customer', '')  
+
+    # Base queryset
+    repairs = Repair.objects.all().order_by('-created_at')  
+
+    # Apply filters
+    if status:
+        repairs = repairs.filter(status=status)
+    if customer_id:
+        repairs = repairs.filter(name_id=customer_id)  # ForeignKey lookup
+
+    # Pagination (10 items per page)
+    paginator = Paginator(repairs, 10)
+    page_number = request.GET.get('page')
+    repairs_page = paginator.get_page(page_number)
+
+    # Pass all customers for filtering dropdown
+    customers = User.objects.filter(role="Customer").order_by('full_name')
+
+    context = {
+        'repairs': repairs_page,
+        'customers': customers,
+        'selected_status': status,
+        'selected_customer': customer_id,
+    }
+    return render(request, 'repair_report.html', context)
+
+
+def RepairDetailReportListView(request):
+    # Get filter parameters from request
+    repair_order_id = request.GET.get('repair_order', '')  
+    repair_action = request.GET.get('repair_action', '')  
+
+    # Base queryset
+    repair_details = RepairDetail.objects.select_related('repair_order').order_by('-created_at')
+
+    # Apply filters
+    if repair_order_id:
+        repair_details = repair_details.filter(repair_order_id=repair_order_id)
+    if repair_action:
+        repair_details = repair_details.filter(repair_action=repair_action)
+
+    # Pagination (10 items per page)
+    paginator = Paginator(repair_details, 10)
+    page_number = request.GET.get('page')
+    repair_details_page = paginator.get_page(page_number)
+
+    # Pass all repair orders for filtering dropdown
+    repair_orders = Repair.objects.all().order_by('-created_at')
+
+    context = {
+        'repair_details': repair_details_page,
+        'repair_orders': repair_orders,
+        'selected_repair_order': repair_order_id,
+        'selected_repair_action': repair_action,
+    }
+    return render(request, 'repair_detail_report.html', context)
+
+
 
