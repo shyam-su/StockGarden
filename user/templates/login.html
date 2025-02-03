@@ -7,8 +7,15 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
+    <meta name="description" content="Stock Garden - A comprehensive software solution for managing mobile shops and repair centers. Streamline inventory, sales, repairs, and customer management with ease.">
+    <meta name="author" content="Your Company Name">
+    <meta name="keywords" content="mobile shop software, mobile repair center software, inventory management, sales management, repair tracking, customer management">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="Stock Garden - Mobile Shop & Repair Center Software">
+    <meta property="og:description" content="Manage your mobile shop and repair center efficiently with Stock Garden. Track inventory, sales, repairs, and customers in one place.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.yourwebsite.com">
+    <link rel="icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
 
     <title>Stock Garden</title>
 
@@ -32,20 +39,21 @@
                     <div class="text-center">
                         <h1 class="h4 text-gray-900 mb-4">Welcome Back!</h1>
                     </div>
-                    <form class="user">
+                    <form class="user" method="post" action="{% url 'login' %}">
+                        {% csrf_token %}
                         <div class="form-group">
-                            <input type="email" class="form-control form-control-user" id="exampleInputEmail" aria-describedby="emailHelp" placeholder="Enter Email Address...">
+                            <input type="text" class="form-control form-control-user" id="exampleInputUsername" name="username" placeholder="Enter Username..." required>
                         </div>
                         <div class="form-group">
-                            <input type="password" class="form-control form-control-user" id="exampleInputPassword" placeholder="Password">
+                            <input type="password" class="form-control form-control-user" id="exampleInputPassword" name="password" placeholder="Password" required>
                         </div>
                         <div class="form-group">
                             <div class="custom-control custom-checkbox small">
-                                <input type="checkbox" class="custom-control-input" id="customCheck">
+                                <input type="checkbox" class="custom-control-input" id="customCheck" name="remember_me">
                                 <label class="custom-control-label" for="customCheck">Remember Me</label>
                             </div>
                         </div>
-                        <a href="#" class="btn btn-primary btn-user btn-block">Login</a>
+                        <button type="submit" class="btn btn-primary btn-user btn-block">Login</button>
                     </form>
                     <hr>
                     <div class="text-center">
@@ -56,12 +64,12 @@
         </div>
     </div>
     <!-- Bootstrap core JavaScript-->
-    <script src="vendor/jquery/jquery.min.js"></script>
-    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
+    <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
     <!-- Core plugin JavaScript-->
-    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="{% static 'vendor/jquery-easing/jquery.easing.min.js' %}"></script>
     <!-- Custom scripts for all pages-->
-    <script src="js/sb-admin-2.min.js"></script>
+    <script src="{% static 'js/sb-admin-2.min.js' %}"></script>
 </body>
 
 

@@ -4,14 +4,31 @@ from django.core.paginator import Paginator
 from django.contrib import messages
 from .models import User
 from .forms import UserForm
+from django.contrib.auth import authenticate, login,logout
+from django.db.models import Q
+
+
 
 # Create your views here.
 logger = logging.getLogger(__name__)
 
 def LoginView(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        try:
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                messages.success(request, "You have logged in successfully.")
+                return redirect('home')
+            else:
+                messages.error(request, "Invalid username or password.")
+        except Exception as e:
+            logger.error(f"Error during login attempt for username '{username}': {e}")
+            messages.error(request, "An error occurred during login. Please try again.")
     return render(request, 'login.html')
 
-from django.db.models import Q
 
 def UserListView(request):
     try:
@@ -103,5 +120,12 @@ def UserDeleteView(request,pk):
         return render(request, '404.html', status=404)
 
 def LogoutView(request):
-    return render(request,"user is logout")
+    try:
+        logout(request)
+        messages.info(request, "You have been logged out successfully.")
+        return redirect('login')
+    except Exception as e:
+        logger.error(f"Error during logout: {e}")        
+        messages.error(request, "An error occurred while logging you out. Please try again.")        
+        return redirect('login')
 
