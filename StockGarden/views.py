@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render,HttpResponse
 from .models import *
 from .forms import *
 from django.shortcuts import render, get_object_or_404, redirect
@@ -8,6 +8,14 @@ from django.contrib import messages
 import pickle as pk
 from django.db.models import Avg, Sum, Min, Max, Count
 from django.db.models import Q
+from django.db.models import F
+from openpyxl import Workbook
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from datetime import datetime
+
+
 
 
 
@@ -18,19 +26,22 @@ from django.db.models import Q
 logger = logging.getLogger(__name__)
 def home(request):
     try:
-        total = Sales.objects.aggregate(Sum('total'))
-        total_products = Product.objects.count()
-        pending_repairs = Repair.objects.filter(status='in-progress').count()
-        context={
-            'total':total,
-            'total_product':total_products,
-            'pending_repairs':pending_repairs
+        total = Sales.objects.aggregate(Sum('total'))['total__sum'] or 0 
+        total_products = Product.objects.count()  
+        pending_repairs = Repair.objects.filter(status='in-progress').count()  
+        low_stock_count = Product.objects.filter(stock__lt=3).count() 
+
+        context = {
+            'total': total,
+            'total_product': total_products,
+            'pending_repairs': pending_repairs,
+            'low_stock_count': low_stock_count 
         }
         return render(request, 'home.html', context)
     except Exception as e:
         logger.error(f"Error in home view: {e}")
-        messages.error(request, 'An error occurred while loading the brand list.')
-    return render(request, '404.html', {"message": "An error occurred while loading the brand list."})
+        messages.error(request, 'An error occurred while loading the dashboard.')
+    # return render(request, '404.html', {"message": "An error occurred while loading the dashboard."})
 
 
 def BrandListView(request):
@@ -754,18 +765,27 @@ def Invoiceprint(request):
 
 def UserReportListView(request):
     try:
-        user=User.objects.all()
-        pagination=Paginator(user, 10)
-        page_number=request.GET.get('page')
-        page_obj=pagination.get_page(page_number)
-        context={
-            'report':page_obj,
+        selected_role = request.GET.get('role', '')  # Get the selected role from the request
+        users = User.objects.all().order_by('id')
+
+        if selected_role:
+            users = users.filter(role=selected_role)  # Assuming 'role' is a field in your User model
+
+        pagination = Paginator(users, 10)
+        page_number = request.GET.get('page')
+        page_obj = pagination.get_page(page_number)
+
+        context = {
+            'page_obj': page_obj,
+            'selected_role': selected_role,
         }
-        return render(request, 'user_report.html',context)
+        return render(request, 'user_report.html', context)
+
     except Exception as e:
-        logger.error(f"Error in ReportListView: {e}")
+        logger.error(f"Error in UserReportListView: {e}")
         messages.error(request, 'An error occurred while loading the report list.')
         return render(request, '404.html', {"message": "An error occurred."})
+
     
 
 
@@ -800,7 +820,6 @@ def global_search(request):
     return render(request, 'search_results.html', context)
 
 
-from django.db.models import F
 
 def SalesReportListView(request):
     sales = Sales.objects.annotate(total_amount=F('quantity') * F('price'))
@@ -821,11 +840,179 @@ def SalesReportListView(request):
     }
     return render(request, 'sales_report.html', context)
 
-def RepairReportListView(request):
-    return render(request, 'product_report.html')
 
 def StockReportListView(request):
-    return render(request, 'product_report.html')
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+    product_name = request.GET.get("product_name")
+    low_stock_threshold = request.GET.get("low_stock_threshold", 0)
+    total_sales_threshold = request.GET.get("total_sales_threshold", 0)
+
+    products = Product.objects.all()
+    if product_name:
+        products = products.filter(name__icontains=product_name)
+
+    sales = Sales.objects.all()
+    purchases = Purchase.objects.all()
+
+    try:
+        if start_date and end_date:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            if start_date <= end_date:
+                sales = sales.filter(date__range=[start_date, end_date])
+                purchases = purchases.filter(date__range=[start_date, end_date])
+    except ValueError:
+        pass
+
+    # Prepare sales and purchases data as lists of tuples
+    sales_data = []
+    purchases_data = []
+
+    for product in products:
+        sold_quantity = sum(sale.quantity for sale in sales if sale.product_id == product.id)
+        purchased_quantity = sum(purchase.quantity for purchase in purchases if purchase.product_id == product.id)
+        sales_data.append((product.id, sold_quantity))
+        purchases_data.append((product.id, purchased_quantity))
+
+    # Filter products by low stock
+    if low_stock_threshold:
+        low_stock_threshold = int(low_stock_threshold)
+        products = products.filter(stock__lt=low_stock_threshold)
+
+    # Filter products by total sales
+    if total_sales_threshold:
+        total_sales_threshold = int(total_sales_threshold)
+        products = [product for product in products if any(sale[1] >= total_sales_threshold for sale in sales_data if sale[0] == product.id)]
+
+    context = {
+        "products": products,
+        "sales_data": sales_data,
+        "purchases_data": purchases_data,
+        "start_date": start_date,
+        "end_date": end_date,
+        "product_name": product_name,
+        "low_stock_threshold": low_stock_threshold,
+        "total_sales_threshold": total_sales_threshold,
+    }
+    
+    return render(request, 'stock_report.html', context)
+
+
+# Function to generate PDF report
+def generate_pdf(request):
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+    product_name = request.GET.get("product_name")
+    
+    products = Product.objects.all()
+    if product_name:
+        products = products.filter(name__icontains=product_name)
+    
+    sales = Sales.objects.all()
+    purchases = Purchase.objects.all()
+
+    if start_date and end_date:
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            if start_date <= end_date:
+                sales = sales.filter(date__range=[start_date, end_date])
+                purchases = purchases.filter(date__range=[start_date, end_date])
+        except ValueError:
+            pass
+
+    total_sells = sum(sale.quantity for sale in sales if sale.quantity is not None)
+    total_purchase = sum(purchase.quantity for purchase in purchases if purchase.quantity is not None)
+
+    # Create a PDF response
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    # Add title and filters to the PDF
+    p.drawString(100, 750, f"Stock Report (from {start_date} to {end_date})")
+    p.drawString(100, 730, f"Total Sales: {total_sells}")
+    p.drawString(100, 710, f"Total Purchases: {total_purchase}")
+
+    # Table headers
+    p.drawString(100, 690, "ID")
+    p.drawString(150, 690, "Product Name")
+    p.drawString(300, 690, "Category")
+    p.drawString(450, 690, "Stock")
+    p.drawString(550, 690, "Sold")
+    p.drawString(650, 690, "Purchased")
+
+    # Add product data to the table
+    y_position = 670
+    for product in products:
+        p.drawString(100, y_position, str(product.id))
+        p.drawString(150, y_position, product.name)
+        p.drawString(300, y_position, product.category.name)
+        p.drawString(450, y_position, str(product.stock))
+        p.drawString(550, y_position, str(total_sells))
+        p.drawString(650, y_position, str(total_purchase))
+        y_position -= 20
+
+    p.showPage()
+    p.save()
+
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="stock_report.pdf"'
+    return response
+
+# Function to generate Excel report
+def generate_excel(request):
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+    product_name = request.GET.get("product_name")
+    
+    products = Product.objects.all()
+    if product_name:
+        products = products.filter(name__icontains=product_name)
+    
+    sales = Sales.objects.all()
+    purchases = Purchase.objects.all()
+
+    if start_date and end_date:
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            if start_date <= end_date:
+                sales = sales.filter(date__range=[start_date, end_date])
+                purchases = purchases.filter(date__range=[start_date, end_date])
+        except ValueError:
+            pass
+
+    total_sells = sum(sale.quantity for sale in sales if sale.quantity is not None)
+    total_purchase = sum(purchase.quantity for purchase in purchases if purchase.quantity is not None)
+
+    # Create an Excel workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Stock Report"
+
+    # Add headers to the Excel sheet
+    headers = ["ID", "Product Name", "Category", "Stock", "Sold", "Purchased"]
+    ws.append(headers)
+
+    # Add product data to the sheet
+    for product in products:
+        ws.append([
+            product.id,
+            product.name,
+            product.category.name,
+            product.stock,
+            total_sells,
+            total_purchase
+        ])
+
+    # Save the file to the response
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="stock_report.xlsx"'
+    wb.save(response)
+    return response
+
 
 
 def RepairReportListView(request):

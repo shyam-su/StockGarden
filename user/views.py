@@ -105,17 +105,3 @@ def UserDeleteView(request,pk):
 def LogoutView(request):
     return render(request,"user is logout")
 
-
-
-
-def UserReportListView(request):
-    # Filtering by role if selected
-    users = User.objects.all()
-
-    print(users)
-    print("=========")
-
-    context = {
-        'users': users,
-    }
-    return render(request, 'user_report.html', context)

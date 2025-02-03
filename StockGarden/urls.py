@@ -56,6 +56,9 @@ urlpatterns = [
     path('sales_report/', SalesReportListView, name='sales_report'),
     path('repair_report/', RepairReportListView, name='repair_report'),
     path('stock_report/', StockReportListView, name='stock_report'),
+    path('generate_pdf/', generate_pdf, name='generate_pdf'),
+    path('generate_excel/', generate_excel, name='generate_excel'),
+
     
     path('search/', global_search, name='global_search'),
 

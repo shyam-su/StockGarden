@@ -2,6 +2,8 @@ from django.db import models
 from user.models import User
 from django.utils.text import slugify
 import uuid
+from django.db import transaction
+
 
 
 # Create your models here.
@@ -86,7 +88,13 @@ class Sales(models.Model):
     
     def save(self, *args, **kwargs):
         self.total = self.quantity * self.price
-        super(Sales, self).save(*args, **kwargs)
+        with transaction.atomic():
+            if self.product and self.product.stock is not None:
+                if self.quantity > self.product.stock:
+                    raise ValueError("Not enough stock available.")
+                self.product.stock -= self.quantity
+                self.product.save()
+            super(Sales, self).save(*args, **kwargs)
     
     class Meta:
         verbose_name = "Seller"
@@ -108,7 +116,11 @@ class Purchase(models.Model):
     
     def save(self, *args, **kwargs):
         self.total_value = self.quantity * self.price
-        super(Purchase, self).save(*args, **kwargs)
+        with transaction.atomic():
+            super(Purchase, self).save(*args, **kwargs)
+            if self.product:
+                self.product.stock = (self.product.stock or 0) + self.quantity
+                self.product.save()
     
     class Meta:
         ordering = ['id']
@@ -204,6 +216,13 @@ class Report(models.Model):
     Empty_Stock=models.IntegerField(null=True, blank=True,db_index=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
+    
+    def save(self, *args, **kwargs):
+        self.total_stock = Product.objects.aggregate(total=models.Sum('stock'))['total'] or 0
+        self.low_stock = Product.objects.filter(stock__lte=5).count()
+        self.empty_stock = Product.objects.filter(stock=0).count()
+        super(Report, self).save(*args, **kwargs)
+
     
     class Meta:
         verbose_name = "Report"
