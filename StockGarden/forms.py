@@ -89,6 +89,10 @@ class VendorForm(forms.ModelForm):
             "contact_no": "Contact Number",
             "email": "Email Address",
         }
+        
+        def __init__(self, *args, **kwargs):
+            super(VendorForm, self).__init__(*args, **kwargs)
+            self.fields["name"].queryset = User.objects.filter(role="Vendor")
 
 
 class ProductForm(forms.ModelForm):

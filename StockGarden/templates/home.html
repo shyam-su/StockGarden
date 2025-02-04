@@ -21,11 +21,11 @@
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
                                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                            Earnings (Monthly)
+                                            Earnings
                                         </div>
                                         <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                            {% if total.total__sum %}
-                                                रु {{ total.total__sum }}
+                                            {% if total_amount %}
+                                                रु {{ total_amount }}
                                             {% else %}
                                                 रु 0
                                             {% endif %}
@@ -164,6 +164,8 @@
                                     </div>
                                 </div>
                             </div>
+
+                            
                             <!-- Card Body -->
                             <div class="card-body">
                                 <div class="chart-pie pt-4 pb-2">

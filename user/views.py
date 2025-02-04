@@ -33,8 +33,6 @@ def LoginView(request):
 def UserListView(request):
     try:
         users = User.objects.all().order_by('id')
-
-        # Handle search query
         search_query = request.GET.get('search', '')
         if search_query:
             users = users.filter(
