@@ -118,26 +118,12 @@
                 <!-- Content Row -->
 
                 <div class="row">
-
                     <!-- Area Chart -->
                     <div class="col-xl-8 col-lg-7">
                         <div class="card shadow mb-4">
-                            <!-- Card Header - Dropdown -->
-                            <div
-                                class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                                 <h6 class="m-0 font-weight-bold text-primary">Earnings Overview</h6>
-                                <div class="dropdown no-arrow">
-                                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
-                                        aria-labelledby="dropdownMenuLink">
-                                        <div class="dropdown-header">Dropdown Header:</div>
-                                        <a class="dropdown-item" href="#">Action</a>
-                                        <a class="dropdown-item" href="#">Another action</a>
-                                        <div class="dropdown-divider"></div>
-                                        <a class="dropdown-item" href="#">Something else here</a>
-                                    </div>
-                                </div>
                             </div>
-                            <!-- Card Body -->
                             <div class="card-body">
                                 <div class="chart-area">
                                     <canvas id="myAreaChart"></canvas>
@@ -145,28 +131,13 @@
                             </div>
                         </div>
                     </div>
-
+            
                     <!-- Pie Chart -->
                     <div class="col-xl-4 col-lg-5">
                         <div class="card shadow mb-4">
-                            <!-- Card Header - Dropdown -->
-                            <div
-                                class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                                 <h6 class="m-0 font-weight-bold text-primary">Revenue Sources</h6>
-                                <div class="dropdown no-arrow">
-                                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
-                                        aria-labelledby="dropdownMenuLink">
-                                        <div class="dropdown-header">Dropdown Header:</div>
-                                        <a class="dropdown-item" href="#">Action</a>
-                                        <a class="dropdown-item" href="#">Another action</a>
-                                        <div class="dropdown-divider"></div>
-                                        <a class="dropdown-item" href="#">Something else here</a>
-                                    </div>
-                                </div>
                             </div>
-
-                            
-                            <!-- Card Body -->
                             <div class="card-body">
                                 <div class="chart-pie pt-4 pb-2">
                                     <canvas id="myPieChart"></canvas>
@@ -176,14 +147,77 @@
                                         <i class="fas fa-circle text-primary"></i> Repair
                                     </span>
                                     <span class="mr-2">
-                                        <i class="fas fa-circle text-info"></i> Products Sells
+                                        <i class="fas fa-circle text-info"></i> Product Sales
                                     </span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                <script>
+                document.addEventListener("DOMContentLoaded", function () {
+                    fetch("{% url 'chart_data' %}") // Ensure this matches your Django `urlpatterns`
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                console.error("Error fetching chart data:", data.error);
+                                return;
+                            }
+                
+                            let sales = data.sales || 0;
+                            let repair = data.repair || 0;
 
+                            console.log("Sales:", sales, "Repair:", repair); // Debugging Output
+
+                
+                            let totalEarnings = sales + repair;
+                            console.log("Total Earnings:", totalEarnings); // Debugging Output
+
+                            // Area Chart showing only Total Earnings
+                            var ctxArea = document.getElementById("myAreaChart").getContext("2d");
+                            new Chart(ctxArea, {
+                                type: 'line',
+                                data: {
+                                    labels: ["Jan", "Feb", "Mar", "Apr", "May"], // You can customize this based on your data
+                                    datasets: [{
+                                        label: "Total Earnings",
+                                        data: [totalEarnings, totalEarnings, totalEarnings, totalEarnings, totalEarnings], // Show total earnings for each month
+                                        backgroundColor: "rgba(78, 115, 223, 0.5)",
+                                        borderColor: "rgba(78, 115, 223, 1)",
+                                        borderWidth: 2
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false
+                                }
+                            });
+                
+                            // Pie Chart
+                            var ctxPie = document.getElementById("myPieChart").getContext("2d");
+                            new Chart(ctxPie, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: ["Repairs", "Product Sales"],
+                                    datasets: [{
+                                        data: [repair, sales], // Use valid data
+                                        backgroundColor: ["#4e73df", "#1cc88a"],
+                                        hoverBackgroundColor: ["#2e59d9", "#17a673"],
+                                        hoverBorderColor: "rgba(234, 236, 244, 1)"
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false
+                                }
+                            });
+                
+                        })
+                        .catch(error => console.error("Error fetching data:", error));
+                });
+                </script>
+                
+                
 
 
             </div>
