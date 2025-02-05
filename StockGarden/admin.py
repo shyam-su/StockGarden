@@ -2,6 +2,15 @@ from django.contrib import admin
 from .models import *
 
 # Register your models here.
+admin.site.site_title='Stock Garden'
+admin.site.site_header='Welcome to Stock Garden !'
+admin.site.index_title='Stock Garden Inventory Management System'
+
+
+@admin.register(Company)
+class CompanyAdmin(admin.ModelAdmin):
+    list_display=('name','email','address','phone_number','logo',)
+    
 @admin.register(Brand)
 class BrandAdmin(admin.ModelAdmin):
     list_display=('name','created_at',)

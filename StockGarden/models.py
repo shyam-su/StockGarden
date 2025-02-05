@@ -7,6 +7,17 @@ from django.db import transaction
 
 
 # Create your models here.
+class Company(models.Model):
+    name = models.CharField(max_length=255,db_index=True)
+    address = models.CharField(max_length=255)
+    email = models.EmailField(max_length=255)
+    phone_number = models.CharField(max_length=20,db_index=True)
+    logo = models.ImageField(upload_to='company/logos/', blank=True)    
+    
+    class Meta:
+        verbose_name = "Company"
+        indexes = [models.Index(fields=['name','phone_number'])]
+        
 class Brand(models.Model):
     name=models.CharField(max_length=255,blank=False,null=False,verbose_name="Brand Name",db_index=True)
     image=models.ImageField(upload_to='media/brands_imgs/',null=True, blank=True,db_index=True)
