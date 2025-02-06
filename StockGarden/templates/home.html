@@ -166,32 +166,66 @@
                 
                             let sales = data.sales || 0;
                             let repair = data.repair || 0;
+                            let earnings = data.earnings || 0;
 
                             console.log("Sales:", sales, "Repair:", repair); // Debugging Output
 
                 
-                            let totalEarnings = sales + repair;
-                            console.log("Total Earnings:", totalEarnings); // Debugging Output
+                            
 
                             // Area Chart showing only Total Earnings
                             var ctxArea = document.getElementById("myAreaChart").getContext("2d");
                             new Chart(ctxArea, {
                                 type: 'line',
                                 data: {
-                                    labels: ["Jan", "Feb", "Mar", "Apr", "May"], // You can customize this based on your data
+                                    labels: ["Jan", "Feb", "Mar", "Apr", "May"],
                                     datasets: [{
-                                        label: "Total Earnings",
-                                        data: [totalEarnings, totalEarnings, totalEarnings, totalEarnings, totalEarnings], // Show total earnings for each month
+                                        label: "Total Sales",
+                                        data: [sales, sales, sales, sales, sales],
                                         backgroundColor: "rgba(78, 115, 223, 0.5)",
                                         borderColor: "rgba(78, 115, 223, 1)",
+                                        borderWidth: 2
+                                    },
+                                    {
+                                        label: "Repair Costs",
+                                        data: [repair, repair, repair, repair, repair],
+                                        backgroundColor: "rgba(255, 165, 0, 0.5)", 
+                                        borderColor: "rgba(255, 165, 0, 1)",
+                                        borderWidth: 2
+                                    },
+                                    {
+                                        label: "Total Earnings",
+                                        data: [earnings, earnings, earnings, earnings, earnings],
+                                        backgroundColor: "rgba(28, 200, 138, 0.5)",
+                                        borderColor: "rgba(234, 236, 244, 1)",
                                         borderWidth: 2
                                     }]
                                 },
                                 options: {
                                     responsive: true,
-                                    maintainAspectRatio: false
+                                    maintainAspectRatio: false,
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            ticks: {
+                                                callback: function(value) {
+                                                    return '$' + value;
+                                                }
+                                            }
+                                        }
+                                    },
+                                    plugins: {
+                                        tooltip: {
+                                            callbacks: {
+                                                label: function(context) {
+                                                    return context.dataset.label + ': $' + context.raw;
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             });
+
                 
                             // Pie Chart
                             var ctxPie = document.getElementById("myPieChart").getContext("2d");

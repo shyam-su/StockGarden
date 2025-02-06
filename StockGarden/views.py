@@ -45,14 +45,17 @@ def get_chart_data(request):
     try:
         total_sales = Sales.objects.aggregate(total=Sum('total')).get('total', 0) or 0
         total_repair_cost = RepairDetail.objects.aggregate(total=Sum('repair_cost')).get('total', 0) or 0
-        print(total_sales,total_repair_cost)
+        total_earnings = total_sales + total_repair_cost
+            
         chart_data = {
             "sales": total_sales,
             "repair": total_repair_cost,
+            "earnings": total_earnings
         }
         return JsonResponse(chart_data)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
 
 
 def BrandListView(request):
