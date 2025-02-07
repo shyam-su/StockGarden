@@ -3,10 +3,7 @@
 {% block content %}
 <style>
     @media print {
-        .no-print {
-            display: none !important;
-        }
-        .sidebar, .navbar, .footer {
+        .no-print, .sidebar, .navbar, .footer {
             display: none !important;
         }
         .container {
@@ -15,89 +12,119 @@
     }
 </style>
 
-<div class="container mt-4">
-    <h2 class="mb-3">Repair Report</h2>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-tools"></i>&nbsp;Repair Report</h5>
+                </div>
+                <div class="card-body">
 
-    <!-- Filter Form -->
-    <form method="GET" class="mb-3 no-print">
-        <div class="row">
-            <!-- Status Filter -->
-            <div class="col-md-4">
-                <label for="status">Filter by Status:</label>
-                <select id="status" name="status" class="form-control">
-                    <option value="">All</option>
-                    <option value="in-progress" {% if selected_status == "in-progress" %}selected{% endif %}>In Progress</option>
-                    <option value="completed" {% if selected_status == "completed" %}selected{% endif %}>Completed</option>
-                    <option value="pending" {% if selected_status == "pending" %}selected{% endif %}>Pending Pickup</option>
-                </select>
-            </div>
+                    <div class="company-print">
+                        <h2>COMPANY NAME</h2>
+                        <p>COMPANY ADDRESS</p>
+                        <p>COMPANY CONTACT NO: </p>
+                        <P>EMAIL</P> 
+                    </div>
 
-            <!-- Customer Filter -->
-            <div class="col-md-4">
-                <label for="customer">Filter by Customer:</label>
-                <select id="customer" name="customer" class="form-control">
-                    <option value="">All</option>
-                    {% for customer in customers %}
-                    <option value="{{ customer.id }}" {% if selected_customer == customer.id|stringformat:"s" %}selected{% endif %}>
-                        {{ customer.full_name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
+                    
+                    <!-- Filter Form -->
+                    <form method="GET" class="mb-3 no-print">
+                        <div class="row">
+                            <!-- Status Filter -->
+                            <div class="col-md-4">
+                                <label for="status">Filter by Status:</label>
+                                <select id="status" name="status" class="form-control">
+                                    <option value="">All</option>
+                                    <option value="in-progress" {% if selected_status == "in-progress" %}selected{% endif %}>In Progress</option>
+                                    <option value="completed" {% if selected_status == "completed" %}selected{% endif %}>Completed</option>
+                                    <option value="pending" {% if selected_status == "pending" %}selected{% endif %}>Pending Pickup</option>
+                                </select>
+                            </div>
 
-            <!-- Submit Button -->
-            <div class="col-md-3 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary">Filter</button>
-            </div>
-        </div>
-    </form>
+                            <!-- Customer Filter -->
+                            <div class="col-md-4">
+                                <label for="customer">Filter by Customer:</label>
+                                <select id="customer" name="customer" class="form-control">
+                                    <option value="">All</option>
+                                    {% for customer in customers %}
+                                    <option value="{{ customer.id }}" {% if selected_customer == customer.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ customer.full_name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
 
-    <!-- Print Button -->
-    <div class="mb-3 no-print">
-        <button onclick="printReport()" class="btn btn-primary">🖨️ Print Report</button>
-    </div>
+                            <!-- Submit Button -->
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary">Filter</button>&nbsp;
+                                <a href="{% url 'repair_report' %}" class="btn btn-secondary ms-2">Reset</a>
+                            </div>
+                        </div>
+                    </form>
 
-    <script>
-        function printReport() {
-            window.print();
-        }
-    </script>
+                    <!-- Print Button -->
+                    <div class="mb-3 no-print text-end">
+                        <button onclick="printReport()" class="btn btn-primary">🖨️ Print Report</button>
+                    </div>
 
-    <!-- Repair Table -->
-    <table class="table table-bordered table-hover">
-        <thead class="table-primary">
-            <tr>
-                <th>ID</th>
-                <th>Product Name</th>
-                <th>Device Model</th>
-                <th>Customer</th>
-                <th>Issue</th>
-                <th>Out Date</th>
-                <th>Status</th>
-                <th>Created At</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for repair in repairs %}
-            <tr>
-                <td>{{ repair.id }}</td>
-                <td>{{ repair.product_name }}</td>
-                <td>{{ repair.device_model }}</td>
-                <td>{{ repair.name.full_name }}</td>
-                <td>{{ repair.issue_description }}</td>
-                <td>{{ repair.out_date|default:"-" }}</td>
-                <td>{{ repair.status }}</td>
-                <td>{{ repair.created_at }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="8" class="text-center">No repair records found.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                    <script>
+                        function printReport() {
+                            window.print();
+                        }
+                    </script>
 
-   
-</div>
+                    <!-- Repair Table -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Product Name</th>
+                                    <th>Device Model</th>
+                                    <th>Customer</th>
+                                    <th>Issue</th>
+                                    <th>Out Date</th>
+                                    <th>Status</th>
+                                    <th>Created At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for repair in repairs %}
+                                <tr>
+                                    <td>{{ repair.id }}</td>
+                                    <td>{{ repair.product_name|default:"N/A" }}</td>
+                                    <td>{{ repair.device_model|default:"N/A" }}</td>
+                                    <td>{{ repair.name.full_name|default:"N/A" }}</td>
+                                    <td>{{ repair.issue_description|default:"N/A" }}</td>
+                                    <td>{{ repair.out_date|date:"M d, Y" }}</td>
+                                    <td>
+                                        {% if repair.status == "in-progress" %}
+                                            <span class="badge bg-warning text-dark">In Progress</span>
+                                        {% elif repair.status == "completed" %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% elif repair.status == "pending" %}
+                                            <span class="badge bg-danger">Pending Pickup</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ repair.created_at|date:"M d, Y H:i" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center">No repair records found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div> <!-- End Card Body -->
+            </div> <!-- End Card -->
+        </div> <!-- End Col -->
+    </div> <!-- End Row -->
+</div> <!-- End Container -->
 
 {% endblock content %}

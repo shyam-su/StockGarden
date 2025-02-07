@@ -8,76 +8,91 @@
         }
     }
 </style>
-    <div class="container mt-4">
-        <h2 class="mb-3">Sales Report</h2>
 
-        <!-- Date Range Filter Form -->
-        <form method="GET" class="mb-3 no-print">
-            <div class="row">
-                <div class="col-md-3">
-                    <label for="start_date">Start Date:</label>
-                    <input type="date" id="start_date" name="start_date" class="form-control" value="{{ request.GET.start_date }}">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>&nbsp;Sales Report</h5>
                 </div>
-                <div class="col-md-3">
-                    <label for="end_date">End Date:</label>
-                    <input type="date" id="end_date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
-                </div>
-                <div class="col-md-3 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary">Filter</button>
-                </div>
-            </div>
-        </form>
+                <div class="card-body">
+                    <!-- Date Range Filter Form -->
+                    <form method="GET" class="mb-3 no-print">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label for="start_date">Start Date:</label>
+                                <input type="date" id="start_date" name="start_date" class="form-control" value="{{ request.GET.start_date }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="end_date">End Date:</label>
+                                <input type="date" id="end_date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary">Filter</button>&nbsp;
+                                <a href="{% url 'sales_report' %}" class="btn btn-secondary ms-2">Reset</a>
+                            </div>
+                        </div>
+                    </form>
 
-        <div class="mb-3 no-print">
-            <button onclick="printReport()" class="btn btn-primary">🖨️ Print Report</button>
-        </div>
-        
-    
-        <script>
-            function printReport() {
-                window.print();
-            }
-        </script>
+                    <!-- Print Button -->
+                    <div class="mb-3 no-print text-end">
+                        <button onclick="printReport()" class="btn btn-primary">🖨️ Print Report</button>
+                    </div>
 
-        <!-- Sales Summary -->
-        <div class="alert alert-info">
-            <strong>Total Quantity Sold:</strong> {{ total_quantity }}
-        </div>
+                    <script>
+                        function printReport() {
+                            window.print();
+                        }
+                    </script>
 
-        <!-- Sales Table -->
-        <table class="table table-bordered table-hover">
-            <thead class="table-primary">
-                <tr>
-                    <th>ID</th>
-                    <th>Party Name</th>
-                    <th>Product</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                    <th>Total</th>
-                    <th>Contact No</th>
-                    <th>Expiring Date</th>
-                    <th>Sale Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for sale in sales %}
-                <tr>
-                    <td>{{ sale.id }}</td>
-                    <td>{{ sale.name }}</td>
-                    <td>{{ sale.product }}</td>
-                    <td>{{ sale.quantity }}</td>
-                    <td>{{ sale.price }}</td>
-                    <td>{{ sale.total_amount }}</td>
-                    <td>{{ sale.contact_no }}</td>
-                    <td>{{ sale.expiring_date }}</td>
-                    <td>{{ sale.created_at }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="9" class="text-center">No sales data available.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endblock content %}
+                    <!-- Sales Summary -->
+                    <div class="alert alert-info">
+                        <strong>Total Quantity Sold:</strong> {{ total_quantity }}
+                    </div><br>
+
+                    <!-- Sales Table -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Party Name</th>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                    <th>Total</th>
+                                    <th>Contact No</th>
+                                    <th>Expiring Date</th>
+                                    <th>Sale Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sale in sales %}
+                                    <tr>
+                                        <td>{{ sale.id }}</td>
+                                        <td>{{ sale.name|default:"N/A" }}</td>
+                                        <td>{{ sale.product|default:"N/A" }}</td>
+                                        <td>{{ sale.quantity }}</td>
+                                        <td>{{ sale.price }}</td>
+                                        <td>{{ sale.total_amount }}</td>
+                                        <td>{{ sale.contact_no|default:"N/A" }}</td>
+                                        <td>{{ sale.expiring_date|date:"M d, Y" }}</td>
+                                        <td>{{ sale.created_at|date:"M d, Y H:i" }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="9" class="text-center">No sales data available.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div> <!-- End Card Body -->
+            </div> <!-- End Card -->
+        </div> <!-- End Col -->
+    </div> <!-- End Row -->
+</div> <!-- End Container -->
+
+{% endblock content %}
