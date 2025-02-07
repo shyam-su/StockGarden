@@ -70,7 +70,7 @@
                             <tbody>
                                 {% for sale in sales %}
                                     <tr>
-                                        <td>{{ sale.id }}</td>
+                                        <td>{{ forloop.counter }}</td>
                                         <td>{{ sale.name|default:"N/A" }}</td>
                                         <td>{{ sale.product|default:"N/A" }}</td>
                                         <td>{{ sale.quantity }}</td>

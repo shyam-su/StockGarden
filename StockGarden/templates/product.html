@@ -41,7 +41,7 @@
                             <tbody id="tableBody">
                                 {% for pro in product %}
                                 <tr>
-                                    <td>{{ pro.id }}</td>
+                                    <td>{{ forloop.counter }}</td>
                                     <td>{{ pro.name|slice:":6" }}</td>
                                     <td>{{ pro.vendor.company_name|slice:":5" }}</td>
                                     <td>{{ pro.description|slice:":10" }}</td>

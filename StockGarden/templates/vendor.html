@@ -37,7 +37,7 @@
                             <tbody id="tableBody">
                                 {% for ven in vendors %}
                                 <tr>
-                                    <td style="text-align: left;">{{ ven.id }}</td>
+                                    <td style="text-align: left;">{{ forloop.counter }}</td>
                                     <td style="text-align: left;">{{ ven.name|slice:":8" }}</td>
                                     <td style="text-align: left;">{{ ven.company_name|slice:":20" }}</td>
                                     <td style="text-align: left;">{{ ven.address|slice:":13" }}</td>

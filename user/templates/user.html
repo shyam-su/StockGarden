@@ -36,7 +36,7 @@
                             <tbody id="tableBody">
                                 {% for user in users %}
                                 <tr>
-                                    <td>{{ user.id }}</td>
+                                    <td>{{ forloop.counter }}</td>
                                     <td>{{ user.full_name|default:"N/A"|slice:":6" }}</td>
                                     <td>{{ user.address|default:"N/A"|slice:":18" }}</td>
                                     <td>{{ user.phone|default:"N/A" }}</td>

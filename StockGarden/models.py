@@ -12,7 +12,9 @@ class Company(models.Model):
     address = models.CharField(max_length=255)
     email = models.EmailField(max_length=255)
     phone_number = models.CharField(max_length=20,db_index=True)
-    logo = models.ImageField(upload_to='company/logos/', blank=True)    
+    logo = models.ImageField(upload_to='company/logos/', blank=True) 
+    created_at=models.DateTimeField(auto_now_add=True)
+       
     
     class Meta:
         verbose_name = "Company"
@@ -194,21 +196,21 @@ class RepairDetail(models.Model):
  
 
 class Invoice(models.Model):
-    Payment_Method = {
+    PAYMENT_METHOD_CHOICES = [
         ('Cash on Hands', 'Cash on Hands'),
         ('Khalti', 'Khalti'),
         ('Esewa', 'Esewa'),
         ('Bank Transfer', 'Bank Transfer'),
-        
-    }
-    Status = {
+    ]
+
+    STATUS_CHOICES = [
         ('Full Payment', 'Full Payment'),
-        ('Pending', 'Pending'),  
-    }
+        ('Pending', 'Pending'),
+    ]
     sales=models.ForeignKey(Sales,on_delete=models.CASCADE)
     discount=models.IntegerField(null=True, blank=True)
-    payment_method=models.CharField(max_length=255,choices=Payment_Method ,db_index=True)
-    status=models.CharField(max_length=255,choices=Status,db_index=True)
+    payment_method=models.CharField(max_length=255,choices=PAYMENT_METHOD_CHOICES ,db_index=True)
+    status=models.CharField(max_length=255,choices=STATUS_CHOICES,db_index=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
     

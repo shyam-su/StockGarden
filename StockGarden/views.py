@@ -1,15 +1,12 @@
-from django.shortcuts import render,HttpResponse
+from django.shortcuts import HttpResponse,render, get_object_or_404, redirect
 import json
 from django.http import JsonResponse
 from .models import *
 from .forms import *
-from django.shortcuts import render, get_object_or_404, redirect
 import logging
 from django.core.paginator import Paginator
 from django.contrib import messages  
-from django.db.models import Sum
-from django.db.models import Q
-from django.db.models import F
+from django.db.models import Sum,Q,F
 from openpyxl import Workbook
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas

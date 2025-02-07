@@ -67,9 +67,9 @@
                             <tbody>
                                 {% for product in products %}
                                 <tr class="text-center">
-                                    <td>{{ product.id }}</td>
+                                    <td>{{ forloop.counter }}</td>
                                     <td>{{ product.name }}</td>
-                                    <td>{{ product.category.name }}</td>
+                                    <td>{{ product.categories.name }}</td>
                                     <td>{{ product.stock }}</td>
                                     <td>
                                         {% for sale in sales_data %}

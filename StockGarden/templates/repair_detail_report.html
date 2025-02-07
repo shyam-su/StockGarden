@@ -77,26 +77,26 @@
                             <thead class="table-primary">
                                 <tr>
                                     <th>ID</th>
-                                    <th>Customer Name</th>
-                                    <th>Product Name</th>
-                                    <th>Device Model</th>
+                                    <th>Customer</th>
+                                    <th>Product</th>
+                                    <th>Model</th>
                                     <th>Issue Description</th>
                                     <th>Out Date</th>
                                     <th>Status</th>
-                                    <th>Repair Cost</th>
-                                    <th>Fixed Description</th>
-                                    <th>Repair Action</th>
+                                    <th>Cost</th>
+                                    <th>Fixed Issue</th>
+                                    <th>Action</th>
                                     <th>Created At</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for detail in repair_details %}
                                 <tr>
-                                    <td>{{ detail.id }}</td>
-                                    <td>{{ detail.repair_order.name|default:"N/A" }}</td>
-                                    <td>{{ detail.repair_order.product_name|default:"N/A" }}</td>
-                                    <td>{{ detail.repair_order.device_model|default:"N/A" }}</td>
-                                    <td>{{ detail.repair_order.issue_description|default:"N/A" }}</td>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ detail.repair_order.name|slice:":7"|default:"N/A" }}</td>
+                                    <td>{{ detail.repair_order.product_name|slice:":8"|default:"N/A" }}</td>
+                                    <td>{{ detail.repair_order.device_model|slice:":10"|default:"N/A" }}</td>
+                                    <td>{{ detail.repair_order.issue_description|slice:":50"|default:"N/A" }}</td>  {# Allows more characters for description #}
                                     <td>{{ detail.repair_order.out_date|date:"M d, Y" }}</td>
                                     <td>
                                         {% if detail.repair_order.status == "in-progress" %}

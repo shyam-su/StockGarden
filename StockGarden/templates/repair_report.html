@@ -93,7 +93,7 @@
                             <tbody>
                                 {% for repair in repairs %}
                                 <tr>
-                                    <td>{{ repair.id }}</td>
+                                    <td>{{ forloop.counter }}</td>
                                     <td>{{ repair.product_name|default:"N/A" }}</td>
                                     <td>{{ repair.device_model|default:"N/A" }}</td>
                                     <td>{{ repair.name.full_name|default:"N/A" }}</td>

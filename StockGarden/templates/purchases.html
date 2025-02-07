@@ -37,7 +37,7 @@
                             <tbody id="tableBody">
                                 {% for purc in purches %}
                                 <tr>
-                                    <td style="text-align: left;">{{ purc.id }}</td>
+                                    <td style="text-align: left;">{{ forloop.counter }}</td>
                                     <td style="text-align: left;">{{ purc.vendor|slice:":12" }}</td>
                                     <td style="text-align: left;">{{ purc.product|slice:":15" }}</td>
                                     <td style="text-align: left;">{{ purc.description|slice:":20" }}</td>

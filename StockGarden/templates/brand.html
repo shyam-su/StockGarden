@@ -33,7 +33,7 @@
                             <tbody id="tableBody">
                                 {% for bra in brand %}
                                 <tr>
-                                    <td style="text-align: left;">{{ bra.id }}</td>
+                                    <td style="text-align: left;">{{ forloop.counter }}</td>
                                     <td style="text-align: left;">{{ bra.name }}</td>
                                     <td style="text-align: left;">
                                         <img src="{{ bra.image.url }}" alt="Brand Image" width="75" height="30">

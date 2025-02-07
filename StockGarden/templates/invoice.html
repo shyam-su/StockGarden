@@ -31,7 +31,7 @@
                             <tbody id="tableBody">
                                 {% for invo in invoice %}
                                 <tr>
-                                    <td style="text-align: left;">{{ invo.id }}</td>
+                                    <td style="text-align: left;">{{ forloop.counter }}</td>
                                     <td style="text-align: left;">{{ invo.sales.name }}</td>
                                     <td style="text-align: left;">{{ invo.sales.product }}</td>
                                     <td style="text-align: left;">{{ invo.sales.price }}</td>
