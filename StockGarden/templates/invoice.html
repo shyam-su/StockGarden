@@ -42,8 +42,8 @@
                                     <td style="text-align: left;">{{ invo.status }}</td>
                                     <td style="text-align: left;">{{ invo.created_at|date:"M d, Y" }}</td>
                                     <td class="text-center">
-                                        <a href="{% url 'invoice_print' pk=invo.id %}" class="btn btn-sm btn-danger">Print</a>
-                                        <a href="{% url 'invoice_update' pk=invo.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                        <button class="btn btn-sm btn-danger no-print " onclick="printRow(this)">Print</button>
+                                        <a href="{% url 'invoice_update' pk=invo.id %}" class="btn btn-sm btn-success me-1 no-print">Update</a>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -119,5 +119,37 @@
         </div>
     </div>
 </div>
+
+<script>
+    function printRow(button) {
+        var row = button.closest("tr").cloneNode(true); // Clone the row to prevent modifying the original
+        var originalContent = document.body.innerHTML; // Save the original page content
+
+        // Remove the entire cell that contains the buttons
+        row.querySelectorAll(".no-print").forEach(el => el.closest("td")?.remove());
+
+        // Create the printable content with company details
+        var printContent = document.createElement("div");
+        printContent.innerHTML = `
+            <div class="company-print" style="text-align: center; margin-bottom: 20px;">
+                <h2>COMPANY NAME</h2>
+                <p>COMPANY ADDRESS</p>
+                <p>COMPANY CONTACT NO:</p>
+                <p>EMAIL</p> 
+            </div>
+
+            
+            <table class="table table-bordered" style="width: 100%; border-collapse: collapse;">
+                ${row.outerHTML}
+            </table>
+        `;
+
+        document.body.innerHTML = printContent.innerHTML; // Replace body content with invoice row
+        window.print(); // Open print preview
+
+        document.body.innerHTML = originalContent; // Restore the original content after printing
+        location.reload(); // Reload the page to restore event bindings
+    }
+</script>
 
 {% endblock content %}

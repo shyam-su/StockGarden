@@ -90,9 +90,9 @@ class VendorForm(forms.ModelForm):
             "email": "Email Address",
         }
         
-        def __init__(self, *args, **kwargs):
-            super(VendorForm, self).__init__(*args, **kwargs)
-            self.fields["name"].queryset = User.objects.filter(role="Vendor")
+    def __init__(self, *args, **kwargs):
+        super(VendorForm, self).__init__(*args, **kwargs)
+        self.fields["name"].queryset = User.objects.filter(role="Vendor")
 
 
 class ProductForm(forms.ModelForm):
@@ -400,6 +400,10 @@ class RepairDetailForm(forms.ModelForm):
             "repair_action": "Repair Action",
         }
 
+    def __init__(self, *args, **kwargs):
+        super(RepairDetailForm, self).__init__(*args, **kwargs)
+        # Filter out repair orders that are marked as completed
+        self.fields["repair_order"].queryset = Repair.objects.exclude(status="completed")
 
 class InvoiceForm(forms.ModelForm):
     class Meta:
