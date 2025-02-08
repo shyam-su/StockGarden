@@ -109,4 +109,41 @@
         </div>
     </div>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $("#product").change(function () {
+            var productId = $(this).val();  // Get selected product ID
+            console.log("Selected Product ID:", productId); // Debugging log
+
+            if (productId) {
+                $.ajax({
+                    url: "{% url 'get_product_price' %}",  // Django view URL
+                    type: "GET",
+                    data: {"product_id": productId},
+                    dataType: "json",
+                    success: function (data) {
+                        console.log("Response Data:", data); // Debugging log
+                        if (data.price) {
+                            $("#price").val(data.price);  // Set price in the input field
+                        } else {
+                            $("#price").val("");
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.log("AJAX Error:", status, error); // Debugging log
+                        alert("Failed to fetch product price!");
+                    }
+                });
+            } else {
+                $("#price").val("");
+            }
+        });
+    });
+</script>
+
+
+
+
 {% endblock content %}

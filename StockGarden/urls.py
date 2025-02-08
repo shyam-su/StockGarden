@@ -68,6 +68,9 @@ urlpatterns = [
 
     path('repair_detail_report/', RepairDetailReportListView, name='repair_detail_report'),
     path('chart-data/', get_chart_data, name='chart_data'),
+
+
+    path("get-product-price/", get_product_price, name="get_product_price"),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -1037,5 +1037,18 @@ def RepairDetailReportListView(request):
     }
     return render(request, 'repair_detail_report.html', context)
 
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def get_product_price(request):
+    product_id = request.GET.get("product_id")
+    if product_id:
+        try:
+            product = Product.objects.get(id=product_id)
+            return JsonResponse({"price": product.price})
+        except Product.DoesNotExist:
+            return JsonResponse({"error": "Product not found"}, status=404)
+    return JsonResponse({"error": "Invalid request"}, status=400)
+
 
 

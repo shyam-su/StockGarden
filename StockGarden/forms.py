@@ -210,6 +210,8 @@ class SalesForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Price",
                     "id": "price",
+                    "readonly": "readonly"
+                    
                 }
             ),
             "contact_no": forms.TextInput(
@@ -282,6 +284,7 @@ class PurchaseForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Price",
                     "id": "price",
+                    "readonly": "readonly"
                 }
             ),
         }
