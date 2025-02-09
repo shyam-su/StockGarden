@@ -43,7 +43,6 @@
                                     <td style="text-align: left;">{{ invo.created_at|date:"M d, Y" }}</td>
                                     <td class="text-center">
                                         <button class="btn btn-sm btn-danger no-print " onclick="printRow(this)">Print</button>
-                                        <a href="{% url 'invoice_update' pk=invo.id %}" class="btn btn-sm btn-success me-1 no-print">Update</a>
                                     </td>
                                 </tr>
                                 {% endfor %}

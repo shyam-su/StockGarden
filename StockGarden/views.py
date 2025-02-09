@@ -1,5 +1,4 @@
 from django.shortcuts import HttpResponse,render, get_object_or_404, redirect
-import json
 from django.http import JsonResponse
 from .models import *
 from .forms import *
@@ -8,15 +7,20 @@ from django.core.paginator import Paginator
 from django.contrib import messages  
 from django.db.models import Sum,Q,F
 from openpyxl import Workbook
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from io import BytesIO
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from openpyxl.styles import Font, PatternFill
 from datetime import datetime
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 
 
 # Create your views here
 logger = logging.getLogger(__name__)
 
+@login_required
 def home(request):
     try:
         total_sales = Sales.objects.aggregate(Sum('total'))['total__sum'] or 0 
@@ -38,6 +42,7 @@ def home(request):
         messages.error(request, 'An error occurred while loading the dashboard.')
     return render(request, '404.html', {"message": "An error occurred while loading the dashboard."})
 
+@login_required
 def get_chart_data(request):
     try:
         total_sales = Sales.objects.aggregate(total=Sum('total')).get('total', 0) or 0
@@ -51,10 +56,12 @@ def get_chart_data(request):
         }
         return JsonResponse(chart_data)
     except Exception as e:
+        logger.error(f"Error in home view: {e}")
+        messages.error(request, 'An error occurred while loading the chart.')
         return JsonResponse({"error": str(e)}, status=500)
 
 
-
+@login_required
 def BrandListView(request):
     try:
         query = request.GET.get('q', '')
@@ -75,7 +82,7 @@ def BrandListView(request):
         messages.error(request, 'An error occurred while loading the brand list.')
         return render(request, '404.html', {"message": "An error occurred while loading the brand list."})
 
-
+@login_required
 def BrandCreateView(request, brand_id=None):
     try:
         if brand_id:
@@ -102,7 +109,8 @@ def BrandCreateView(request, brand_id=None):
         logger.error(f"Error in BrandCreateView: {e}")
         messages.error(request, 'An error occurred while processing the brand.')
         return render(request, '404.html', {"message": "An error occurred."})
-
+    
+@login_required
 def BrandUpdateView(request, pk):
     try:
         brand = get_object_or_404(Brand, pk=pk)
@@ -122,7 +130,7 @@ def BrandUpdateView(request, pk):
         messages.error(request, 'An error occurred while updating the brand.')
         return render(request, 'error.html', {"message": "An error occurred while updating the brand."})
 
-
+@login_required
 def BrandDeleteView(request, pk):
     try:
         brand = get_object_or_404(Brand, pk=pk)
@@ -139,7 +147,7 @@ def BrandDeleteView(request, pk):
         messages.error(request, 'An error occurred while deleting the brand.')
         return render(request, '404.html', {"message": "An error occurred while deleting the brand."})
 
-
+@login_required
 def CategoryListView(request):
     try:
         query = request.GET.get('q', '').strip()
@@ -163,7 +171,8 @@ def CategoryListView(request):
     except Exception as e:
         logger.error(f" Error in CategoryListView: {e}")
         return render(request, '404.html', {"message": "An error occurred."})
-
+    
+@login_required
 def CategoryCreateView(request,catagory_id=None):
     try:
         if catagory_id:
@@ -184,6 +193,7 @@ def CategoryCreateView(request,catagory_id=None):
         messages.error(request, 'An error occurred while processing the category.')
         return render(request, '404.html', {"message": "An error occurred."})
     
+@login_required    
 def CategoryUpdateView(request,pk):
     try:
         category=get_object_or_404(Category,pk=pk)
@@ -201,6 +211,7 @@ def CategoryUpdateView(request,pk):
         messages.error(request, 'An error occurred while processing the category.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def CategoryDeleteView(request,pk):
     try:
         category=get_object_or_404(Category,pk=pk)
@@ -215,7 +226,8 @@ def CategoryDeleteView(request,pk):
         logger.error(f"Error in CategoryDeleteView: {e}")
         messages.error(request, 'An error occurred while processing the category.')
         return render(request, '404.html', {"message": "An error occurred."})
-
+    
+@login_required
 def ProductListView(request):
     try:
         query = request.GET.get('q', '')
@@ -243,7 +255,8 @@ def ProductListView(request):
         logger.error(f"Error in ProductListView: {e}")
         messages.error(request,"An error occurred while loading the product list.")
         return render(request, '404.html', {"message": "An error occurred."})
-
+    
+@login_required
 def ProductCreateView(request, product_id=None):
     try:
         if product_id:
@@ -267,7 +280,8 @@ def ProductCreateView(request, product_id=None):
         messages.error(request, 'An error occurred while processing the product.')
         logger.error(f"Error in ProductCreateView: {e}")
         return render(request, '404.html', {"message": "An error occurred."})
-
+    
+@login_required
 def ProductUpdateView(request, pk):
     try:
         product = get_object_or_404(Product, pk=pk)
@@ -289,6 +303,7 @@ def ProductUpdateView(request, pk):
         messages.error(request, 'An error occurred while updating the product.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def ProductDeleteView(request,pk):
     try:
         product = get_object_or_404(Product,pk=pk)
@@ -303,6 +318,7 @@ def ProductDeleteView(request,pk):
         messages.error(request, 'An error occurred while processing the product.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def SalesListView(request):
     try:
         query = request.GET.get('q', '')
@@ -326,7 +342,8 @@ def SalesListView(request):
     except Exception as e:
         logger.error(f"Error in SalesListView: {e}")
         return render(request, '404.html', {"message": "An error occurred."})
-
+    
+@login_required
 def SalesCreateView(request,sales_id=None):
     try:
         if sales_id:
@@ -346,7 +363,8 @@ def SalesCreateView(request,sales_id=None):
         logger.error(f"Error in SalesCreateView: {e}")
         messages.error(request, 'An error occurred while processing the sales.')
         return render(request, '404.html', {"message": "An error occurred."})
-
+    
+@login_required
 def SalesUpdateView(request, pk):
     try:
         sales = get_object_or_404(Sales, pk=pk)
@@ -366,6 +384,7 @@ def SalesUpdateView(request, pk):
         messages.error(request, 'An error occurred while processing the sales.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def SalesDeleteView(request,pk):
     try:
         sales =get_object_or_404(Sales,pk=pk)
@@ -380,6 +399,7 @@ def SalesDeleteView(request,pk):
         messages.error(request, 'An error occurred while processing the sales.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def VendorListView(request):
     try:
         query = request.GET.get('q', '')
@@ -404,8 +424,10 @@ def VendorListView(request):
         return render(request, 'vendor.html',context)
     except Exception as e:
         logger.error(f"Error in VendorListView: {e}")
+        messages.error(request, 'An error occurred while loading the Vendor list.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def VendorCreateView(request,vendor_id=None):
     try:
         if vendor_id:
@@ -426,6 +448,7 @@ def VendorCreateView(request,vendor_id=None):
         messages.error(request,"An error occurred while processing the vendor.")
         return redirect('404.html', {"message": "An error occurred."})
     
+@login_required
 def VendorUpdateView(request,pk):
     try:
         vendor=get_object_or_404(Vendor,pk=pk)
@@ -443,6 +466,7 @@ def VendorUpdateView(request,pk):
         messages.error(request,"An error occurred while processing the vendor.")
         return redirect('404.html', {"message": "An error occurred."})
     
+@login_required
 def VendorDeleteView(request,pk):
     try:
         vendor=get_object_or_404(Vendor,pk=pk)
@@ -457,6 +481,7 @@ def VendorDeleteView(request,pk):
         messages.error(request,"An error occurred while processing the vendor.")
         return redirect('404.html', {"message": "An error occurred."})
 
+@login_required
 def PurchaseListView(request):
     try:
         query = request.GET.get('q', '')
@@ -481,6 +506,7 @@ def PurchaseListView(request):
         messages.error(request, 'An error occurred while loading the purchase list.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def PurchaseCreateView(request,pruchase_id=None):
     try:
         if pruchase_id:
@@ -501,6 +527,7 @@ def PurchaseCreateView(request,pruchase_id=None):
         messages.error(request, 'An error occurred while processing the purchase.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def PurchaseUpdateView(request,pk):
     try:
         purchase = get_object_or_404(Purchase,pk=pk)
@@ -518,6 +545,7 @@ def PurchaseUpdateView(request,pk):
         messages.error(request, 'An error occurred while processing the purchase.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def PurchaseDeleteView(request,pk):
     try:
         purchase= get_object_or_404(Purchase,pk=pk)
@@ -532,6 +560,7 @@ def PurchaseDeleteView(request,pk):
         messages.error(request, 'An error occurred while processing the purchase.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def RepairListView(request):
     try:
         query = request.GET.get('q', '')
@@ -556,7 +585,8 @@ def RepairListView(request):
         logger.error(f'An error occurred while loading the repair list:- {e}')
         messages.error(request, 'An error occurred while loading the repair list.')
         return render(request, '404.html', {"message": "An error occurred."})
-    
+
+@login_required
 def RepairCreateView(request,repair_id=None):
     try:
         if repair_id:
@@ -579,7 +609,8 @@ def RepairCreateView(request,repair_id=None):
         logger.error(f"Error in RepairCreateView: {e}")
         messages.error(request, 'An error occurred while processing the repair.')
         return render(request, '404.html', {"message": "An error occurred."})
-    
+
+@login_required
 def RepairUpdateView(request,pk):
     try:
         repair=get_object_or_404(Repair,pk=pk)
@@ -597,6 +628,7 @@ def RepairUpdateView(request,pk):
         messages.error(request, 'An error occurred while processing the repair.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def RepairDeleteView(request,pk):
     try:
         repair=get_object_or_404(Repair,pk=pk)
@@ -611,6 +643,7 @@ def RepairDeleteView(request,pk):
         messages.error(request, 'An error occurred while processing the repair.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def RepairDetailListView(request):
     try:
         query = request.GET.get('q', '')
@@ -634,7 +667,8 @@ def RepairDetailListView(request):
         logger.error(f"Error in RepairListView: {e}")
         messages.error(request, 'An error occurred while loading the repair detail list.')
         return render(request, '404.html', {"message": "An error occurred."})
-    
+
+@login_required    
 def RepairDetailCreate(request,repairde_id=None):
     try:
         if repairde_id:
@@ -655,6 +689,7 @@ def RepairDetailCreate(request,repairde_id=None):
         messages.error(request, 'An error occurred while processing the repair detail.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def RepairDetailUpdateView(request,pk):
     try:
         repairdetail=get_object_or_404(RepairDetail,pk=pk)
@@ -672,6 +707,7 @@ def RepairDetailUpdateView(request,pk):
         messages.error(request, 'An error occurred while processing the repair detail.')
         return render(request, '404.html', {"message": "An error occurred."})
     
+@login_required    
 def RepairDetailDeleteView(request, pk):
     try:
         repairdetail = get_object_or_404(RepairDetail, pk=pk)
@@ -688,6 +724,7 @@ def RepairDetailDeleteView(request, pk):
         messages.error(request, 'An error occurred while processing the repair detail. Please try again later.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def InvoiceListView(request):
     try:
         invoice=Invoice.objects.all().order_by('id')
@@ -703,6 +740,7 @@ def InvoiceListView(request):
         messages.error(request, 'An error occurred while loading the invoice list.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+@login_required
 def InvoiceCreateView(request,invoice_id=None):
     try:
         if invoice_id:
@@ -723,26 +761,7 @@ def InvoiceCreateView(request,invoice_id=None):
         messages.error(request, 'An error occurred while processing the invoice.')
         return render(request, '404.html', {"message": "An error occurred."})
 
-def InvoiceUpdateView(request,pk):
-    try:
-        invoice=get_object_or_404(Invoice, pk=pk)
-        if request.method == 'POST':
-            form=InvoiceForm(request.POST or None, instance=invoice)
-            if form.is_valid():
-                form.save()
-                messages.success(request, f'Invoice updated successfully!')
-                return redirect('invoice')
-        else:
-            form = InvoiceForm(instance=invoice)
-            return render(request, 'invoice_update.html',{'form':form,'invoice':invoice})
-    except Exception as e:
-        logger.error(f"Error in InvoiceUpdateView: {e}")
-        messages.error(request, 'An error occurred while processing the invoice.')
-        return render(request, '404.html', {"message": "An error occurred."})
-
-def Invoiceprint(request):
-    return render(request, 'invoice_print.html',)
-
+@login_required
 def UserReportListView(request):
     try:
         selected_role = request.GET.get('role', '') 
@@ -766,114 +785,141 @@ def UserReportListView(request):
         messages.error(request, 'An error occurred while loading the report list.')
         return render(request, '404.html', {"message": "An error occurred."})
 
-    
-
-
-
+@login_required
 def global_search(request):
     query = request.GET.get('q')
-    if query:
-        products = Product.objects.filter(Q(name__icontains=query) | Q(description__icontains=query))
-        sales = Sales.objects.filter(Q(name__full_name__icontains=query) | Q(product__name__icontains=query))
-        purchases = Purchase.objects.filter(Q(vendor__company_name__icontains=query) | Q(product__name__icontains=query))
-        repairs = Repair.objects.filter(Q(product_name__icontains=query) | Q(device_model__icontains=query) | Q(name__full_name__icontains=query))
-        vendors = Vendor.objects.filter(Q(company_name__icontains=query) | Q(name__full_name__icontains=query))
-        brands = Brand.objects.filter(Q(name__icontains=query))
-        categories = Category.objects.filter(Q(name__icontains=query))
-        users = User.objects.filter(Q(full_name__icontains=query))
+    context = {}
 
-        context = {
-            'products': products,
-            'sales': sales,
-            'purchases': purchases,
-            'repairs': repairs,
-            'vendors': vendors,
-            'brands': brands,
-            'categories': categories,
-            'users': users,
-            'query': query,
-        }
-    else:
-        context = {}
+    try:
+        if query:
+            products = Product.objects.filter(Q(name__icontains=query) | Q(description__icontains=query))
+            sales = Sales.objects.filter(Q(name__full_name__icontains=query) | Q(product__name__icontains=query))
+            purchases = Purchase.objects.filter(Q(vendor__company_name__icontains=query) | Q(product__name__icontains=query))
+            repairs = Repair.objects.filter(Q(product_name__icontains=query) | Q(device_model__icontains=query) | Q(name__full_name__icontains=query))
+            vendors = Vendor.objects.filter(Q(company_name__icontains=query) | Q(name__full_name__icontains=query))
+            brands = Brand.objects.filter(Q(name__icontains=query))
+            categories = Category.objects.filter(Q(name__icontains=query))
+            users = User.objects.filter(Q(full_name__icontains=query))
+
+            context = {
+                'products': products,
+                'sales': sales,
+                'purchases': purchases,
+                'repairs': repairs,
+                'vendors': vendors,
+                'brands': brands,
+                'categories': categories,
+                'users': users,
+                'query': query,
+            }
+    except Exception as e:
+        logger.error(f"Error occurred in global_search: {e}", exc_info=True)
+        context['error'] = "An error occurred while processing your search. Please try again."
 
     return render(request, 'search_results.html', context)
 
-
-
+@login_required
 def SalesReportListView(request):
-    sales = Sales.objects.annotate(total_amount=F('quantity') * F('price'))
-
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-
-    if start_date and end_date:
-        sales = sales.filter(created_at__date__range=[start_date, end_date])
-
-    total_quantity = sales.aggregate(Sum('quantity'))['quantity__sum'] or 0
-
-    context = { 
-        'sales': sales,
-        'total_quantity': total_quantity,
-    }
-    return render(request, 'sales_report.html', context)
-
-
-def StockReportListView(request):
-    start_date = request.GET.get("start_date")
-    end_date = request.GET.get("end_date")
-    product_name = request.GET.get("product_name")
-    low_stock_threshold = request.GET.get("low_stock_threshold", 0)
-    total_sales_threshold = request.GET.get("total_sales_threshold", 0)
-
-    products = Product.objects.all()
-    if product_name:
-        products = products.filter(name__icontains=product_name)
-
-    sales = Sales.objects.all()
-    purchases = Purchase.objects.all()
+    context = {}
 
     try:
+        sales = Sales.objects.annotate(total_amount=F('quantity') * F('price'))
+
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
         if start_date and end_date:
-            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-            if start_date <= end_date:
-                sales = sales.filter(date__range=[start_date, end_date])
-                purchases = purchases.filter(date__range=[start_date, end_date])
-    except ValueError:
-        pass
+            sales = sales.filter(created_at__date__range=[start_date, end_date])
 
-    sales_data = []
-    purchases_data = []
+        total_quantity = sales.aggregate(Sum('quantity'))['quantity__sum'] or 0
 
-    for product in products:
-        sold_quantity = sum(sale.quantity for sale in sales if sale.product_id == product.id)
-        purchased_quantity = sum(purchase.quantity for purchase in purchases if purchase.product_id == product.id)
-        sales_data.append((product.id, sold_quantity))
-        purchases_data.append((product.id, purchased_quantity))
-
-    if low_stock_threshold:
-        low_stock_threshold = int(low_stock_threshold)
-        products = products.filter(stock__lt=low_stock_threshold)
-
-    if total_sales_threshold:
-        total_sales_threshold = int(total_sales_threshold)
-        products = [product for product in products if any(sale[1] >= total_sales_threshold for sale in sales_data if sale[0] == product.id)]
-
-    context = {
-        "products": products,
-        "sales_data": sales_data,
-        "purchases_data": purchases_data,
-        "start_date": start_date,
-        "end_date": end_date,
-        "product_name": product_name,
-        "low_stock_threshold": low_stock_threshold,
-        "total_sales_threshold": total_sales_threshold,
-    }
+        context = { 
+            'sales': sales,
+            'total_quantity': total_quantity,
+        }
     
+    except Exception as e:
+        logger.error(f"Error occurred in SalesReportListView: {e}", exc_info=True)
+        context['error'] = "An error occurred while generating the sales report."
+
+    return render(request, 'sales_report.html', context)
+
+@login_required
+def StockReportListView(request):
+    try:
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+        product_name = request.GET.get("product_name")
+        low_stock_threshold = request.GET.get("low_stock_threshold", 0)
+        total_sales_threshold = request.GET.get("total_sales_threshold", 0)
+
+        products = Product.objects.all()
+        if product_name:
+            products = products.filter(name__icontains=product_name)
+
+        sales = Sales.objects.all()
+        purchases = Purchase.objects.all()
+
+        if start_date and end_date:
+            try:
+                start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                if start_date <= end_date:
+                    sales = sales.filter(date__range=[start_date, end_date])
+                    purchases = purchases.filter(date__range=[start_date, end_date])
+            except ValueError as e:
+                logger.warning(f"Invalid date format provided: {e}")
+                start_date, end_date = None, None
+
+        sales_data = []
+        purchases_data = []
+
+        for product in products:
+            sold_quantity = sum(sale.quantity for sale in sales if sale.product_id == product.id)
+            purchased_quantity = sum(purchase.quantity for purchase in purchases if purchase.product_id == product.id)
+            sales_data.append((product.id, sold_quantity))
+            purchases_data.append((product.id, purchased_quantity))
+
+        if low_stock_threshold:
+            try:
+                low_stock_threshold = int(low_stock_threshold)
+                products = products.filter(stock__lt=low_stock_threshold)
+            except ValueError as e:
+                logger.warning(f"Invalid low stock threshold: {e}")
+                low_stock_threshold = 0
+
+        if total_sales_threshold:
+            try:
+                total_sales_threshold = int(total_sales_threshold)
+                products = [
+                    product for product in products 
+                    if any(sale[1] >= total_sales_threshold for sale in sales_data if sale[0] == product.id)
+                ]
+            except ValueError as e:
+                logger.warning(f"Invalid total sales threshold: {e}")
+                total_sales_threshold = 0
+
+        context = {
+            "products": products,
+            "sales_data": sales_data,
+            "purchases_data": purchases_data,
+            "start_date": start_date,
+            "end_date": end_date,
+            "product_name": product_name,
+            "low_stock_threshold": low_stock_threshold,
+            "total_sales_threshold": total_sales_threshold,
+        }
+
+        logger.info("Stock report generated successfully.")
+    
+    except Exception as e:
+        logger.error(f"Error in StockReportListView: {e}", exc_info=True)
+        context = {"error": "An error occurred while generating the stock report."}
+
     return render(request, 'stock_report.html', context)
 
 
-# Function to generate PDF report
+@login_required
 def generate_pdf(request):
     start_date = request.GET.get("start_date")
     end_date = request.GET.get("end_date")
@@ -891,164 +937,330 @@ def generate_pdf(request):
             start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
             end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
             if start_date <= end_date:
-                sales = sales.filter(date__range=[start_date, end_date])
-                purchases = purchases.filter(date__range=[start_date, end_date])
+                sales = sales.filter(created_at__date__range=[start_date, end_date])  
+                purchases = purchases.filter(created_at__date__range=[start_date, end_date])  
         except ValueError:
             pass
 
     total_sells = sum(sale.quantity for sale in sales if sale.quantity is not None)
     total_purchase = sum(purchase.quantity for purchase in purchases if purchase.quantity is not None)
 
-    # Create a PDF response
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="sales_report.pdf"'
 
-    # Add title and filters to the PDF
-    p.drawString(100, 750, f"Stock Report (from {start_date} to {end_date})")
-    p.drawString(100, 730, f"Total Sales: {total_sells}")
-    p.drawString(100, 710, f"Total Purchases: {total_purchase}")
-
-    # Table headers
-    p.drawString(100, 690, "ID")
-    p.drawString(150, 690, "Product Name")
-    p.drawString(300, 690, "Category")
-    p.drawString(450, 690, "Stock")
-    p.drawString(550, 690, "Sold")
-    p.drawString(650, 690, "Purchased")
-
-    # Add product data to the table
-    y_position = 670
-    for product in products:
-        p.drawString(100, y_position, str(product.id))
-        p.drawString(150, y_position, product.name)
-        p.drawString(300, y_position, product.category.name)
-        p.drawString(450, y_position, str(product.stock))
-        p.drawString(550, y_position, str(total_sells))
-        p.drawString(650, y_position, str(total_purchase))
-        y_position -= 20
-
-    p.showPage()
-    p.save()
-
-    buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="stock_report.pdf"'
-    return response
-
-# Function to generate Excel report
-def generate_excel(request):
-    start_date = request.GET.get("start_date")
-    end_date = request.GET.get("end_date")
-    product_name = request.GET.get("product_name")
+    doc = SimpleDocTemplate(response, pagesize=landscape(letter))
+    styles = getSampleStyleSheet()
     
-    products = Product.objects.all()
+    title_style = ParagraphStyle(name="Title", fontSize=18, textColor=colors.darkblue, alignment=1, spaceAfter=15)
+    subtitle_style = ParagraphStyle(name="Subtitle", fontSize=14, textColor=colors.darkred, spaceAfter=10)
+    normal_style = ParagraphStyle(name="Normal", fontSize=12, spaceAfter=8)
+
+    elements = []
+
+    # Header
+    elements.append(Paragraph("Sales and Purchase Report", title_style))
+    elements.append(Spacer(1, 8))
+
+    # Date Range
+    date_range_text = f"Date Range: {start_date} to {end_date}" if start_date and end_date else "Date Range: All Time"
+    elements.append(Paragraph(date_range_text, subtitle_style))
+    elements.append(Spacer(1, 8))
+
+    # Product Filter
     if product_name:
-        products = products.filter(name__icontains=product_name)
-    
-    sales = Sales.objects.all()
-    purchases = Purchase.objects.all()
+        elements.append(Paragraph(f"Product: {product_name}", normal_style))
+        elements.append(Spacer(1, 8))
 
-    if start_date and end_date:
-        try:
-            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-            if start_date <= end_date:
-                sales = sales.filter(date__range=[start_date, end_date])
-                purchases = purchases.filter(date__range=[start_date, end_date])
-        except ValueError:
-            pass
+    # Summary Section
+    summary_data = [
+        ["Total Sales", total_sells],
+        ["Total Purchases", total_purchase],
+    ]
+    summary_table = Table(summary_data, colWidths=[150, 200])
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ]))
+    elements.append(summary_table)
+    elements.append(Spacer(1, 15))
 
-    total_sells = sum(sale.quantity for sale in sales if sale.quantity is not None)
-    total_purchase = sum(purchase.quantity for purchase in purchases if purchase.quantity is not None)
-
-    # Create an Excel workbook
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Stock Report"
-
-    # Add headers to the Excel sheet
-    headers = ["ID", "Product Name", "Category", "Stock", "Sold", "Purchased"]
-    ws.append(headers)
-
-    # Add product data to the sheet
-    for product in products:
-        ws.append([
-            product.id,
-            product.name,
-            product.category.name,
-            product.stock,
-            total_sells,
-            total_purchase
+    # Sales Table
+    sales_data = [['Sale Date', 'Product', 'Quantity', 'Price']]
+    for sale in sales:
+        sales_data.append([
+            sale.created_at.strftime('%Y-%m-%d'),
+            sale.product.name,
+            sale.quantity,
+            f"${sale.price:.2f}",
         ])
 
-    # Save the file to the response
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename="stock_report.xlsx"'
-    wb.save(response)
+    sales_table = Table(sales_data, colWidths=[100, 200, 100, 100])
+    sales_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.darkgreen),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ]))
+    elements.append(Paragraph("Sales Data", subtitle_style))
+    elements.append(sales_table)
+    elements.append(Spacer(1, 15))
+
+    # Purchase Table
+    purchase_data = [['Purchase Date', 'Product', 'Vendor', 'Quantity', 'Price', 'Total Value']]
+    for purchase in purchases:
+        purchase_data.append([
+            purchase.created_at.strftime('%Y-%m-%d'),
+            purchase.product.name if purchase.product else "N/A",
+            purchase.vendor.name,
+            purchase.quantity,
+            f"${purchase.price:.2f}",
+            f"${purchase.total_value:.2f}",
+        ])
+
+    purchase_table = Table(purchase_data, colWidths=[100, 200, 150, 100, 100, 100])
+    purchase_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.darkred),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ]))
+    elements.append(Paragraph("Purchase Data", subtitle_style))
+    elements.append(purchase_table)
+    elements.append(Spacer(1, 15))
+
+    # Footer (Page Numbers)
+    def add_footer(canvas, doc):
+        canvas.setFont("Helvetica", 9)
+        canvas.drawString(500, 20, f"Page {doc.page}")
+
+    # Build the PDF
+    doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
+
     return response
 
 
+@login_required
+def generate_excel(request):
+    try:
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+        product_name = request.GET.get("product_name")
+        
+        # Initialize queryset with select_related to optimize database queries
+        products = Product.objects.select_related('category').all()
+        if product_name:
+            products = products.filter(name__icontains=product_name)
+        
+        # Optimize queries with select_related
+        sales = Sales.objects.select_related('product')
+        purchases = Purchase.objects.select_related('product')
 
+        # Improved date validation and parsing
+        if start_date and end_date:
+            # Validate date format
+            date_format = "%Y-%m-%d"
+            try:
+                # Parse dates and convert to date objects
+                parsed_start_date = datetime.strptime(start_date, date_format).date()
+                parsed_end_date = datetime.strptime(end_date, date_format).date()
+                
+                # Validate date range
+                if parsed_start_date > parsed_end_date:
+                    messages.error(request, "Start date must be before or equal to end date")
+                    return redirect('stock_report')
+                
+                # Apply date filters
+                sales = sales.filter(created_at__date__range=[parsed_start_date, parsed_end_date])
+                purchases = purchases.filter(created_at__date__range=[parsed_start_date, parsed_end_date])
+                
+            except ValueError:
+                messages.error(request, "Invalid date format. Please use YYYY-MM-DD format (e.g., 2024-01-31)")
+                return redirect('stock_report')
+
+        # Create Excel workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Stock Report"
+
+        # Add headers with styling
+        headers = ["ID", "Product Name", "Category", "Stock", "Sold", "Purchased"]
+        ws.append(headers)
+        
+        # Style headers
+        for cell in ws[1]:
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+
+        # Add product data
+        for product in products:
+            try:
+                # Calculate totals
+                total_sold = (
+                    sales.filter(product=product)
+                    .aggregate(total_sold=models.Sum('quantity'))
+                    ['total_sold'] or 0
+                )
+
+                total_purchased = (
+                    purchases.filter(product=product)
+                    .aggregate(total_purchased=models.Sum('quantity'))
+                    ['total_purchased'] or 0
+                )
+
+                # Add row data
+                ws.append([
+                    product.id,
+                    product.name,
+                    product.category.name if product.category else "No Category",
+                    product.stock,
+                    total_sold,
+                    total_purchased
+                ])
+            except Exception as row_error:
+                logger.error(f"Error processing product {product.id}: {str(row_error)}")
+                continue
+
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column = list(column)
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            ws.column_dimensions[column[0].column_letter].width = adjusted_width
+
+        # Generate response with current date in filename
+        current_date = datetime.now().strftime("%Y%m%d")
+        filename = f"stock_report_{current_date}.xlsx"
+        
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        wb.save(response)
+        return response
+
+    except Exception as e:
+        logger.error(f"Error generating Excel report: {str(e)}")
+        messages.error(request, "An error occurred while generating the Excel report")
+        return redirect('stock_report')
+
+
+@login_required
 def RepairReportListView(request):
-    status = request.GET.get('status', '')  
-    customer_id = request.GET.get('customer', '')  
+    try:
+        status = request.GET.get('status', '')  
+        customer_id = request.GET.get('customer', '')  
 
-    repairs = Repair.objects.all().order_by('-created_at')  
+        repairs = Repair.objects.all().order_by('-created_at')  
 
-    if status:
-        repairs = repairs.filter(status=status)
-    if customer_id:
-        repairs = repairs.filter(name_id=customer_id) 
+        if status:
+            repairs = repairs.filter(status=status)
+        if customer_id:
+            repairs = repairs.filter(name_id=customer_id) 
 
-    paginator = Paginator(repairs, 10)
-    page_number = request.GET.get('page')
-    repairs_page = paginator.get_page(page_number)
-    customers = User.objects.filter(role="Customer").order_by('full_name')
+        paginator = Paginator(repairs, 10)
+        page_number = request.GET.get('page')
 
-    context = {
-        'repairs': repairs_page,
-        'customers': customers,
-        'selected_status': status,
-        'selected_customer': customer_id,
-    }
+        try:
+            repairs_page = paginator.get_page(page_number)
+        except Exception as e:
+            logger.warning(f"Pagination error: {e}")
+            repairs_page = paginator.get_page(1)  # Default to first page if error occurs
+
+        customers = User.objects.filter(role="Customer").order_by('full_name')
+
+        context = {
+            'repairs': repairs_page,
+            'customers': customers,
+            'selected_status': status,
+            'selected_customer': customer_id,
+        }
+
+        logger.info("Repair report generated successfully.")
+
+    except Exception as e:
+        logger.error(f"Error in RepairReportListView: {e}", exc_info=True)
+        context = {"error": "An error occurred while generating the repair report."}
     return render(request, 'repair_report.html', context)
 
-
+@login_required
 def RepairDetailReportListView(request):
-    repair_order_id = request.GET.get('repair_order', '')  
-    repair_action = request.GET.get('repair_action', '')  
-    repair_details = RepairDetail.objects.select_related('repair_order').order_by('-created_at')
+    try:
+        repair_order_id = request.GET.get('repair_order', '')  
+        repair_action = request.GET.get('repair_action', '')  
 
-    if repair_order_id:
-        repair_details = repair_details.filter(repair_order_id=repair_order_id)
-    if repair_action:
-        repair_details = repair_details.filter(repair_action=repair_action)
+        repair_details = RepairDetail.objects.select_related('repair_order').order_by('-created_at')
 
-    paginator = Paginator(repair_details, 10)
-    page_number = request.GET.get('page')
-    repair_details_page = paginator.get_page(page_number)
-    repair_orders = Repair.objects.all().order_by('-created_at')
+        if repair_order_id:
+            repair_details = repair_details.filter(repair_order_id=repair_order_id)
+        if repair_action:
+            repair_details = repair_details.filter(repair_action=repair_action)
 
-    context = {
-        'repair_details': repair_details_page,
-        'repair_orders': repair_orders,
-        'selected_repair_order': repair_order_id,
-        'selected_repair_action': repair_action,
-    }
+        paginator = Paginator(repair_details, 10)
+        page_number = request.GET.get('page')
+
+        try:
+            repair_details_page = paginator.get_page(page_number)
+        except Exception as e:
+            logger.warning(f"Pagination error in RepairDetailReportListView: {e}")
+            repair_details_page = paginator.get_page(1)  
+
+        repair_orders = Repair.objects.all().order_by('-created_at')
+
+        context = {
+            'repair_details': repair_details_page,
+            'repair_orders': repair_orders,
+            'selected_repair_order': repair_order_id,
+            'selected_repair_action': repair_action,
+        }
+
+        logger.info("Repair detail report generated successfully.")
+
+    except Exception as e:
+        logger.error(f"Error in RepairDetailReportListView: {e}", exc_info=True)
+        context = {"error": "An error occurred while generating the repair detail report."}
+
     return render(request, 'repair_detail_report.html', context)
 
-from django.views.decorators.csrf import csrf_exempt
-
+@login_required
 @csrf_exempt
 def get_product_price(request):
-    product_id = request.GET.get("product_id")
-    if product_id:
+    try:
+        product_id = request.GET.get("product_id")
+
+        if not product_id:
+            logger.warning("Invalid request: Missing product_id")
+            return JsonResponse({"error": "Invalid request"}, status=400)
+
         try:
             product = Product.objects.get(id=product_id)
+            logger.info(f"Product found: {product.name} (ID: {product_id}) - Price: {product.price}")
             return JsonResponse({"price": product.price})
+
         except Product.DoesNotExist:
+            logger.error(f"Product with ID {product_id} not found")
             return JsonResponse({"error": "Product not found"}, status=404)
-    return JsonResponse({"error": "Invalid request"}, status=400)
+
+    except Exception as e:
+        logger.critical(f"Unexpected error in get_product_price: {e}", exc_info=True)
+        return JsonResponse({"error": "An internal error occurred"}, status=500)
 
 
 

@@ -184,9 +184,5 @@ LOGGING = {
 }
 
 
-# CACHES = {
-#     'default': {
-#         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-#         'LOCATION': 'my_cache_table',  # Ensure you create this table
-#     }
-# }
+LOGIN_URL = "/login/"
+

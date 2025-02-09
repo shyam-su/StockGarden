@@ -6,6 +6,8 @@ from .models import User
 from .forms import UserForm
 from django.contrib.auth import authenticate, login,logout
 from django.db.models import Q
+from django.contrib.auth.decorators import login_required
+
 
 
 
@@ -29,7 +31,7 @@ def LoginView(request):
             messages.error(request, "An error occurred during login. Please try again.")
     return render(request, 'login.html')
 
-
+@login_required
 def UserListView(request):
     try:
         users = User.objects.all().order_by('id')
@@ -58,6 +60,7 @@ def UserListView(request):
         messages.error(request, "Failed to retrieve users.")
         return render(request, '404.html', status=404)
 
+@login_required
 def UserCreateView(request):
     try:
         if request.method == 'POST':
@@ -79,7 +82,7 @@ def UserCreateView(request):
         messages.error(request, "Failed to create user.")
         return render(request, '404.html', status=404)
 
-
+@login_required
 def UserUpdateView(request,pk):
     try:
         user = get_object_or_404(User, pk=pk)
@@ -102,6 +105,7 @@ def UserUpdateView(request,pk):
         messages.error(request, "Failed to update user.")
         return render(request, '404.html', status=404)
 
+@login_required
 def UserDeleteView(request,pk):
     try:
         user = get_object_or_404(User, pk=pk)
@@ -117,6 +121,7 @@ def UserDeleteView(request,pk):
         messages.error(request, "Failed to delete user.")
         return render(request, '404.html', status=404)
 
+@login_required
 def LogoutView(request):
     try:
         logout(request)

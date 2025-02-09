@@ -49,8 +49,6 @@ urlpatterns = [
     
     path('invoice/', InvoiceListView, name='invoice'),
     path('invoice/create/', InvoiceCreateView,name='invoice_create'),
-    path('invoice/<int:pk>/update/', InvoiceUpdateView,name='invoice_update'),
-    path('invoice/<int:pk>/print/', Invoiceprint,name='invoice_print'),
     
     path('user_report/', UserReportListView, name='user_report'),
     path('sales_report/', SalesReportListView, name='sales_report'),
