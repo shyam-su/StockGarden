@@ -2,216 +2,289 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h2>Search Results</h2>
-<p>Search term: {{ query }}</p>
-
-<!-- Sales Results -->
-{% if sales %}
-    <h3>Sales</h3>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
-                <thead class="table-primary text-center">
-                    <tr>
-                        <th style="text-align: left;">ID</th>
-                        <th style="text-align: left;">Name</th>
-                        <th style="text-align: left;">Product</th>
-                        <th style="text-align: left;">Quantity</th>
-                        <th style="text-align: left;">Price</th>
-                        <th style="text-align: left;">Total</th>
-                        <th style="text-align: left;">Contact No</th>
-                        <th style="text-align: left;">Expiring Date</th>
-                        <th style="text-align: left;">Date</th>
-                        <th style="text-align: center;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    {% for sale in sales %}
-                        <tr>
-                            <td style="text-align: left;">{{ sale.id }}</td>
-                            <td style="text-align: left;">{{ sale.name.full_name }}</td> <!-- Assuming name is a User object, display username -->
-                            <td style="text-align: left;">{{ sale.product.name }}</td> <!-- Display product name -->
-                            <td style="text-align: left;">{{ sale.quantity }}</td>
-                            <td style="text-align: left;">{{ sale.price }}</td>
-                            <td style="text-align: left;">{{ sale.total }}</td>
-                            <td style="text-align: left;">{{ sale.contact_no }}</td>
-                            <td style="text-align: left;">{{ sale.expiring_date }}</td>
-                            <td style="text-align: left;">{{ sale.created_at }}</td>
-                            <td class="text-center">
-                                <a href="{% url 'sales_update' pk=sale.id %}" class="btn btn-sm btn-success me-1">Update</a>
-                                <a href="{% url 'sales_delete' pk=sale.id %}" class="btn btn-sm btn-danger">Delete</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Search Results</h5>
+                    <p class="mb-0">Search term: {{ query }}</p>
+                </div>
+                <div class="card-body">
+                    {% if sales %}
+                        <h3>Sales</h3>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                                <thead class="table-primary text-center">
+                                    <tr>
+                                        <th style="text-align: left;">ID</th>
+                                        <th style="text-align: left;">Name</th>
+                                        <th style="text-align: left;">Product</th>
+                                        <th style="text-align: left;">Quantity</th>
+                                        <th style="text-align: left;">Price</th>
+                                        <th style="text-align: left;">Total</th>
+                                        <th style="text-align: left;">Contact No</th>
+                                        <th style="text-align: left;">Expiring Date</th>
+                                        <th style="text-align: left;">Date</th>
+                                        <th style="text-align: center;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    {% for sale in sales %}
+                                        <tr>
+                                            <td style="text-align: left;">{{ forloop.counter }}</td>
+                                            <td style="text-align: left;">{{ sale.name.full_name }}</td>
+                                            <td style="text-align: left;">{{ sale.product.name|slice:":12" }}</td>
+                                            <td style="text-align: left;">{{ sale.quantity }}</td>
+                                            <td style="text-align: left;">{{ sale.price }}</td>
+                                            <td style="text-align: left;">{{ sale.total }}</td>
+                                            <td style="text-align: left;">{{ sale.contact_no }}</td>
+                                            <td style="text-align: left;">{{ sale.expiring_date }}</td>
+                                            <td style="text-align: left;">{{ sale.created_at }}</td>
+                                            <td class="text-center">
+                                                <a href="{% url 'sales_update' pk=sale.id %}" class="btn btn-sm btn-success my-1">Update</a>
+                                                <a href="{% url 'sales_delete' pk=sale.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-center">No sales found for "{{ query }}".</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
-{% endif %}
+</div>
+
 
 <!-- Products Results -->
-{% if products %}
-    <h3>Products</h3>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
-                <thead class="table-primary text-center">
-                    <tr>
-                        <th style="text-align: left;">ID</th>
-                        <th style="text-align: left;">Name</th>
-                        <th style="text-align: left;">Description</th>
-                        <th style="text-align: left;">Price</th>
-                        <th style="text-align: left;">Stock</th>
-                        <th style="text-align: left;">Brand</th>
-                        <th style="text-align: left;">Category</th>
-                        <th style="text-align: center;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    {% for product in products %}
-                        <tr>
-                            <td style="text-align: left;">{{ product.id }}</td>
-                            <td style="text-align: left;">{{ product.name }}</td>
-                            <td style="text-align: left;">{{ product.description }}</td>
-                            <td style="text-align: left;">{{ product.price }}</td>
-                            <td style="text-align: left;">{{ product.stock }}</td>
-                            <td style="text-align: left;">{{ product.brand.name }}</td>
-                            <td style="text-align: left;">{{ product.categories.name }}</td>
-                            <td class="text-center">
-                                <a href="{% url 'product_update' pk=product.id %}" class="btn btn-sm btn-success me-1">Update</a>
-                                <a href="{% url 'product_delete' pk=product.id %}" class="btn btn-sm btn-danger">Delete</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Products</h5>
+                </div>
+                <div class="card-body">
+                    {% if products %}
+  
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                                <thead class="table-primary text-center">
+                                    <tr>
+                                        <th style="text-align: left;">ID</th>
+                                        <th style="text-align: left;">Name</th>
+                                        <th style="text-align: left;">Description</th>
+                                        <th style="text-align: left;">Price</th>
+                                        <th style="text-align: left;">Stock</th>
+                                        <th style="text-align: left;">Brand</th>
+                                        <th style="text-align: left;">Category</th>
+                                        <th style="text-align: center;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    {% for product in products %}
+                                        <tr>
+                                            <td style="text-align: left;">{{ product.id }}</td>
+                                            <td style="text-align: left;">{{ product.name }}</td>
+                                            <td style="text-align: left;">{{ product.description }}</td>
+                                            <td style="text-align: left;">{{ product.price }}</td>
+                                            <td style="text-align: left;">{{ product.stock }}</td>
+                                            <td style="text-align: left;">{{ product.brand.name }}</td>
+                                            <td style="text-align: left;">{{ product.categories.name }}</td>
+                                            <td class="text-center">
+                                                <a href="{% url 'product_update' pk=product.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                                <a href="{% url 'product_delete' pk=product.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-center">No products found for "{{ query }}".</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
-{% endif %}
+</div>
+
 
 <!-- Vendors Results -->
 {% if vendors %}
-    <h3>Vendors</h3>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
-                <thead class="table-primary text-center">
-                    <tr>
-                        <th style="text-align: left;">ID</th>
-                        <th style="text-align: left;">Company Name</th>
-                        <th style="text-align: left;">Contact</th>
-                        <th style="text-align: left;">Email</th>
-                        <th style="text-align: center;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    {% for vendor in vendors %}
-                        <tr>
-                            <td style="text-align: left;">{{ vendor.id }}</td>
-                            <td style="text-align: left;">{{ vendor.company_name }}</td>
-                            <td style="text-align: left;">{{ vendor.contact_no }}</td>
-                            <td style="text-align: left;">{{ vendor.email }}</td>
-                            <td class="text-center">
-                                <a href="{% url 'vendor_update' pk=vendor.id %}" class="btn btn-sm btn-success me-1">Update</a>
-                                <a href="{% url 'vendor_delete' pk=vendor.id %}" class="btn btn-sm btn-danger">Delete</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Vendors</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                                <thead class="table-primary text-center">
+                                    <tr>
+                                        <th style="text-align: left;">ID</th>
+                                        <th style="text-align: left;">Company Name</th>
+                                        <th style="text-align: left;">Contact</th>
+                                        <th style="text-align: left;">Email</th>
+                                        <th style="text-align: center;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    {% for vendor in vendors %}
+                                        <tr>
+                                            <td style="text-align: left;">{{ vendor.id }}</td>
+                                            <td style="text-align: left;">{{ vendor.company_name }}</td>
+                                            <td style="text-align: left;">{{ vendor.contact_no }}</td>
+                                            <td style="text-align: left;">{{ vendor.email }}</td>
+                                            <td class="text-center">
+                                                <a href="{% url 'vendor_update' pk=vendor.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                                <a href="{% url 'vendor_delete' pk=vendor.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 {% endif %}
 
 <!-- Brands Results -->
-{% if brands %}
-    <h3>Brands</h3>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
-                <thead class="table-primary text-center">
-                    <tr>
-                        <th style="text-align: left;">ID</th>
-                        <th style="text-align: left;">Brand Name</th>
-                        <th style="text-align: center;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    {% for brand in brands %}
-                        <tr>
-                            <td style="text-align: left;">{{ brand.id }}</td>
-                            <td style="text-align: left;">{{ brand.name }}</td>
-                            <td class="text-center">
-                                <a href="{% url 'brand_update' pk=brand.id %}" class="btn btn-sm btn-success me-1">Update</a>
-                                <a href="{% url 'brand_delete' pk=brand.id %}" class="btn btn-sm btn-danger">Delete</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Brands</h5>
+                </div>
+                <div class="card-body">
+                    {% if brands %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                                <thead class="table-primary text-center">
+                                    <tr>
+                                        <th style="text-align: left;">ID</th>
+                                        <th style="text-align: left;">Brand Name</th>
+                                        <th style="text-align: center;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    {% for brand in brands %}
+                                        <tr>
+                                            <td style="text-align: left;">{{ brand.id }}</td>
+                                            <td style="text-align: left;">{{ brand.name }}</td>
+                                            <td class="text-center">
+                                                <a href="{% url 'brand_update' pk=brand.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                                <a href="{% url 'brand_delete' pk=brand.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-center">No brands found.</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
-{% endif %}
+</div>
 
 <!-- Categories Results -->
-{% if categories %}
-    <h3>Categories</h3>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
-                <thead class="table-primary text-center">
-                    <tr>
-                        <th style="text-align: left;">ID</th>
-                        <th style="text-align: left;">Category Name</th>
-                        <th style="text-align: center;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    {% for category in categories %}
-                        <tr>
-                            <td style="text-align: left;">{{ category.id }}</td>
-                            <td style="text-align: left;">{{ category.name }}</td>
-                            <td class="text-center">
-                                <a href="{% url 'category_update' pk=category.id %}" class="btn btn-sm btn-success me-1">Update</a>
-                                <a href="{% url 'category_delete' pk=category.id %}" class="btn btn-sm btn-danger">Delete</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Categories</h5>
+                </div>
+                <div class="card-body">
+                    {% if categories %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                                <thead class="table-primary text-center">
+                                    <tr>
+                                        <th style="text-align: left;">ID</th>
+                                        <th style="text-align: left;">Category Name</th>
+                                        <th style="text-align: center;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    {% for category in categories %}
+                                        <tr>
+                                            <td style="text-align: left;">{{ category.id }}</td>
+                                            <td style="text-align: left;">{{ category.name }}</td>
+                                            <td class="text-center">
+                                                <a href="{% url 'category_update' pk=category.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                                <a href="{% url 'category_delete' pk=category.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-center">No categories found.</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
-{% endif %}
+</div>
+
 
 <!-- Users Results -->
-{% if users %}
-    <h3>Users</h3>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
-                <thead class="table-primary text-center">
-                    <tr>
-                        <th style="text-align: left;">ID</th>
-                        <th style="text-align: left;">Username</th>
-                        <th style="text-align: left;">Email</th>
-                        <th style="text-align: center;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    {% for user in users %}
-                        <tr>
-                            <td style="text-align: left;">{{ user.id }}</td>
-                            <td style="text-align: left;">{{ user.full_name }}</td>
-                            <td style="text-align: left;">{{ user.email }}</td>
-                            <td class="text-center">
-                                <a href="{% url 'user_update' pk=user.id %}" class="btn btn-sm btn-success me-1">Update</a>
-                                <a href="{% url 'user_delete' pk=user.id %}" class="btn btn-sm btn-danger">Delete</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Users</h5>
+                </div>
+                <div class="card-body">
+                    {% if users %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                                <thead class="table-primary text-center">
+                                    <tr>
+                                        <th style="text-align: left;">ID</th>
+                                        <th style="text-align: left;">Username</th>
+                                        <th style="text-align: left;">Email</th>
+                                        <th style="text-align: center;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    {% for user in users %}
+                                        <tr>
+                                            <td style="text-align: left;">{{ user.id }}</td>
+                                            <td style="text-align: left;">{{ user.full_name }}</td>
+                                            <td style="text-align: left;">{{ user.email }}</td>
+                                            <td class="text-center">
+                                                <a href="{% url 'user_update' pk=user.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                                <a href="{% url 'user_delete' pk=user.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-center">No users found.</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
-{% endif %}
+</div>
+
 {% endblock %}
