@@ -865,8 +865,8 @@ def StockReportListView(request):
                 start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
                 end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
                 if start_date <= end_date:
-                    sales = sales.filter(date__range=[start_date, end_date])
-                    purchases = purchases.filter(date__range=[start_date, end_date])
+                    sales = sales.filter(created_at__range=[start_date, end_date])
+                    purchases = purchases.filter(created_at__range=[start_date, end_date])
             except ValueError as e:
                 logger.warning(f"Invalid date format provided: {e}")
                 start_date, end_date = None, None
@@ -1058,7 +1058,7 @@ def generate_excel(request):
         product_name = request.GET.get("product_name")
         
         # Initialize queryset with select_related to optimize database queries
-        products = Product.objects.select_related('category').all()
+        products = Product.objects.select_related('categories').all()
         if product_name:
             products = products.filter(name__icontains=product_name)
         
@@ -1122,7 +1122,7 @@ def generate_excel(request):
                 ws.append([
                     product.id,
                     product.name,
-                    product.category.name if product.category else "No Category",
+                    product.categories.name if product.categories else "No Category",
                     product.stock,
                     total_sold,
                     total_purchased
