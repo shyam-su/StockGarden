@@ -17,15 +17,15 @@
                         <div class="row g-3 align-items-end">
                             <div class="col-md-2">
                                 <label for="start_date" class="form-label">Start Date</label>
-                                <input type="date" name="start_date" id="start_date" class="form-control" value="{{ start_date }}">
+                                <input type="text" name="start_date" id="start_date" class="form-control" value="{{ start_date|default:'' }}" placeholder="YYYY-MM-DD">
                             </div>
                             <div class="col-md-2">
                                 <label for="end_date" class="form-label">End Date</label>
-                                <input type="date" name="end_date" id="end_date" class="form-control" value="{{ end_date }}">
+                                <input type="text" name="end_date" id="end_date" class="form-control" value="{{ end_date|default:'' }}" placeholder="YYYY-MM-DD">
                             </div>
                             <div class="col-md-2">
                                 <label for="product_name" class="form-label">Product Name</label>
-                                <input type="text" name="product_name" class="form-control" placeholder="Enter product name" value="{{ product_name }}">
+                                <input type="text" name="product_name" class="form-control" placeholder="Enter product name" value="{{ product_name|default:'' }}">
                             </div>
                             <div class="col-md-2">
                                 <label for="low_stock_threshold" class="form-label">Low Stock Threshold</label>
@@ -73,20 +73,8 @@
                                     <td>{{ product.name }}</td>
                                     <td>{{ product.categories.name }}</td>
                                     <td>{{ product.stock }}</td>
-                                    <td>
-                                        {% for sale in sales_data %}
-                                            {% if sale.0 == product.id %}
-                                                {{ sale.1 }}
-                                            {% endif %}
-                                        {% endfor %}
-                                    </td>
-                                    <td>
-                                        {% for purchase in purchases_data %}
-                                            {% if purchase.0 == product.id %}
-                                                {{ purchase.1 }}
-                                            {% endif %}
-                                        {% endfor %}
-                                    </td>
+                                    <td>{{ product.total_sales }}</td> <!-- Display total sold -->
+                                    <td>{{ product.total_purchased }}</td> <!-- Display total purchased -->
                                     <td>{{ product.created_at }}</td>
                                 </tr>
                                 {% endfor %}

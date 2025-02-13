@@ -15,7 +15,6 @@ from openpyxl.styles import Font, PatternFill
 from datetime import datetime
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
-from django.utils import timezone
 
 
 
@@ -846,90 +845,52 @@ def SalesReportListView(request):
 
     return render(request, 'sales_report.html', context)
 
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from datetime import datetime
-from .models import Product, Sales, Purchase
-
 @login_required
 def StockReportListView(request):
-    # Get filter parameters from the request
-    start_date = request.GET.get("start_date")
-    end_date = request.GET.get("end_date")
-    product_name = request.GET.get("product_name")
-    low_stock_threshold = request.GET.get("low_stock_threshold", 0)
-    total_sales_threshold = request.GET.get("total_sales_threshold", 0)
+    # Get query parameters for filtering
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    product_name = request.GET.get('product_name')
+    low_stock_threshold = request.GET.get('low_stock_threshold')
+    total_sales_threshold = request.GET.get('total_sales_threshold')
 
-    # Print all filter values
-    print("Filters applied:")
-    print(f"Start Date: {start_date}")
-    print(f"End Date: {end_date}")
-    print(f"Product Name: {product_name}")
-    print(f"Low Stock Threshold: {low_stock_threshold}")
-    print(f"Total Sales Threshold: {total_sales_threshold}")
-
-    # Initialize the products queryset
+    # Filter the products based on the provided parameters
     products = Product.objects.all()
-    print(f"Initial products queryset: {products.count()} products")
 
-    # Apply product name filter
+    if start_date:
+        products = products.filter(created_at__gte=start_date)
+    if end_date:
+        products = products.filter(created_at__lte=end_date)
     if product_name:
         products = products.filter(name__icontains=product_name)
-        print(f"After product name filter: {products.count()} products")
-
-    # Initialize sales and purchases querysets
-    sales = Sales.objects.all()
-    purchases = Purchase.objects.all()
-    print(f"Initial sales queryset: {sales.count()} sales")
-    print(f"Initial purchases queryset: {purchases.count()} purchases")
-
-    # Apply date range filter to sales and purchases
-    try:
-        if start_date and end_date:
-            start_date = timezone.make_aware(datetime.strptime(start_date, '%Y-%m-%d'))  # Make timezone-aware
-            end_date = timezone.make_aware(datetime.strptime(end_date, '%Y-%m-%d'))  # Make timezone-aware
-            if start_date <= end_date:
-                sales = sales.filter(created_at__range=[start_date, end_date])
-                purchases = purchases.filter(created_at__range=[start_date, end_date])
-                print(f"After date range filter: {sales.count()} sales, {purchases.count()} purchases")
-    except ValueError:
-        print("Invalid date format. Skipping date filtering.")
-
-    # Prepare sales and purchases data as lists of tuples
-    sales_data = []
-    purchases_data = []
-    for product in products:
-        sold_quantity = sum(sale.quantity for sale in sales if sale.product_id == product.id)
-        purchased_quantity = sum(purchase.quantity for purchase in purchases if purchase.product_id == product.id)
-        sales_data.append((product.id, sold_quantity))
-        purchases_data.append((product.id, purchased_quantity))
-    print(f"Sales data: {sales_data}")
-    print(f"Purchases data: {purchases_data}")
-
-    # Filter products by low stock threshold (only if threshold is greater than 0)
-    if low_stock_threshold and int(low_stock_threshold) > 0:
-        low_stock_threshold = int(low_stock_threshold)
+    if low_stock_threshold:
         products = products.filter(stock__lt=low_stock_threshold)
-        print(f"After low stock filter: {products.count()} products")
+    if total_sales_threshold:
+        products = products.annotate(
+            total_sales=Sum('sales__quantity') 
+        ).filter(total_sales__gte=total_sales_threshold)
 
-    # Filter products by total sales threshold (only if threshold is greater than 0)
-    if total_sales_threshold and int(total_sales_threshold) > 0:
-        total_sales_threshold = int(total_sales_threshold)
-        products = [product for product in products if any(sale[1] >= total_sales_threshold for sale in sales_data if sale[0] == product.id)]
-        print(f"After total sales filter: {len(products)} products")
+    sales_data = Sales.objects.filter(product__in=products).values('product').annotate(total_sales=Sum('quantity'))
+    purchases_data = Purchase.objects.filter(product__in=products).values('product').annotate(total_purchased=Sum('quantity'))
 
-    # Prepare context for the template
+    sales_dict = {sale['product']: sale['total_sales'] for sale in sales_data}
+    purchases_dict = {purchase['product']: purchase['total_purchased'] for purchase in purchases_data}
+
+    for product in products:
+        product.total_sales = sales_dict.get(product.id, 0)
+        product.total_purchased = purchases_dict.get(product.id, 0)
+
     context = {
-        "products": products,
-        "sales_data": sales_data,
-        "purchases_data": purchases_data,
-        "start_date": start_date,
-        "end_date": end_date,
-        "product_name": product_name,
-        "low_stock_threshold": low_stock_threshold,
-        "total_sales_threshold": total_sales_threshold,
+        'products': products,
+        'start_date': start_date,
+        'end_date': end_date,
+        'product_name': product_name,
+        'low_stock_threshold': low_stock_threshold,
+        'total_sales_threshold': total_sales_threshold,
     }
+
     return render(request, 'stock_report.html', context)
+
 
 def generate_pdf(request):
     start_date = request.GET.get("start_date")
@@ -1060,7 +1021,6 @@ def generate_pdf(request):
 
     return response
 
-
 @login_required
 def generate_excel(request):
     try:
@@ -1105,7 +1065,7 @@ def generate_excel(request):
         ws.title = "Stock Report"
 
         # Add headers with styling
-        headers = ["ID", "Product Name", "Category", "Stock", "Sold", "Purchased"]
+        headers = ["ID", "Product Name", "Category", "Stock", "Sold", "Purchased", "Date"]
         ws.append(headers)
         
         # Style headers
@@ -1136,7 +1096,9 @@ def generate_excel(request):
                     product.categories.name if product.categories else "No Category",
                     product.stock,
                     total_sold,
-                    total_purchased
+                    total_purchased,
+                    # Assuming product has a created_at field (you can adjust it to the correct field name if needed)
+                    product.created_at.strftime("%Y-%m-%d") if product.created_at else "N/A"
                 ])
             except Exception as row_error:
                 logger.error(f"Error processing product {product.id}: {str(row_error)}")
@@ -1171,6 +1133,7 @@ def generate_excel(request):
         logger.error(f"Error generating Excel report: {str(e)}")
         messages.error(request, "An error occurred while generating the Excel report")
         return redirect('stock_report')
+
 
 
 @login_required
