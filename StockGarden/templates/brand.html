@@ -36,8 +36,12 @@
                                     <td style="text-align: left;">{{ forloop.counter }}</td>
                                     <td style="text-align: left;">{{ bra.name }}</td>
                                     <td style="text-align: left;">
-                                        <img src="{{ bra.image.url }}" alt="Brand Image" width="75" height="30">
-                                    </td>
+                                        {% if bra.image %}
+                                            <img src="{{ bra.image.url }}" alt="Brand Image" width="75" height="30">
+                                        {% else %}
+                                            <p>No image available</p>
+                                        {% endif %}
+                                    </td>                                    
                                     <td style="text-align: left;">{{ bra.created_at }}</td>
                                     <td class="text-center">
                                         <a href="{% url 'brand_update' pk=bra.id %}" class="btn btn-sm btn-success me-1">Update</a>

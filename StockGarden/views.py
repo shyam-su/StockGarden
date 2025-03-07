@@ -69,6 +69,13 @@ def BrandListView(request):
         brands = Brand.objects.all().order_by('-id')
         if query:
             brands = brands.filter(name__icontains=query)
+            
+        for brand in brands:
+            if not brand.image:
+                brand.image_url = None
+            else:
+                brand.image_url = brand.image.url
+                
         paginator = Paginator(brands, 10)
         page_number = request.GET.get('page') 
         page_obj = paginator.get_page(page_number)
