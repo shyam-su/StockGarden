@@ -1,5 +1,7 @@
 from django.contrib import admin
 from .models import *
+from import_export.admin import ImportExportModelAdmin 
+
 
 # Register your models here.
 admin.site.site_title='Stock Garden'
@@ -12,50 +14,50 @@ class CompanyAdmin(admin.ModelAdmin):
     list_display=('name','email','address','phone_number','logo',)
     
 @admin.register(Brand)
-class BrandAdmin(admin.ModelAdmin):
+class BrandAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display=('name','created_at',)
     search_fields = ('name',)
     
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display=('name','created_at',)
     
     
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin): 
+class ProductAdmin(ImportExportModelAdmin, admin.ModelAdmin): 
     list_display = ('name', 'description','price', 'Imei', 'image','categories', 'stock','brand','created_at',)
     list_per_page=10
     search_fields = ('name','price',)
     list_filter = ('categories', 'brand','price','stock',)
 
 @admin.register(Sales)
-class SalesAdmin(admin.ModelAdmin):
+class SalesAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display=('name','product','quantity','price','created_at',)
     search_fields = ('name',)
     
     
 @admin.register(Vendor)
-class VendorAdmin(admin.ModelAdmin):
+class VendorAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display=('name','email','address','contact_no','company_name','created_at',)
     
     
 @admin.register(Purchase)
-class PurchaseAdmin(admin.ModelAdmin):
+class PurchaseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display=('vendor','product','quantity','price','created_at',)
     search_fields = ('vendor',)
     
 @admin.register(Repair)
-class RepairOrderAdmin(admin.ModelAdmin):
+class RepairOrderAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display=('product_name','device_model','issue_description','created_at','out_date','status')
     list_filter=('product_name','device_model','status',)
     
 @admin.register(RepairDetail)
-class RepairDetailAdmin(admin.ModelAdmin):
+class RepairDetailAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display=('repair_order','repair_cost','repair_action','created_at')
     list_filter=('repair_order','repair_action',)
 
 @admin.register(Invoice)
-class InvoiceAdmin(admin.ModelAdmin):
+class InvoiceAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display=('sales','discount','payment_method','status','created_at','updated_at',)
     list_filter = ('payment_method', 'status',)
     

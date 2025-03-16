@@ -42,6 +42,10 @@ INSTALLED_APPS = [
     'user',
     'StockGarden',
     'debug_toolbar',
+    'import_export',
+    'login_history',
+    'django_admin_logs',
+
 ]
 
 MIDDLEWARE = [
@@ -85,6 +89,8 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+
 
 
 # Password validation
