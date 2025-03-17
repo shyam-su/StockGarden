@@ -9,8 +9,8 @@ from django.db import transaction
 # Create your models here.
 class Company(models.Model):
     name = models.CharField(max_length=191,db_index=True)
-    address = models.CharField(max_length=255)
-    email = models.EmailField(max_length=255)
+    address = models.CharField(max_length=191)
+    email = models.EmailField(max_length=191)
     phone_number = models.CharField(max_length=20,db_index=True)
     logo = models.ImageField(upload_to='company/logos/', blank=True) 
     created_at=models.DateTimeField(auto_now_add=True)
@@ -33,7 +33,7 @@ class Brand(models.Model):
         return self.name
 
 class Category(models.Model):
-    name = models.CharField(max_length=255,null=True, blank=False ,verbose_name="Category Name",db_index=True)
+    name = models.CharField(max_length=191,null=True, blank=False ,verbose_name="Category Name",db_index=True)
     created_at=models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -45,8 +45,8 @@ class Category(models.Model):
     
 class Vendor(models.Model):
     name = models.ForeignKey(User, on_delete=models.CASCADE,null=True, blank=True,verbose_name="Party Name",db_index=True)
-    company_name = models.CharField(max_length=200, blank=True,verbose_name="Company Name")
-    address = models.CharField(max_length=300,blank=False,null=False)
+    company_name = models.CharField(max_length=191, blank=True,verbose_name="Company Name")
+    address = models.CharField(max_length=191,blank=False,null=False)
     contact_no = models.CharField(max_length=15)
     email = models.EmailField(unique=True)
     created_at=models.DateTimeField(auto_now_add=True)
@@ -62,14 +62,14 @@ class Vendor(models.Model):
 class Product(models.Model):
     vendor= models.ForeignKey(Vendor, on_delete=models.CASCADE,null=True, blank=True,db_index=True)
     name = models.CharField(max_length=191,null=False, blank=False,verbose_name="Product Name",db_index=True)
-    description = models.TextField(max_length=255,null=True, blank=True)
+    description = models.TextField(max_length=191,null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2,null=False, blank=False,verbose_name="Product Price",db_index=True)
     Imei = models.CharField(max_length=100,null=True, blank=True,db_index=True)
     image = models.ImageField(upload_to='media/products_imgs/',null=True, blank=True,db_index=True)
     categories = models.ForeignKey(Category, on_delete=models.CASCADE,null=True, blank=True,db_index=True)
     stock=models.IntegerField(null=True, blank=True,db_index=True)
     brand = models.ForeignKey('Brand', on_delete=models.CASCADE, null=True, blank=True,db_index=True)
-    slug = models.SlugField(max_length=255,null=True, blank=True,db_index=True)
+    slug = models.SlugField(max_length=191,null=True, blank=True,db_index=True)
     created_at=models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -119,7 +119,7 @@ class Sales(models.Model):
 class Purchase(models.Model):
     vendor = models.ForeignKey(Vendor,on_delete=models.CASCADE)
     product = models.ForeignKey(Product,on_delete=models.CASCADE,null=True, blank=True,db_index=True,default=None)
-    description = models.TextField(max_length=300, blank=True, null=True)
+    description = models.TextField(max_length=191, blank=True, null=True)
     quantity = models.IntegerField()
     price = models.IntegerField()
     total_value = models.DecimalField(max_digits=10, decimal_places=2)
