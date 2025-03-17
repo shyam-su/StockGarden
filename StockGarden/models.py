@@ -8,7 +8,7 @@ from django.db import transaction
 
 # Create your models here.
 class Company(models.Model):
-    name = models.CharField(max_length=255,db_index=True)
+    name = models.CharField(max_length=191,db_index=True)
     address = models.CharField(max_length=255)
     email = models.EmailField(max_length=255)
     phone_number = models.CharField(max_length=20,db_index=True)
@@ -21,10 +21,9 @@ class Company(models.Model):
         indexes = [models.Index(fields=['name','phone_number'])]
         
 class Brand(models.Model):
-    name=models.CharField(max_length=255,blank=False,null=False,verbose_name="Brand Name",db_index=True)
-    image=models.ImageField(upload_to='media/brands_imgs/',null=True, blank=True,db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True)  
-    
+    name=models.CharField(max_length=191,blank=False,null=False,verbose_name="Brand Name",db_index=True)
+    image = models.ImageField(upload_to='media/brands_imgs/', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         verbose_name = "Brand"
         indexes = [models.Index(fields=['name'])]
@@ -62,8 +61,8 @@ class Vendor(models.Model):
 
 class Product(models.Model):
     vendor= models.ForeignKey(Vendor, on_delete=models.CASCADE,null=True, blank=True,db_index=True)
-    name = models.CharField(max_length=255,null=False, blank=False,verbose_name="Product Name",db_index=True)
-    description = models.TextField(max_length=255,null=True, blank=True,db_index=True)
+    name = models.CharField(max_length=191,null=False, blank=False,verbose_name="Product Name",db_index=True)
+    description = models.TextField(max_length=255,null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2,null=False, blank=False,verbose_name="Product Price",db_index=True)
     Imei = models.CharField(max_length=100,null=True, blank=True,db_index=True)
     image = models.ImageField(upload_to='media/products_imgs/',null=True, blank=True,db_index=True)
@@ -78,11 +77,10 @@ class Product(models.Model):
         indexes = [models.Index(fields=['name','description','price','image','categories','stock','brand'])]
         
     def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-            while Product.objects.filter(slug=self.slug).exists(): 
-                self.slug = f"{self.slug}-{str(uuid.uuid4())[:8]}"
-        return super(Product, self).save(*args, **kwargs)
+        if not self.slug or Product.objects.filter(slug=self.slug).exists():
+            unique_id = str(uuid.uuid4())[:8]
+            self.slug = slugify(f"{self.name}-{unique_id}")
+        super(Product, self).save(*args, **kwargs)
 
 
     def __str__(self):
@@ -92,7 +90,7 @@ class Product(models.Model):
 class Sales(models.Model):
     name = models.ForeignKey(User, on_delete=models.CASCADE,null=True, blank=True,verbose_name="Party Name",db_index=True)
     product = models.ForeignKey(Product,on_delete=models.CASCADE)
-    quantity = models.IntegerField()
+    quantity = models.IntegerField(default=1)
     price = models.IntegerField()
     total = models.IntegerField()
     contact_no = models.CharField(max_length=15,null=True, blank=True)
@@ -120,7 +118,7 @@ class Sales(models.Model):
 
 class Purchase(models.Model):
     vendor = models.ForeignKey(Vendor,on_delete=models.CASCADE)
-    product = models.ForeignKey(Product,on_delete=models.CASCADE,null=True, blank=True,db_index=True,default="No Available")
+    product = models.ForeignKey(Product,on_delete=models.CASCADE,null=True, blank=True,db_index=True,default=None)
     description = models.TextField(max_length=300, blank=True, null=True)
     quantity = models.IntegerField()
     price = models.IntegerField()
@@ -128,7 +126,14 @@ class Purchase(models.Model):
     created_at=models.DateTimeField(auto_now_add=True)
     
     def save(self, *args, **kwargs):
+        # Calculate total value of the purchase
         self.total_value = self.quantity * self.price
+        
+        # Update the product's price if it is not set or needs to be updated
+        if self.product and self.product.price != self.price:
+            self.product.price = self.price
+            self.product.save()  # Save the product with the new price
+            
         with transaction.atomic():
             super(Purchase, self).save(*args, **kwargs)
             if self.product:
@@ -209,14 +214,31 @@ class Invoice(models.Model):
     ]
     sales=models.ForeignKey(Sales,on_delete=models.CASCADE)
     discount=models.IntegerField(null=True, blank=True)
-    payment_method=models.CharField(max_length=255,choices=PAYMENT_METHOD_CHOICES ,db_index=True)
-    status=models.CharField(max_length=255,choices=STATUS_CHOICES,db_index=True)
+    payment_method=models.CharField(max_length=191,choices=PAYMENT_METHOD_CHOICES ,db_index=True)
+    status=models.CharField(max_length=191,choices=STATUS_CHOICES,db_index=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Total after discount
+
     
     class Meta:
         verbose_name = "Invoice"
         indexes = [models.Index(fields=['sales','payment_method','status'])]
+        
+    def save(self, *args, **kwargs):
+        # Calculate total based on sales quantity and price
+        total_before_discount = self.sales.quantity * self.sales.price
+
+        # Apply discount if available
+        if self.discount:
+            total_after_discount = total_before_discount - self.discount
+        else:
+            total_after_discount = total_before_discount
+
+        # Store the total after discount
+        self.total_amount = total_after_discount
+
+        super(Invoice, self).save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.sales.quantity} x {self.sales.product}"
@@ -231,9 +253,9 @@ class Report(models.Model):
     updated_at=models.DateTimeField(auto_now=True)
     
     def save(self, *args, **kwargs):
-        self.total_stock = Product.objects.aggregate(total=models.Sum('stock'))['total'] or 0
-        self.low_stock = Product.objects.filter(stock__lte=5).count()
-        self.empty_stock = Product.objects.filter(stock=0).count()
+        self.Total_Stock = Product.objects.aggregate(total=models.Sum('stock'))['total'] or 0
+        self.Low_Stock = Product.objects.filter(stock__lte=5).count()
+        self.Empty_Stock = Product.objects.filter(stock=0).count()
         super(Report, self).save(*args, **kwargs)
 
     

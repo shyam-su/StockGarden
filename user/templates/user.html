@@ -38,7 +38,7 @@
                                 <tr>
                                     <td>{{ forloop.counter }}</td>
                                     <td>{{ user.full_name|default:"N/A"|slice:":6" }}</td>
-                                    <td>{{ user.address|default:"N/A"|slice:":18" }}</td>
+                                    <td>{{ user.address|default:"N/A"|slice:":10" }}</td>
                                     <td>{{ user.phone|default:"N/A" }}</td>
                                     <td>{{ user.email|default:"N/A"|slice:":10" }}</td>
                                     <td>{{ user.role|default:"N/A" }}</td>

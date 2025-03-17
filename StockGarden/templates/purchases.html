@@ -38,13 +38,13 @@
                                 {% for purc in purches %}
                                 <tr>
                                     <td style="text-align: left;">{{ forloop.counter }}</td>
-                                    <td style="text-align: left;">{{ purc.vendor|slice:":12" }}</td>
+                                    <td style="text-align: left;">{{ purc.vendor|slice:":10" }}</td>
                                     <td style="text-align: left;">{{ purc.product|slice:":15" }}</td>
                                     <td style="text-align: left;">{{ purc.description|slice:":20" }}</td>
                                     <td style="text-align: left;">{{ purc.quantity }}</td>
                                     <td style="text-align: left;">{{ purc.price }}</td>
                                     <td style="text-align: left;">{{ purc.total_value }}</td>
-                                    <td style="text-align: left;">{{ purc.created_at }}</td>
+                                    <td style="text-align: left;">{{ purc.created_at|date:"Y-m-d H" }}</td>
                                     <td class="text-center">
                                         <a href="{% url 'purchase_update' pk=purc.id %}" class="btn btn-sm btn-success me-1">Update</a>
                                         <a href="{% url 'purchase_delete' pk=purc.id %}" class="btn btn-sm btn-danger">Delete</a>

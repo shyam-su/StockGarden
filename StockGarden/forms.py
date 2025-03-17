@@ -137,6 +137,8 @@ class ProductForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Price",
                     "id": "price",
+                    "readonly": "readonly"
+
                 }
             ),
             "Imei": forms.TextInput(
@@ -284,7 +286,6 @@ class PurchaseForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Price",
                     "id": "price",
-                    "readonly": "readonly"
                 }
             ),
         }
