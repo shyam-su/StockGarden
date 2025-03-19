@@ -137,7 +137,6 @@ class ProductForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Price",
                     "id": "price",
-                    "readonly": "readonly"
 
                 }
             ),
@@ -286,6 +285,7 @@ class PurchaseForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Price",
                     "id": "price",
+                    "readonly": "readonly",
                 }
             ),
         }
@@ -415,14 +415,19 @@ class InvoiceForm(forms.ModelForm):
         fields = [
             'sales',
             'discount',
-            "payment_method",
-            "status",
+            'payment_method',
+            'status',
+            'total_amount',
+            'paid_amount',
+            'remaining_amount',
+            'due_date',
+            'notes',
         ]
         widgets = {
             "sales": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Sales",
+                    "placeholder": "Select Sale",
                     "id": "sales",
                 }
             ),
@@ -436,21 +441,118 @@ class InvoiceForm(forms.ModelForm):
             "payment_method": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Payment Method",
+                    "placeholder": "Select Payment Method",
                     "id": "payment_method",
                 }
             ),
             "status": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Status",
+                    "placeholder": "Select Status",
                     "id": "status",
+                }
+            ),
+            "total_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Total Amount",
+                    "id": "total_amount",
+                    "step": "0.01",
+                }
+            ),
+            "paid_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Paid Amount",
+                    "id": "paid_amount",
+                    "step": "0.01",
+                }
+            ),
+            "remaining_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Remaining Amount",
+                    "id": "remaining_amount",
+                    "step": "0.01",
+                }
+            ),
+            "due_date": forms.DateTimeInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Select Due Date",
+                    "id": "due_date",
+                    "type": "datetime-local",
+                }
+            ),
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Add payment notes (e.g., 'Will pay 500 later')",
+                    "id": "notes",
+                    "rows": 3,
                 }
             ),
         }
         labels = {
-            "sales": "Customer Name",
-            "discount": "Customer Name",
+            "sales": "Sale",
+            "discount": "Discount",
             "payment_method": "Payment Method",
             "status": "Status",
+            "total_amount": "Total Amount",
+            "paid_amount": "Paid Amount",
+            "remaining_amount": "Remaining Amount",
+            "due_date": "Due Date",
+            "notes": "Notes",
+        }
+
+class PaymentForm(forms.ModelForm):
+    class Meta:
+        model = Payment
+        fields = ['invoice', 'amount', 'payment_method', 'payment_date', 'notes']
+        widgets = {
+            "invoice": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Select Invoice",
+                    "id": "invoice",
+                }
+            ),
+            "amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Amount",
+                    "id": "amount",
+                    "step": "0.01",
+                }
+            ),
+            "payment_method": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Select Payment Method",
+                    "id": "payment_method",
+                }
+            ),
+            "payment_date": forms.DateTimeInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Select Payment Date",
+                    "id": "payment_date",
+                    "type": "datetime-local",
+                }
+            ),
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Add notes (e.g., 'Half paid, rest next week')",
+                    "id": "notes",
+                    "rows": 3,
+                }
+            ),
+        }
+        labels = {
+            "invoice": "Invoice",
+            "amount": "Amount",
+            "payment_method": "Payment Method",
+            "payment_date": "Payment Date",
+            "notes": "Notes",
         }

@@ -735,39 +735,64 @@ def RepairDetailDeleteView(request, pk):
 @login_required
 def InvoiceListView(request):
     try:
-        invoice=Invoice.objects.all().order_by('id')
-        pagination=Paginator(invoice,10)
-        page_number=request.GET.get('page')
-        page_obj=pagination.get_page(page_number)
-        context={
-            "invoice":page_obj,
-        }
-        return render(request, 'invoice.html',context)
-    except Exception as e:
-        logger.error(f"Error in occurred while loading the invoice list.': {e}") 
-        messages.error(request, 'An error occurred while loading the invoice list.')
-        return render(request, '404.html', {"message": "An error occurred."})
+        invoices = Invoice.objects.all().order_by('id')
+        pagination = Paginator(invoices, 10)
+        page_number = request.GET.get('page')
+        page_obj = pagination.get_page(page_number)
 
-@login_required
-def InvoiceCreateView(request,invoice_id=None):
-    try:
-        if invoice_id:
-            invoice=get_object_or_404(Invoice,id=invoice_id)
-            form=InvoiceForm(request.POST or None,instance=invoice)
-            action='update'
-        else:
-            form=InvoiceForm(request.POST or None)
-            action='create'
-        if request.method == 'POST':
-            if form.is_valid():
-                form.save()
-                messages.success(request, f'Invoice {action.lower()}d successfully!')
+        create_form = InvoiceForm(request.POST or None, prefix='create')
+        if request.method == 'POST' and 'create_submit' in request.POST:
+            if create_form.is_valid():
+                invoice = create_form.save()
+                logger.info(f"Invoice created with ID: {invoice.id}")
+                messages.success(request, 'Invoice created successfully!')
                 return redirect('invoice')
-        return render(request, 'invoice_create.html',{'form':form,'action':action})
+
+        update_forms = {}
+        payment_forms = {}
+        for invoice in invoices:
+            update_forms[invoice.id] = InvoiceForm(instance=invoice, prefix=f'update_{invoice.id}')
+            payment_forms[invoice.id] = PaymentForm(initial={'invoice': invoice}, prefix=f'payment_{invoice.id}')
+
+            if request.method == 'POST' and f'update_submit_{invoice.id}' in request.POST:
+                update_form = InvoiceForm(request.POST, instance=invoice, prefix=f'update_{invoice.id}')
+                if update_form.is_valid():
+                    update_form.save()
+                    logger.info(f"Invoice updated with ID: {invoice.id}")
+                    messages.success(request, 'Invoice updated successfully!')
+                    return redirect('invoice')
+            elif request.method == 'POST' and f'delete_{invoice.id}' in request.POST:
+                invoice.delete()
+                logger.info(f"Invoice deleted with ID: {invoice.id}")
+                messages.success(request, 'Invoice deleted successfully!')
+                return redirect('invoice')
+            elif request.method == 'POST' and f'payment_submit_{invoice.id}' in request.POST:
+                payment_form = PaymentForm(request.POST, prefix=f'payment_{invoice.id}')
+                if payment_form.is_valid():
+                    payment = payment_form.save(commit=False)
+                    payment.invoice = invoice
+                    payment.save()
+                    # Ensure amounts update correctly
+                    invoice.paid_amount = (invoice.paid_amount or 0) + payment.amount
+                    invoice.remaining_amount = invoice.total_amount - invoice.paid_amount
+                    invoice.save()
+                    logger.info(f"Payment added for invoice {invoice.id}: {payment.amount}")
+                    messages.success(request, 'Payment added successfully!')
+                    return redirect('invoice')
+
+        context = {
+            "invoices": page_obj,
+            "create_form": create_form,
+            "update_forms": update_forms,
+            "payment_forms": payment_forms,
+        }
+        return render(request, 'invoice.html', context)
     except Exception as e:
-        logger.error(f"Error in InvoiceCreateView: {e}")
-        messages.error(request, 'An error occurred while processing the invoice.')
+        logger.error(f"Error in InvoiceListView: {e}")
+        messages.error(request, 'An error occurred while processing the request.')
         return render(request, '404.html', {"message": "An error occurred."})
+    
+
 
 @login_required
 def UserReportListView(request):

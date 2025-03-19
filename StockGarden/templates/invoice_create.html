@@ -6,39 +6,46 @@
         <div class="col-lg-8">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Create Invoice</h5>
+                    <h5 class="mb-0">Add Payment for Invoice #{{ invoice.id }}</h5>
                 </div>
                 <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{% if message.tags == 'success' %}success{% else %}danger{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
                     <form method="post">
                         {% csrf_token %}
                         
-                        <!-- First Row -->
+                        <!-- First Row: Invoice (readonly) and Amount -->
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="id_sales" class="form-label">Sales</label>
-                                    {{ form.sales }}
-                                    {% if form.sales.errors %}
+                                    <label for="id_invoice" class="form-label">Invoice</label>
+                                    {{ form.invoice }}
+                                    {% if form.invoice.errors %}
                                         <div class="text-danger small">
-                                            {{ form.sales.errors|join:", " }}
+                                            {{ form.invoice.errors|join:", " }}
                                         </div>
                                     {% endif %}
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="id_discount" class="form-label">Discount</label>
-                                    {{ form.discount }}
-                                    {% if form.discount.errors %}
+                                    <label for="id_amount" class="form-label">Amount</label>
+                                    {{ form.amount }}
+                                    {% if form.amount.errors %}
                                         <div class="text-danger small">
-                                            {{ form.discount.errors|join:", " }}
+                                            {{ form.amount.errors|join:", " }}
                                         </div>
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Second Row: Payment Method and Status -->
+                        <!-- Second Row: Payment Method and Payment Date -->
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -53,11 +60,26 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="id_status" class="form-label">Status</label>
-                                    {{ form.status }}
-                                    {% if form.status.errors %}
+                                    <label for="id_payment_date" class="form-label">Payment Date</label>
+                                    {{ form.payment_date }}
+                                    {% if form.payment_date.errors %}
                                         <div class="text-danger small">
-                                            {{ form.status.errors|join:", " }}
+                                            {{ form.payment_date.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Third Row: Notes -->
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="id_notes" class="form-label">Notes</label>
+                                    {{ form.notes }}
+                                    {% if form.notes.errors %}
+                                        <div class="text-danger small">
+                                            {{ form.notes.errors|join:", " }}
                                         </div>
                                     {% endif %}
                                 </div>
@@ -66,7 +88,8 @@
                         
                         <!-- Submit Button -->
                         <div class="text-right">
-                            <button type="submit" class="btn btn-primary">Create Invoice</button>
+                            <button type="submit" class="btn btn-primary">Add Payment</button>
+                            <a href="{% url 'invoice_detail' invoice_id=invoice.id %}" class="btn btn-secondary">Cancel</a>
                         </div>
                     </form>
                 </div>

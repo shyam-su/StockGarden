@@ -3,6 +3,7 @@ from user.models import User
 from django.utils.text import slugify
 import uuid
 from django.db import transaction
+from django.utils import timezone
 
 
 
@@ -210,38 +211,48 @@ class Invoice(models.Model):
 
     STATUS_CHOICES = [
         ('Full Payment', 'Full Payment'),
+        ('Partial Payment', 'Partial Payment'),
         ('Pending', 'Pending'),
+        ('Overdue', 'Overdue'),
     ]
+
     sales=models.ForeignKey(Sales,on_delete=models.CASCADE)
-    discount=models.IntegerField(null=True, blank=True)
+    discount=models.IntegerField(null=True, blank=True, default=0)
     payment_method=models.CharField(max_length=191,choices=PAYMENT_METHOD_CHOICES ,db_index=True)
-    status=models.CharField(max_length=191,choices=STATUS_CHOICES,db_index=True)
+    status=models.CharField(max_length=191,choices=STATUS_CHOICES,db_index=True, default='Pending')
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Total after discount
+
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)  # Vendor updates manually
+    remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)  # Vendor updates manually
+    due_date = models.DateTimeField(null=True, blank=True)  # For future payment notes
+    notes = models.TextField(null=True, blank=True)  # Vendor can add custom notes
+
 
     
     class Meta:
         verbose_name = "Invoice"
         indexes = [models.Index(fields=['sales','payment_method','status'])]
         
-    def save(self, *args, **kwargs):
-        # Calculate total based on sales quantity and price
-        total_before_discount = self.sales.quantity * self.sales.price
+    def __str__(self):
+        return f"Invoice for {self.sales.product} - {self.status}"
+    
+class Payment(models.Model):
+    invoice = models.ForeignKey(Invoice, related_name='payments', on_delete=models.CASCADE, db_index=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_method = models.CharField(max_length=191, choices=Invoice.PAYMENT_METHOD_CHOICES, db_index=True)
+    payment_date = models.DateTimeField(null=True, blank=True, default=timezone.now)
+    notes = models.TextField(null=True, blank=True)  # For vendor to note future payment plans
+    created_at = models.DateTimeField(auto_now_add=True)
 
-        # Apply discount if available
-        if self.discount:
-            total_after_discount = total_before_discount - self.discount
-        else:
-            total_after_discount = total_before_discount
-
-        # Store the total after discount
-        self.total_amount = total_after_discount
-
-        super(Invoice, self).save(*args, **kwargs)
+    class Meta:
+        verbose_name = "Payment"
+        indexes = [models.Index(fields=['invoice', 'payment_date'])]
 
     def __str__(self):
-        return f"{self.sales.quantity} x {self.sales.product}"
+        return f"Payment of {self.amount} for {self.invoice}"
+    
  
 class Report(models.Model):
     Total_sells = models.IntegerField(null=True, blank=True,db_index=True)
