@@ -1,0 +1,46 @@
+name: Python application
+
+on:
+  push:
+    branches: [main]  # Trigger on push to the main branch
+  pull_request:
+    branches: [main]  # Trigger on pull request to the main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30  # Set timeout for the job to 30 minutes (adjust as necessary)
+    
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8, 3.9, 3.10, 3.11]  # Matrix for testing multiple Python versions
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Python environment for the current version in the matrix
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Step 3: Cache Python dependencies to speed up builds
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-python-${{ matrix.python-version }}-dependencies
+          restore-keys: |
+            ${{ runner.os }}-python-${{ matrix.python-version }}-
+
+      # Step 4: Upgrade pip and install dependencies from requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 5: Run tests (if you have tests set up)
+      - name: Run tests
+        run: python manage.py test
