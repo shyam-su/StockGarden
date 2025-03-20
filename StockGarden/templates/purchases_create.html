@@ -2,105 +2,80 @@
 
 {% block content %}
 
-<div class="container-fluid"> 
+<div class="container-fluid">
     <div class="row">
-        <div class="col-12"> 
+        <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Create Purchase</h5> 
+                    <h5 class="mb-0">Create Purchase/Product</h5>
                 </div>
                 <div class="card-body">
-                    <form method="post">
+                    <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
-                        
-                        <!-- First Row: Vendor and Product -->
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="id_vendor">Vendor</label>
-                                    {{ form.vendor }}
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="id_product">Product</label>
-                                    {{ form.product }}
-                                </div>
+
+                        <!-- Vendor (Placed at the top) -->
+                        <div class="form-row">
+                            <div class="form-group col-md-12">
+                                <label for="id_vendor">Vendor</label>
+                                {{ form.vendor }}
                             </div>
                         </div>
-                        
-                        <!-- Second Row: Description -->
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label for="id_description">Description</label>
-                                    {{ form.description }}
-                                </div>
+
+                        <!-- Product Name -->
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.name.id_for_label }}">Product Name</label>
+                                {{ form.name }}
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.brand.id_for_label }}">Brand</label>
+                                {{ form.brand }}
                             </div>
                         </div>
-                        
-                        <!-- Third Row: Quantity and Price -->
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="id_quantity">Quantity</label>
-                                    {{ form.quantity }}
-                                </div>
+
+                        <!-- Description and Price -->
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.description.id_for_label }}">Description</label>
+                                {{ form.description }}
                             </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="id_price">Price</label>
-                                    {{ form.price }}
-                                </div>
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.price.id_for_label }}">Price</label>
+                                {{ form.price }}
                             </div>
                         </div>
-                        
+
+                        <!-- IMEI and Image -->
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.Imei.id_for_label }}">IMEI</label>
+                                {{ form.Imei }}
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.image.id_for_label }}">Image</label>
+                                {{ form.image }}
+                            </div>
+                        </div>
+
+                        <!-- Categories and Stock -->
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.categories.id_for_label }}">Categories</label>
+                                {{ form.categories }}
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.stock.id_for_label }}">Stock Quantity</label>
+                                {{ form.stock }}
+                            </div>
+                        </div>
+
                         <!-- Submit Button -->
-                        <div class="row">
-                            <div class="col-12 text-right">
-                                <button type="submit" class="btn btn-primary">Create Purchase</button>
-                            </div>
-                        </div>
+                        <button type="submit" class="btn btn-primary">{{ action }} Create</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-    $(document).ready(function () {
-        $("#product").change(function () {
-            var productId = $(this).val();  // Get selected product ID
-            console.log("Selected Product ID:", productId); // Debugging log
-
-            if (productId) {
-                $.ajax({
-                    url: "{% url 'get_product_price' %}",  // Django view URL
-                    type: "GET",
-                    data: {"product_id": productId},
-                    dataType: "json",
-                    success: function (data) {
-                        console.log("Response Data:", data); // Debugging log
-                        if (data.price) {
-                            $("#price").val(data.price);  // Set price in the input field
-                        } else {
-                            $("#price").val("");
-                        }
-                    },
-                    error: function (xhr, status, error) {
-                        console.log("AJAX Error:", status, error); // Debugging log
-                        alert("Failed to fetch product price!");
-                    }
-                });
-            } else {
-                $("#price").val("");
-            }
-        });
-    });
-</script>
 
 {% endblock content %}

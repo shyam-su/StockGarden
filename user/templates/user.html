@@ -26,7 +26,7 @@
                                     <th>Name</th>
                                     <th>Address</th>
                                     <th>Phone</th>
-                                    <th>Email</th>
+                                    <th>Company</th>
                                     <th>Role</th>
                                     <th>Active</th>
                                     <th>Date</th>
@@ -40,10 +40,10 @@
                                     <td>{{ user.full_name|default:"N/A"|slice:":6" }}</td>
                                     <td>{{ user.address|default:"N/A"|slice:":10" }}</td>
                                     <td>{{ user.phone|default:"N/A" }}</td>
-                                    <td>{{ user.email|default:"N/A"|slice:":10" }}</td>
+                                    <td>{{ user.company_name|default:"N/A"|slice:":10" }}</td>
                                     <td>{{ user.role|default:"N/A" }}</td>
                                     <td>{{ user.is_active|yesno:"Yes,No" }}</td>
-                                    <td>{{ user.created_at|date:"M d, Y H:i" }}</td>
+                                    <td>{{ user.created_at|date:"M d, Y" }}</td>
                                     <td class="text-center">
                                         <a href="{% url 'user_update' pk=user.id %}" class="btn btn-sm btn-success me-1">Update</a>
                                         <a href="{% url 'user_delete' pk=user.id %}" class="btn btn-sm btn-danger">Delete</a>

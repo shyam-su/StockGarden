@@ -790,7 +790,7 @@ def InvoiceListView(request):
     except Exception as e:
         logger.error(f"Error in InvoiceListView: {e}")
         messages.error(request, 'An error occurred while processing the request.')
-        return render(request, '404.html', {"message": "An error occurred."})
+        # return render(request, '404.html', {"message": "An error occurred."})
     
 
 
