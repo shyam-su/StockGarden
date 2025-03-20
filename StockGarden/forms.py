@@ -40,96 +40,67 @@ class CategoryForm(forms.ModelForm):
         }
 
 
-# class VendorForm(forms.ModelForm):
-#     class Meta:
-#         model = Vendor
-#         fields = ["name", "company_name", "address", "contact_no", "email"]
-#         widgets = {
-#             "name": forms.Select(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "Enter Vendor Name",
-#                     "id": "vendor_name",
-#                 }
-#             ),
-#             "company_name": forms.TextInput(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "Enter Company Name",
-#                     "id": "company_name",
-#                 }
-#             ),
-#             "address": forms.Textarea(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "Enter Address",
-#                     "rows": 3,
-#                     "id": "address",
-#                 }
-#             ),
-#             "contact_no": forms.TextInput(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "Enter Contact Number",
-#                     "id": "contact_no",
-#                 }
-#             ),
-#             "email": forms.EmailInput(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "Enter Email Address",
-#                     "id": "email",
-#                 }
-#             ),
-#         }
-#         labels = {
-#             "name": "Vendor Name",
-#             "company_name": "Company Name",
-#             "address": "Address",
-#             "contact_no": "Contact Number",
-#             "email": "Email Address",
-#         }
-        
-#     def __init__(self, *args, **kwargs):
-#         super(VendorForm, self).__init__(*args, **kwargs)
-#         self.fields["name"].queryset = User.objects.filter(role="Vendor")
-
-
 class PurchaseForm(forms.ModelForm):
     class Meta:
-        model = Product
+        model = Purchase
         fields = [
             "vendor",
-            "name",
-            "description",
-            "price",
-            "Imei",
-            "image",
-            "categories",
-            "stock",
             "brand",
+            "categories",
+            "product_name",
+            "condition",
+            "description",
+            "Imei",  
+            "image",
+            "price",
+            "quantity",
+            "remaining_amount",
         ]
         widgets = {
-            "vendor": forms.Select(
+            "brand": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Vendor Name",
-                    "id": "vendor",
+                    "id": "brand",
                 }
             ),
-            "name": forms.TextInput(
+            "categories": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "id": "categories",
+                }
+            ),
+            "product_name": forms.TextInput(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter Product Name",
-                    "id": "name",
+                    "id": "product_name",
                 }
             ),
-            "description": forms.Textarea(
+            "condition": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "id": "condition",
+                }
+            ),
+            "description": forms.Textarea( 
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter Description",
-                    "rows": 3,
                     "id": "description",
+                    "rows": 3,
+                }
+            ),
+            "Imei": forms.TextInput( 
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter IMEI",
+                    "id": "Imei",
+                }
+            ),
+            "image": forms.FileInput(
+                attrs={
+                    "class": "form-control",
+                    "id": "image",
                 }
             ),
             "price": forms.NumberInput(
@@ -137,43 +108,38 @@ class PurchaseForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Price",
                     "id": "price",
-
                 }
             ),
-            "Imei": forms.TextInput(
+            "quantity": forms.NumberInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter IMEI",
-                    "id": "Imei",
+                    "placeholder": "Enter Quantity",
+                    "id": "quantity",
                 }
             ),
-            "image": forms.FileInput(attrs={"class": "form-control", "id": "image"}),
-            "categories": forms.Select(
-                attrs={"class": "form-control", "id": "categories"}
-            ),
-            "stock": forms.NumberInput(
+            "remaining_amount": forms.NumberInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Stock Quantity",
-                    "id": "stock",
+                    "placeholder": "Enter Remaining Amount",
+                    "id": "remaining_amount",
                 }
             ),
-            "brand": forms.Select(attrs={"class": "form-control", "id": "brand"}),
         }
         labels = {
             "vendor": "Vendor Name",
-            "name": "Product Name",
-            "description": "Description",
-            "price": "Price",
-            "Imei": "Imei Number",
-            "image": "Image",
-            "categories": "Categories",
-            "stock": "Stock Quantity",
             "brand": "Brand",
+            "categories": "Categories",
+            "product_name": "Product Name",
+            "condition": "Condition",
+            "description": "Description",
+            "Imei": "IMEI Number",  # Updated field name
+            "image": "Image",
+            "price": "Price",
+            "quantity": "Stock Quantity",
+            "remaining_amount": "Remaining Amount",
         }
-    def __init__(self, *args, **kwargs):
-        super(PurchaseForm, self).__init__(*args, **kwargs)
-        self.fields["vendor"].queryset = User.objects.filter(role="Vendor")
+
+
 
 class SalesForm(forms.ModelForm):
     class Meta:
@@ -181,11 +147,12 @@ class SalesForm(forms.ModelForm):
         fields = [
             "name",
             "product",
+            "Imei",
             "quantity",
             "price",
             'discount',
             'payment_method',
-            'status',
+            'payment_status',
             'total_amount',
             'paid_amount',
             'remaining_amount',
@@ -208,6 +175,13 @@ class SalesForm(forms.ModelForm):
                     "id": "product",
                 }
             ),
+            "Imei": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Imei",
+                    "id": "Imei",
+                }
+            ),
             "quantity": forms.NumberInput(
                 attrs={
                     "class": "form-control",
@@ -224,20 +198,6 @@ class SalesForm(forms.ModelForm):
                     
                 }
             ),
-            "expiring_date": forms.DateInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Expiring Date",
-                    "id": "expiring_date",
-                }
-            ),
-            "sales": forms.Select(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Select Sale",
-                    "id": "sales",
-                }
-            ),
             "discount": forms.TextInput(
                 attrs={
                     "class": "form-control",
@@ -245,18 +205,18 @@ class SalesForm(forms.ModelForm):
                     "id": "discount",
                 }
             ),
-            "payment_method": forms.Select(
+             "payment_method": forms.Select(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Select Payment Method",
                     "id": "payment_method",
                 }
             ),
-            "status": forms.Select(
+            "payment_status": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Select Status",
-                    "id": "status",
+                    "placeholder": "Select Payment Status",
+                    "id": "stpayment_statusatus",
                 }
             ),
             "total_amount": forms.NumberInput(
@@ -299,17 +259,23 @@ class SalesForm(forms.ModelForm):
                     "rows": 3,
                 }
             ),
+            "expiring_date": forms.DateInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Expiring Date",
+                    "id": "expiring_date",
+                }
+            ),  
         }
         labels = {
             "name": "Customer Name",
             "product": "Product Name",
+            "Imei": "Imei",
             "quantity": "Quantity",
             "price": "Price",
-            "contact_no": "Contact No",
-            "sales": "Sale",
             "discount": "Discount",
             "payment_method": "Payment Method",
-            "status": "Status",
+            "payment_status": "Payment Status",
             "total_amount": "Total Amount",
             "paid_amount": "Paid Amount",
             "remaining_amount": "Remaining Amount",
@@ -317,65 +283,6 @@ class SalesForm(forms.ModelForm):
             "notes": "Notes",
             "expiring_date": "Expiring Date",
         }
-
-
-
-# class PurchaseForm(forms.ModelForm):
-#     class Meta:
-#         model = Purchase
-#         fields = [
-#             "vendor",
-#             "product",
-#             "description",
-#             "quantity",
-#             "price",
-#         ]
-#         widgets = {
-#             "vendor": forms.Select(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "Enter Vendor",
-#                     "id": "vendor",
-#                 }
-#             ),
-#             "product": forms.Select(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "Enter Product",
-#                     "id": "product",
-#                 }
-#             ),
-#             "description": forms.Textarea(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "Enter Description",
-#                     "id": "description",
-#                 }
-#             ),
-#             "quantity": forms.TextInput(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "Enter Quantity ",
-#                     "id": "quantity",
-#                 }
-#             ),
-#             "price": forms.TextInput(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "Enter Price",
-#                     "id": "price",
-#                     "readonly": "readonly",
-#                 }
-#             ),
-#         }
-#         labels = {
-#             "vendor": "Vendor Name",
-#             "product": "Product Name",
-#             "description": "Description",
-#             "quantity": "Quantity",
-#             "price": "Price",
-#         }
-
 
 class RepairForm(forms.ModelForm):
     class Meta:
@@ -385,8 +292,11 @@ class RepairForm(forms.ModelForm):
             "product_name",
             "device_model",
             "issue_description",
-            "out_date",
+            "payment_method",
+            "payment_status",
+            "notes",
             "status",
+            "out_date",
         ]
         widgets = {
             "name": forms.Select(
@@ -417,11 +327,25 @@ class RepairForm(forms.ModelForm):
                     "id": "issue_description",
                 }
             ),
-            "out_date": forms.TextInput(
+            "payment_method": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Out Date",
-                    "id": "out_date",
+                    "placeholder": "Select Payment Method",
+                    "id": "payment_method",
+                }
+            ),
+            "payment_status": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Select Payment Status",
+                    "id": "stpayment_statusatus",
+                }
+            ),
+            "notes": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Notes",
+                    "id": "notes",
                 }
             ),
             "status": forms.Select(
@@ -431,14 +355,24 @@ class RepairForm(forms.ModelForm):
                     "id": "status",
                 }
             ),
+            "out_date": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Out Date",
+                    "id": "out_date",
+                }
+            ),
         }
         labels = {
             "name": "Customer Name",
             "product_name": "Product Name",
             "device_model": "Device Model",
             "issue_description": "Description",
-            "out_date": "Out Date",
+            "payment_method": "Payment Method",
+            "payment_status": "Payment Status",
+            "notes": "Notes",
             "status": "Status",
+            "out_date": "Out Date",
         }
 
 
@@ -488,112 +422,16 @@ class RepairDetailForm(forms.ModelForm):
         # Filter out repair orders that are marked as completed
         self.fields["repair_order"].queryset = Repair.objects.exclude(status="completed")
 
-class InvoiceForm(forms.ModelForm):
+class ExpenseForm(forms.ModelForm):
     class Meta:
-        model = Invoice
-        fields = [
-            'sales',
-            'discount',
-            'payment_method',
-            'status',
-            'total_amount',
-            'paid_amount',
-            'remaining_amount',
-            'due_date',
-            'notes',
-        ]
+        model = Expense
+        fields = ['category', 'amount', 'description', 'payment_method', 'payment_status']
         widgets = {
-            "sales": forms.Select(
+            "category": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Select Sale",
-                    "id": "sales",
-                }
-            ),
-            "discount": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Discount",
-                    "id": "discount",
-                }
-            ),
-            "payment_method": forms.Select(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Select Payment Method",
-                    "id": "payment_method",
-                }
-            ),
-            "status": forms.Select(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Select Status",
-                    "id": "status",
-                }
-            ),
-            "total_amount": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Total Amount",
-                    "id": "total_amount",
-                    "step": "0.01",
-                }
-            ),
-            "paid_amount": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Paid Amount",
-                    "id": "paid_amount",
-                    "step": "0.01",
-                }
-            ),
-            "remaining_amount": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Remaining Amount",
-                    "id": "remaining_amount",
-                    "step": "0.01",
-                }
-            ),
-            "due_date": forms.DateTimeInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Select Due Date",
-                    "id": "due_date",
-                    "type": "datetime-local",
-                }
-            ),
-            "notes": forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Add payment notes (e.g., 'Will pay 500 later')",
-                    "id": "notes",
-                    "rows": 3,
-                }
-            ),
-        }
-        labels = {
-            "sales": "Sale",
-            "discount": "Discount",
-            "payment_method": "Payment Method",
-            "status": "Status",
-            "total_amount": "Total Amount",
-            "paid_amount": "Paid Amount",
-            "remaining_amount": "Remaining Amount",
-            "due_date": "Due Date",
-            "notes": "Notes",
-        }
-
-class PaymentForm(forms.ModelForm):
-    class Meta:
-        model = Payment
-        fields = ['invoice', 'amount', 'payment_method', 'payment_date', 'notes']
-        widgets = {
-            "invoice": forms.Select(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Select Invoice",
-                    "id": "invoice",
+                    "placeholder": "Enter Category",
+                    "id": "category",
                 }
             ),
             "amount": forms.NumberInput(
@@ -604,11 +442,47 @@ class PaymentForm(forms.ModelForm):
                     "step": "0.01",
                 }
             ),
+            "description": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Description",
+                    "id": "description",
+                }
+            ),
             "payment_method": forms.Select(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Select Payment Method",
                     "id": "payment_method",
+                }
+            ),
+            "payment_status": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Select Payment Status",
+                    "id": "payment_status",
+                }
+            ),
+        }
+        labels = {
+            "category": "Category",
+            "amount": "Amount",
+            "description": "Description",
+            "payment_method": "Payment Method",
+            "payment_status": "Payment Status",
+        }
+        
+class InvoiceForm(forms.ModelForm):
+    class Meta:
+        model = Invoice
+        fields = ['sales', 'customer_name', 'payment_method', 'subtotal', 'discount_amount', 'total_amount', 'payment_status', 'due_date',]
+        widgets = {
+            "amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Amount",
+                    "id": "amount",
+                    "step": "0.01",
                 }
             ),
             "payment_date": forms.DateTimeInput(
@@ -629,9 +503,58 @@ class PaymentForm(forms.ModelForm):
             ),
         }
         labels = {
-            "invoice": "Invoice",
             "amount": "Amount",
             "payment_method": "Payment Method",
             "payment_date": "Payment Date",
             "notes": "Notes",
+        }
+
+class ReturnForm(forms.ModelForm):
+    class Meta:
+        model = Return
+        fields = ['invoice', 'product', 'quantity_returned', 'reason','refund_amount']
+        widgets = {
+            "invoice": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Select Invoice",
+                    "id": "invoice",
+                }
+            ),
+            "product": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Select Product",
+                    "id": "product",
+                }
+            ),
+            "quantity_returned": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Quantity Returned",
+                    "id": "quantity_returned",
+                }
+            ),
+            "reason": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Reason",
+                    "id": "reason",
+                }
+            ),
+            "refund_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Refund Amount",
+                    "id": "refund_amount",
+                    "step": "0.01",
+                }
+            ),
+        }
+        labels = {
+            "invoice": "Invoice",
+            "product": "Product",
+            "quantity_returned": "Quantity Returned",
+            "reason": "Reason",
+            "refund_amount": "Refund Amount",
         }

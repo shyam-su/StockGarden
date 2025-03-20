@@ -22,6 +22,14 @@ class BrandAdmin(ImportExportModelAdmin, admin.ModelAdmin):
 class CategoryAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display=('name','created_at',)
     
+@admin.register(ExpenseCategory)
+class ExpenseCategoryAdmin(ImportExportModelAdmin, admin.ModelAdmin):
+    list_display=('name','description','created_at',)
+    
+@admin.register(Purchase)
+class PurchaseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
+    list_display=('vendor','brand','categories','product_name','description','Imei','image','price','quantity','remaining_amount','created_at',)
+    search_fields = ('vendor',)
     
 @admin.register(Product)
 class ProductAdmin(ImportExportModelAdmin, admin.ModelAdmin): 
@@ -32,20 +40,9 @@ class ProductAdmin(ImportExportModelAdmin, admin.ModelAdmin):
 
 @admin.register(Sales)
 class SalesAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display=('name','product','quantity','price','created_at',)
+    list_display=('name','product','quantity','price','discount','payment_method','total_amount','paid_amount','remaining_amount','due_date','notes','expiring_date','updated_at','created_at',)
     search_fields = ('name',)
-    
-    
-@admin.register(Vendor)
-class VendorAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display=('name','email','address','contact_no','company_name','created_at',)
-    
-    
-@admin.register(Purchase)
-class PurchaseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display=('vendor','product','quantity','price','created_at',)
-    search_fields = ('vendor',)
-    
+     
 @admin.register(Repair)
 class RepairOrderAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display=('product_name','device_model','issue_description','created_at','out_date','status')
@@ -55,13 +52,25 @@ class RepairOrderAdmin(ImportExportModelAdmin, admin.ModelAdmin):
 class RepairDetailAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display=('repair_order','repair_cost','repair_action','created_at')
     list_filter=('repair_order','repair_action',)
+    
 
+@admin.register(Expense)
+class ExpenseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
+    list_display=('category','amount','description','payment_method','payment_status','updated_at','created_at')
+    list_filter=('category','amount',)
+    
+    
 @admin.register(Invoice)
-class InvoiceAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display=('sales','discount','payment_method','status','created_at','updated_at',)
-    list_filter = ('payment_method', 'status',)
+class InvoiceAdmin(ImportExportModelAdmin, admin.ModelAdmin):  
+    list_display=('invoice_number','sales','customer_name','customer_email','customer_address','payment_method','subtotal','discount_amount','total_amount','payment_status','due_date','created_at')
+    list_filter=('invoice_number','customer_name',)
     
+@admin.register(Return)
+class ReturnAdmin(ImportExportModelAdmin, admin.ModelAdmin):  
+    list_display=('invoice','product','quantity_returned','reason','return_date','refund_amount','created_at')
+    list_filter=('invoice','product',)
     
+
 @admin.register(Report)
 class ReportAdmin(admin.ModelAdmin):
     list_display=('Total_sells','Total_purchase','Total_Stock','Low_Stock','Empty_Stock','created_at','updated_at',)
