@@ -82,8 +82,9 @@ class Purchase(models.Model):
     description = models.TextField(max_length=191, blank=True, null=True)
     Imei = models.CharField(max_length=100,unique=True, blank=True, null=True)
     image = models.ImageField(upload_to='media/products_imgs/',null=True, blank=True)
-    price = models.IntegerField()
     quantity = models.IntegerField()
+    price = models.IntegerField()
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
     created_at=models.DateTimeField(auto_now_add=True)
     
@@ -149,7 +150,7 @@ class Sales(models.Model):
             super(Sales, self).save(*args, **kwargs)
     
     class Meta:
-        verbose_name = "Seller"
+        verbose_name = "Sells"
         indexes = [models.Index(fields=['name','product','price'])]
 
     def __str__(self):
@@ -171,6 +172,9 @@ class Repair(models.Model):
     issue_description = models.TextField() 
     payment_method = models.CharField(max_length=20,choices=PaymentMethodChoices.choices,default=PaymentMethodChoices.CASH)
     payment_status=models.CharField(max_length=191,choices=PaymentStatusChoices, default='Pending')
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     notes = models.TextField(null=True, blank=True) 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in-progress')
     out_date = models.DateTimeField(null=True, blank=True) 
@@ -230,8 +234,9 @@ class Expense(models.Model):
 class Invoice(models.Model):
     invoice_number = models.CharField(max_length=50, unique=True)
     sales = models.ForeignKey(Sales, on_delete=models.CASCADE)
+    product_name = models.CharField(max_length=255)
     customer_name = models.CharField(max_length=255)
-    customer_email = models.EmailField(max_length=255)
+    customer_number = models.IntegerField(null=True, blank=True)
     customer_address = models.TextField(null=True, blank=True)
     payment_method = models.CharField(max_length=20,choices=PaymentMethodChoices.choices,default=PaymentMethodChoices.CASH)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)

@@ -52,8 +52,9 @@ class PurchaseForm(forms.ModelForm):
             "description",
             "Imei",  
             "image",
-            "price",
             "quantity",
+            "price",
+            "paid_amount",
             "remaining_amount",
         ]
         widgets = {
@@ -117,6 +118,14 @@ class PurchaseForm(forms.ModelForm):
                     "id": "quantity",
                 }
             ),
+            "paid_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Paid Amount",
+                    "id": "paid_amount",
+                    "step": "0.01",
+                }
+            ),
             "remaining_amount": forms.NumberInput(
                 attrs={
                     "class": "form-control",
@@ -132,11 +141,12 @@ class PurchaseForm(forms.ModelForm):
             "product_name": "Product Name",
             "condition": "Condition",
             "description": "Description",
-            "Imei": "IMEI Number",  # Updated field name
+            "Imei": "IMEI Number",  
             "image": "Image",
             "price": "Price",
             "quantity": "Stock Quantity",
             "remaining_amount": "Remaining Amount",
+            "paid_amount": "Paid Amount",
         }
 
 
@@ -294,6 +304,9 @@ class RepairForm(forms.ModelForm):
             "issue_description",
             "payment_method",
             "payment_status",
+            "total_amount",
+            "paid_amount",
+            "remaining_amount",
             "notes",
             "status",
             "out_date",
@@ -341,6 +354,30 @@ class RepairForm(forms.ModelForm):
                     "id": "stpayment_statusatus",
                 }
             ),
+            "total_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Total Amount",
+                    "id": "total_amount",
+                    "step": "0.01",
+                }
+            ),
+            "paid_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Paid Amount",
+                    "id": "paid_amount",
+                    "step": "0.01",
+                }
+            ),
+            "remaining_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Remaining Amount",
+                    "id": "remaining_amount",
+                    "step": "0.01",
+                }
+            ),
             "notes": forms.TextInput(
                 attrs={
                     "class": "form-control",
@@ -370,6 +407,9 @@ class RepairForm(forms.ModelForm):
             "issue_description": "Description",
             "payment_method": "Payment Method",
             "payment_status": "Payment Status",
+            "total_amount": "Total Amount",
+            "paid_amount": "Paid Amount",
+            "remaining_amount": "Remaining Amount",
             "notes": "Notes",
             "status": "Status",
             "out_date": "Out Date",

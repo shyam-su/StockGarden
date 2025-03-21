@@ -28,7 +28,7 @@ class ExpenseCategoryAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     
 @admin.register(Purchase)
 class PurchaseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display=('vendor','brand','categories','product_name','description','Imei','image','price','quantity','remaining_amount','created_at',)
+    list_display=('vendor','brand','categories','product_name','description','Imei','image','price','quantity','paid_amount','remaining_amount','created_at',)
     search_fields = ('vendor',)
     
 @admin.register(Product)
@@ -45,10 +45,10 @@ class SalesAdmin(ImportExportModelAdmin, admin.ModelAdmin):
      
 @admin.register(Repair)
 class RepairOrderAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display=('product_name','device_model','issue_description','created_at','out_date','status')
+    list_display=('name','product_name','device_model','issue_description','payment_method','payment_status','total_amount','paid_amount','remaining_amount','notes','status','out_date')
     list_filter=('product_name','device_model','status',)
     
-@admin.register(RepairDetail)
+@admin.register(RepairDetail)   
 class RepairDetailAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display=('repair_order','repair_cost','repair_action','created_at')
     list_filter=('repair_order','repair_action',)
@@ -62,7 +62,7 @@ class ExpenseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     
 @admin.register(Invoice)
 class InvoiceAdmin(ImportExportModelAdmin, admin.ModelAdmin):  
-    list_display=('invoice_number','sales','customer_name','customer_email','customer_address','payment_method','subtotal','discount_amount','total_amount','payment_status','due_date','created_at')
+    list_display=('invoice_number','sales','customer_name','product_name','customer_number','customer_address','payment_method','subtotal','discount_amount','total_amount','payment_status','due_date','created_at')
     list_filter=('invoice_number','customer_name',)
     
 @admin.register(Return)
