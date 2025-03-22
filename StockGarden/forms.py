@@ -155,7 +155,7 @@ class SalesForm(forms.ModelForm):
     class Meta:
         model = Sales
         fields = [
-            "name",
+            "user",
             "product",
             "Imei",
             "quantity",
@@ -298,7 +298,7 @@ class RepairForm(forms.ModelForm):
     class Meta:
         model = Repair
         fields = [
-            "name",
+            "user",
             "product_name",
             "device_model",
             "issue_description",

@@ -40,12 +40,12 @@ class ProductAdmin(ImportExportModelAdmin, admin.ModelAdmin):
 
 @admin.register(Sales)
 class SalesAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display=('name','product','quantity','price','discount','payment_method','total_amount','paid_amount','remaining_amount','due_date','notes','expiring_date','updated_at','created_at',)
-    search_fields = ('name',)
+    list_display=('user','product','quantity','price','discount','payment_method','total_amount','paid_amount','remaining_amount','due_date','notes','expiring_date','updated_at','created_at',)
+    search_fields = ('user',)
      
 @admin.register(Repair)
 class RepairOrderAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display=('name','product_name','device_model','issue_description','payment_method','payment_status','total_amount','paid_amount','remaining_amount','notes','status','out_date')
+    list_display=('user','product_name','device_model','issue_description','payment_method','payment_status','total_amount','paid_amount','remaining_amount','notes','status','out_date')
     list_filter=('product_name','device_model','status',)
     
 @admin.register(RepairDetail)   
