@@ -148,14 +148,14 @@ class Sales(models.Model):
     updated_at=models.DateTimeField(auto_now=True)
     
     def save(self, *args, **kwargs):
-        self.total = self.quantity * self.price
+        self.total = self.quantity * self.price  # Ensure total is calculated before saving
         with transaction.atomic():
             if self.product and self.product.stock is not None:
                 if self.quantity > self.product.stock:
                     raise ValueError("Not enough stock available.")
                 self.product.stock -= self.quantity
                 self.product.save()
-            super(Sales, self).save(*args, **kwargs)
+            super().save(*args, **kwargs)  # Corrected super() syntax
     
     class Meta:
         verbose_name = "Sells"
@@ -181,9 +181,9 @@ class Repair(models.Model):
     payment_method = models.CharField(max_length=20,choices=PaymentMethodChoices.choices,default=PaymentMethodChoices.CASH)
     payment_status=models.CharField(max_length=191,choices=PaymentStatusChoices, default='Pending')
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    notes = models.TextField(null=True, blank=True) 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in-progress')
     out_date = models.DateTimeField(null=True, blank=True) 
     created_at=models.DateTimeField(auto_now_add=True)
@@ -195,6 +195,8 @@ class Repair(models.Model):
     def __str__(self):
         return f"{self.device_model} - {self.status} ({self.user})"
     
+
+    
     
 class RepairDetail(models.Model):
     STATUS_CHOICES = [
@@ -203,10 +205,11 @@ class RepairDetail(models.Model):
         ('repaired', 'Repaired'),
         ('returned', 'Returned'),
     ]
-
-    id = models.AutoField(primary_key=True)
     repair_order = models.ForeignKey(Repair, on_delete=models.CASCADE, related_name="details")  
-    repair_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    product_name=models.CharField(max_length=100)
+    device_model=models.CharField(max_length=100)
+    repair_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    issue_description = models.TextField() 
     fixed_description = models.TextField() 
     repair_action = models.CharField(choices=STATUS_CHOICES, max_length=100)
     created_at=models.DateTimeField(auto_now_add=True)
@@ -239,9 +242,9 @@ class Expense(models.Model):
         return f"{self.category.name if self.category else 'Uncategorized'} - {self.amount} ({self.payment_status})"
 
  
-class Invoice(models.Model):
+class SalesInvoice(models.Model):
     invoice_number = models.CharField(max_length=6, unique=True, default=uuid.uuid4)
-    sales = models.ForeignKey(Sales, on_delete=models.CASCADE, related_name="invoices", null=True, blank=True)  
+    sales = models.ForeignKey(Sales, on_delete=models.CASCADE, related_name="salesinvoice", null=True, blank=True)  
     product_name = models.CharField(max_length=255)
     customer_name = models.CharField(max_length=255)
     customer_number = models.IntegerField(null=True, blank=True)
@@ -257,15 +260,39 @@ class Invoice(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        verbose_name = "Invoice"
+        verbose_name = "Sales Invoice"
         indexes = [models.Index(fields=['invoice_number', 'due_date'])]
     
     def __str__(self):
-        return f"Invoice {self.invoice_number} for Sale {self.sales.id}"
+        return f"Sales Invoice {self.invoice_number} for Sale {self.sales.id}"
 
+
+class RepairInvoice(models.Model):
+    invoice_number = models.CharField(max_length=6, unique=True, default=uuid.uuid4)
+    repair = models.ForeignKey(Repair, on_delete=models.CASCADE, related_name="repairinvoice", null=True, blank=True)  
+    product_name = models.CharField(max_length=255)
+    customer_name = models.CharField(max_length=255)
+    customer_number = models.IntegerField(null=True, blank=True)
+    customer_address = models.TextField(null=True, blank=True)
+    payment_method = models.CharField(max_length=20, choices=PaymentMethodChoices.choices, default=PaymentMethodChoices.CASH)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='pending')
+    due_date = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Repair Invoice"
+        indexes = [models.Index(fields=['invoice_number', 'due_date'])]
+    
+    def __str__(self):
+        return f"Repair Invoice {self.invoice_number} for Sale {self.repair.id}"
 
 class Return(models.Model):
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE,related_name="invoice")
+    invoice = models.ForeignKey(SalesInvoice, on_delete=models.CASCADE,related_name="invoice")
     product = models.ForeignKey(Product, on_delete=models.CASCADE,related_name="product") 
     quantity_returned = models.PositiveIntegerField()
     reason = models.TextField(null=True, blank=True)

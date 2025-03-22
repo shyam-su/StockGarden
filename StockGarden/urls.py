@@ -50,6 +50,9 @@ urlpatterns = [
     path('invoice/', InvoiceListView, name='invoice'),
     path('invoice/<int:pk>/update/', InvoiceUpdateView,name='invoice_update'),
     
+    path('repair/', InvoiceListView, name='repair'),
+    path('invoice/<int:pk>/update/', InvoiceUpdateView,name='repair_update'),
+    
     path('return/', ReturnListView, name='return'),
     path('return/create/', ExpenseCreateView,name='return_create'),
     path('return/<int:pk>/update/', ExpenseUpdateView,name='return_update'),

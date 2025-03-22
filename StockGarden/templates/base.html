@@ -3,96 +3,102 @@
 <html lang="en">
 
 <head>
-
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="Stock Garden - A comprehensive software solution for managing mobile shops and repair centers. Streamline inventory, sales, repairs, and customer management with ease.">
-    <meta name="author" content="Your Company Name">
-    <meta name="keywords" content="mobile shop software, mobile repair center software, inventory management, sales management, repair tracking, customer management">
-    <meta name="robots" content="index, follow">
-    <meta property="og:title" content="Stock Garden - Mobile Shop & Repair Center Software">
-    <meta property="og:description" content="Manage your mobile shop and repair center efficiently with Stock Garden. Track inventory, sales, repairs, and customers in one place.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://www.yourwebsite.com">
-    <link rel="icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description"
+        content="Stock Garden - A comprehensive software solution for managing mobile shops and repair centers. Streamline inventory, sales, repairs, and customer management with ease." />
+    <meta name="author" content="Your Company Name" />
+    <meta name="keywords"
+        content="mobile shop software, mobile repair center software, inventory management, sales management, repair tracking, customer management" />
+    <meta name="robots" content="index, follow" />
+    <meta property="og:title" content="Stock Garden - Mobile Shop & Repair Center Software" />
+    <meta property="og:description"
+        content="Manage your mobile shop and repair center efficiently with Stock Garden. Track inventory, sales, repairs, and customers in one place." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.yourwebsite.com" />
+    <link rel="icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <title>Stock Garden</title>
 
     <!-- Custom fonts for this template-->
-    <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet" />
     <link
         href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
-        rel="stylesheet">
-        
+        rel="stylesheet" />
 
     <!-- Custom styles for this template-->
-    <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet">
-
+    <link href="{% static 'css/sb-admin-2.min.css' %}" rel="stylesheet" />
 
     <style>
         @media print {
             .no-print {
                 display: none !important;
             }
-    
+
             /* Hide elements from base.html */
-            .sidebar, .navbar, .footer { 
-                display: none !important; 
+            .sidebar,
+            .navbar,
+            .footer {
+                display: none !important;
             }
-    
+
             /* Ensure content takes full width */
             .container {
                 width: 100% !important;
             }
+
             .company-print {
                 display: block !important;
                 text-align: center;
             }
+
             .company-print h2 {
-                margin-bottom: 5px; /* Reduce space below the company name */
-                font-size: 20px; /* Adjust font size if needed */
+                margin-bottom: 5px;
+                /* Reduce space below the company name */
+                font-size: 20px;
+                /* Adjust font size if needed */
             }
+
             .company-print p {
-                margin: 2px 0; /* Reduce space between address, contact, and email */
-                font-size: 14px; /* Adjust font size for a compact look */
+                margin: 2px 0;
+                /* Reduce space between address, contact, and email */
+                font-size: 14px;
+                /* Adjust font size for a compact look */
             }
+
             .pagination {
                 display: none !important;
             }
-
         }
+
         .company-print {
-            display: none; /* Hide company name normally */
+            display: none;
+            /* Hide company name normally */
         }
-        
     </style>
-
-    
 </head>
 
 <body id="page-top">
-
     <!-- Page Wrapper -->
     <div id="wrapper">
-
         <!-- Sidebar -->
         <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
-
             <!-- Sidebar - Brand -->
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{% url 'home' %}">
                 <div class="sidebar-brand-icon rotate-n-15">
                     <i class="fas fa-laugh-wink"></i>
                 </div>
-                <div class="sidebar-brand-text mx-2" style="font-size: 15px;">Stock Gardens</div>
-
+                <div class="sidebar-brand-text mx-2" style="font-size: 15px">
+                    Stock Gardens
+                </div>
             </a>
 
             <!-- Divider -->
-            <hr class="sidebar-divider my-0">
+            <hr class="sidebar-divider my-0" />
 
             <!-- Nav Item - Dashboard -->
             <li class="nav-item active">
@@ -102,16 +108,17 @@
             </li>
 
             <!-- Divider -->
-            <hr class="sidebar-divider">
+            <hr class="sidebar-divider" />
 
             <!-- Nav Item - Pages Collapse Menu -->
             <li class="nav-item">
-                <a class="nav-link collapsed"  data-toggle="collapse" data-target="#collapseAccounts"
+                <a class="nav-link collapsed" data-toggle="collapse" data-target="#collapseAccounts"
                     aria-expanded="true" aria-controls="collapseAccounts">
                     <i class="fa-solid fa fa-users"></i>
                     <span>Accounts</span>
                 </a>
-                <div id="collapseAccounts" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
+                <div id="collapseAccounts" class="collapse" aria-labelledby="headingPages"
+                    data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <a class="collapse-item" href="{% url 'user' %}">User</a>
                     </div>
@@ -119,7 +126,7 @@
             </li>
 
             <!-- Divider -->
-            <hr class="sidebar-divider">
+            <hr class="sidebar-divider" />
 
             <!-- Nav Item - Pages Collapse Menu -->
             <li class="nav-item">
@@ -128,7 +135,8 @@
                     <i class="fas fa-fw fa-folder"></i>
                     <span>Products</span>
                 </a>
-                <div id="collapseProducts" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
+                <div id="collapseProducts" class="collapse" aria-labelledby="headingPages"
+                    data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <a class="collapse-item" href="{% url 'product' %}">Products</a>
                         <a class="collapse-item" href="{% url 'category' %}">Categories</a>
@@ -136,14 +144,14 @@
                     </div>
                 </div>
             </li>
-            
-           <!-- Divider -->
-           <hr class="sidebar-divider">
-            
+
+            <!-- Divider -->
+            <hr class="sidebar-divider" />
+
             <!-- Stock - Pages Collapse Menu -->
             <li class="nav-item">
-                <a class="nav-link collapsed"  data-toggle="collapse" data-target="#collapseStock"
-                    aria-expanded="true" aria-controls="collapseStock">
+                <a class="nav-link collapsed" data-toggle="collapse" data-target="#collapseStock" aria-expanded="true"
+                    aria-controls="collapseStock">
                     <i class="fas fa-layer-group"></i>
                     <span>Stock Master</span>
                 </a>
@@ -151,13 +159,14 @@
                     <div class="bg-white py-2 collapse-inner rounded">
                         <a class="collapse-item" href="{% url 'sales' %}">Sales</a>
                         <a class="collapse-item" href="{% url 'purchase' %}">Purchase</a>
+                        <a class="collapse-item" href="{% url 'return' %}">Return</a>
                     </div>
                 </div>
             </li>
 
-           <!-- Divider -->
-           <hr class="sidebar-divider">
-            
+            <!-- Divider -->
+            <hr class="sidebar-divider" />
+
             <!-- Nav Item - Pages Collapse Menu -->
             <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseRepair"
@@ -165,7 +174,8 @@
                     <i class="fas fa-screwdriver-wrench"></i>
                     <span>Repair Rack</span>
                 </a>
-                <div id="collapseRepair" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
+                <div id="collapseRepair" class="collapse" aria-labelledby="headingPages"
+                    data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <a class="collapse-item" href="{% url 'repair' %}">Repair</a>
                         <a class="collapse-item" href="{% url 'repair_detail' %}">Repair Details</a>
@@ -173,30 +183,49 @@
                 </div>
             </li>
 
-             <!-- Divider -->
-           <hr class="sidebar-divider">
-            
-           <!-- Reports - Charts -->
-           <li class="nav-item">
-               <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseReports"
-                   aria-expanded="true" aria-controls="collapseReports">
-                   <i class="fas fa-screwdriver-wrench"></i>
-                   <span>Reports</span>
-               </a>
-               <div id="collapseReports" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
-                   <div class="bg-white py-2 collapse-inner rounded">
-                       <a class="collapse-item" href="{% url 'user_report' %}">User Reports</a>
-                       <a class="collapse-item" href="{% url 'sales_report' %}">Sales Reports</a>
-                       <a class="collapse-item" href="{% url 'repair_report' %}">Repair Reports</a>
-                       <a class="collapse-item" href="{% url 'repair_detail_report' %}">Repair Details Reports</a>
-                       <a class="collapse-item" href="{% url 'stock_report' %}">Stock Reports</a>
-                   </div>
-               </div>
-           </li>
+            <!-- Divider -->
+            <hr class="sidebar-divider" />
 
-           <!-- Divider -->
-            <hr class="sidebar-divider">
-            
+            <!-- Nav Item - Pages Collapse Menu -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseFinance"
+                    aria-expanded="false" aria-controls="collapseFinance">
+                    <i class="fas fa-money-bill"></i>
+                    <span>Finance</span>
+                </a>
+                <div id="collapseFinance" class="collapse" aria-labelledby="headingFinance"
+                    data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <a class="collapse-item" href="{% url 'expense' %}">Expense</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider" />
+
+            <!-- Reports - Charts -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseReports"
+                    aria-expanded="true" aria-controls="collapseReports">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Reports</span>
+                </a>
+                <div id="collapseReports" class="collapse" aria-labelledby="headingPages"
+                    data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <a class="collapse-item" href="{% url 'user_report' %}">User Reports</a>
+                        <a class="collapse-item" href="{% url 'sales_report' %}">Sales Reports</a>
+                        <a class="collapse-item" href="{% url 'repair_report' %}">Repair Reports</a>
+                        <a class="collapse-item" href="{% url 'repair_detail_report' %}">Repair Details Reports</a>
+                        <a class="collapse-item" href="{% url 'stock_report' %}">Stock Reports</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider" />
+
             <!-- Invoices - Charts -->
             <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseInvoices"
@@ -204,47 +233,42 @@
                     <i class="fas fa-file-invoice"></i>
                     <span>Invoices</span>
                 </a>
-                <div id="collapseInvoices" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
+                <div id="collapseInvoices" class="collapse" aria-labelledby="headingPages"
+                    data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
-                        <a class="collapse-item" href="{% url 'invoice' %}">Invoice List</a>
-                        
+                        <a class="collapse-item" href="{% url 'invoice' %}">Sales Invoice</a>
+                        <a class="collapse-item" href="{% url 'invoice' %}">Repair Invoice</a>
                     </div>
                 </div>
             </li>
 
-          
-
             <!-- Divider -->
-            <hr class="sidebar-divider d-none d-md-block">
+            <hr class="sidebar-divider d-none d-md-block" />
 
             <!-- Sidebar Toggler (Sidebar) -->
             <div class="text-center d-none d-md-inline">
                 <button class="rounded-circle border-0" id="sidebarToggle"></button>
             </div>
-
         </ul>
         <!-- End of Sidebar -->
 
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
-
             <!-- Main Content -->
             <div id="content">
-
                 <!-- Topbar -->
                 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-
                     <!-- Sidebar Toggle (Topbar) -->
                     <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
                         <i class="fa fa-bars"></i>
                     </button>
 
                     <!-- Topbar Search -->
-                    <form
-                        class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search" action="{% url 'global_search' %}" method="get">
+                    <form class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search"
+                        action="{% url 'global_search' %}" method="get">
                         <div class="input-group">
                             <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..."
-                                aria-label="Search" aria-describedby="basic-addon2" name="q">
+                                aria-label="Search" aria-describedby="basic-addon2" name="q" />
                             <div class="input-group-append">
                                 <button class="btn btn-primary" type="submit">
                                     <i class="fas fa-search fa-sm"></i>
@@ -253,11 +277,8 @@
                         </div>
                     </form>
 
-
-
                     <!-- Topbar Navbar -->
                     <ul class="navbar-nav ml-auto">
-
                         <!-- Nav Item - Search Dropdown (Visible Only XS) -->
                         <li class="nav-item dropdown no-arrow d-sm-none">
                             <a class="nav-link dropdown-toggle" href="#" id="searchDropdown" role="button"
@@ -271,7 +292,7 @@
                                     <div class="input-group">
                                         <input type="text" class="form-control bg-light border-0 small"
                                             placeholder="Search for..." aria-label="Search"
-                                            aria-describedby="basic-addon2">
+                                            aria-describedby="basic-addon2" />
                                         <div class="input-group-append">
                                             <button class="btn btn-primary" type="button">
                                                 <i class="fas fa-search fa-sm"></i>
@@ -281,18 +302,24 @@
                                 </form>
                             </div>
                         </li>
-                               <!-- Alert Message -->
-                            <div class="alert-container" style="position: absolute; top: 10px; left: 600px; z-index: 1050; width: 300px;">
-                                {% if messages %}
-                                    {% for message in messages|slice:":1" %} <!-- Show only the first message -->
-                                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show small-alert" role="alert">
-                                        <strong>{{ message.level_tag|title }}!</strong> {{ message }}
-                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                    </div>
-                                    {% endfor %}
-                                {% endif %}
+                        <!-- Alert Message -->
+                        <div class="alert-container" style="
+                  position: absolute;
+                  top: 10px;
+                  left: 600px;
+                  z-index: 1050;
+                  width: 300px;
+                ">
+                            {% if messages %} {% for message in messages|slice:":1" %}
+                            <!-- Show only the first message -->
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show small-alert"
+                                role="alert">
+                                <strong>{{ message.level_tag|title }}!</strong> {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                    aria-label="Close"></button>
                             </div>
-
+                            {% endfor %} {% endif %}
+                        </div>
 
                         <div class="topbar-divider d-none d-sm-block"></div>
 
@@ -300,9 +327,9 @@
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">Braun Mobile & Repair Center</span>
-                                <img class="img-profile rounded-circle"
-                                    src="{% static 'img/undraw_profile.svg' %} ">
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">Braun Mobile & Repair
+                                    Center</span>
+                                <img class="img-profile rounded-circle" src="{% static 'img/undraw_profile.svg' %} " />
                             </a>
                             <!-- Dropdown - User Information -->
                             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
@@ -318,31 +345,23 @@
                                 </a>
                             </div>
                         </li>
-
                     </ul>
-
                 </nav>
                 <!-- End of Topbar -->
-                
-                {% block content %}
-                    
 
-
-
-                {% endblock content %}
-
+                {% block content %} {% endblock content %}
             </div>
             <!-- End of Main Content -->
             <script>
-                setTimeout(function() {
-                    let alertElement = document.querySelector('.alert');
+                setTimeout(function () {
+                    let alertElement = document.querySelector(".alert");
                     if (alertElement) {
-                        alertElement.classList.remove('show');
-                        alertElement.classList.add('fade');
+                        alertElement.classList.remove("show");
+                        alertElement.classList.add("fade");
                     }
                 }, 5000); // 5 seconds
             </script>
-            
+
             <!-- Custom CSS for smaller and more beautiful alert -->
             <style>
                 .small-alert {
@@ -351,6 +370,7 @@
                     border-radius: 5px;
                     transition: opacity 0.5s ease-out;
                 }
+
                 .alert {
                     max-width: 300px;
                     margin: 0 auto;
@@ -368,7 +388,6 @@
             <!-- End of Footer -->
         </div>
         <!-- End of Content Wrapper -->
-
     </div>
     <!-- End of Page Wrapper -->
 
@@ -388,9 +407,13 @@
                         <span aria-hidden="true">×</span>
                     </button>
                 </div>
-                <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
+                <div class="modal-body">
+                    Select "Logout" below if you are ready to end your current session.
+                </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal">
+                        Cancel
+                    </button>
                     <a class="btn btn-primary" href="{% url 'logout' %}">Logout</a>
                 </div>
             </div>
@@ -413,7 +436,7 @@
     <!-- Page level custom scripts -->
     <!-- <script src="{% static 'js/demo/chart-area-demo.js' %}"></script>
     <script src="{% static 'js/demo/chart-pie-demo.js' %}"></script> -->
-        <!-- Custom scripts for all pages-->
+    <!-- Custom scripts for all pages-->
     <!-- <script src="{% static 'js/sb-admin-2.min.js' %}"></script> -->
 
     <!-- Page level plugins -->
@@ -430,10 +453,8 @@
     <script src="{% static 'vendor/datatables/dataTables.bootstrap4.min.js' %}"></script>
 
     <!-- Page level custom scripts -->
-    <!-- <script src="{% static 'js/demo/datatables-demo.js' %}"></script> --> -->
-
-
-
+    <!-- <script src="{% static 'js/demo/datatables-demo.js' %}"></script> -->
+    -->
 </body>
 
 </html>

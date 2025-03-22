@@ -45,7 +45,7 @@ class SalesAdmin(ImportExportModelAdmin, admin.ModelAdmin):
      
 @admin.register(Repair)
 class RepairOrderAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display=('user','product_name','device_model','issue_description','payment_method','payment_status','total_amount','paid_amount','remaining_amount','notes','status','out_date')
+    list_display=('user','product_name','device_model','issue_description','payment_method','payment_status','total_amount','paid_amount','remaining_amount','status','out_date')
     list_filter=('product_name','device_model','status',)
     
 @admin.register(RepairDetail)   
@@ -60,9 +60,14 @@ class ExpenseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_filter=('category','amount',)
     
     
-@admin.register(Invoice)
-class InvoiceAdmin(ImportExportModelAdmin, admin.ModelAdmin):  
+@admin.register(SalesInvoice)
+class SalesInvoiceAdmin(ImportExportModelAdmin, admin.ModelAdmin):  
     list_display=('invoice_number','sales','customer_name','product_name','customer_number','customer_address','payment_method','discount_amount','total_amount','payment_status','due_date','created_at')
+    list_filter=('invoice_number','customer_name',)
+    
+@admin.register(RepairInvoice)
+class RepairInvoiceAdmin(ImportExportModelAdmin, admin.ModelAdmin):  
+    list_display=('invoice_number','customer_name','product_name','customer_number','customer_address','payment_method','discount_amount','total_amount','payment_status','due_date','created_at')
     list_filter=('invoice_number','customer_name',)
     
 @admin.register(Return)
