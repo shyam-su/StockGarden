@@ -84,6 +84,7 @@ class Purchase(models.Model):
     image = models.ImageField(upload_to='media/products_imgs/',null=True, blank=True)
     quantity = models.IntegerField()
     price = models.IntegerField()
+    total_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00) 
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
     created_at=models.DateTimeField(auto_now_add=True)
@@ -92,7 +93,10 @@ class Purchase(models.Model):
         verbose_name = "Purchase"
         indexes = [models.Index(fields=['vendor', 'brand', 'categories', 'product_name',])]
         
-        
+    def save(self, *args, **kwargs):
+        self.total_price = self.quantity * self.price 
+        self.remaining_amount=self.total_price-self.paid_amount
+        super().save(*args, **kwargs)
     def __str__(self):
         return self.vendor.full_name
         
@@ -189,7 +193,7 @@ class Repair(models.Model):
         indexes = [models.Index(fields=['product_name','device_model','status'])]
     
     def __str__(self):
-        return f"{self.device_model} - {self.status} ({self.name})"
+        return f"{self.device_model} - {self.status} ({self.user})"
     
     
 class RepairDetail(models.Model):
@@ -243,9 +247,10 @@ class Invoice(models.Model):
     customer_number = models.IntegerField(null=True, blank=True)
     customer_address = models.TextField(null=True, blank=True)
     payment_method = models.CharField(max_length=20, choices=PaymentMethodChoices.choices, default=PaymentMethodChoices.CASH)
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='pending')
     due_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -31,11 +31,11 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.name.id_for_label }}">Name</label>
-                                {{ form.name }}
-                                {% if form.name.errors %}
+                                <label for="{{ form.user.id_for_label }}">Customer Name</label>
+                                {{ form.user }}
+                                {% if form.user.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {{ form.name.errors }}
+                                        {{ form.user.errors }}
                                     </div>
                                 {% endif %}
                             </div>
@@ -53,6 +53,16 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
+                                <label for="{{ form.Imei.id_for_label }}">IMEI</label>
+                                {{ form.Imei }}
+                                {% if form.Imei.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.Imei.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
                                 <label for="{{ form.quantity.id_for_label }}">Quantity</label>
                                 {{ form.quantity }}
                                 {% if form.quantity.errors %}
@@ -61,7 +71,9 @@
                                     </div>
                                 {% endif %}
                             </div>
+                        </div>
 
+                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.price.id_for_label }}">Price</label>
                                 {{ form.price }}
@@ -71,9 +83,7 @@
                                     </div>
                                 {% endif %}
                             </div>
-                        </div>
 
-                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.discount.id_for_label }}">Discount</label>
                                 {{ form.discount }}
@@ -83,7 +93,9 @@
                                     </div>
                                 {% endif %}
                             </div>
+                        </div>
 
+                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.payment_method.id_for_label }}">Payment Method</label>
                                 {{ form.payment_method }}
@@ -93,25 +105,13 @@
                                     </div>
                                 {% endif %}
                             </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.contact_no.id_for_label }}">Contact Number</label>
-                                {{ form.contact_no }}
-                                {% if form.contact_no.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.contact_no.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
 
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.status.id_for_label }}">Status</label>
-                                {{ form.status }}
-                                {% if form.status.errors %}
+                                <label for="{{ form.payment_status.id_for_label }}">Payment Status</label>
+                                {{ form.payment_status }}
+                                {% if form.payment_status.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {{ form.status.errors }}
+                                        {{ form.payment_status.errors }}
                                     </div>
                                 {% endif %}
                             </div>

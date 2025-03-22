@@ -39,18 +39,22 @@
                                 {% for sale in sales %}
                                 <tr>
                                     <td style="text-align: left;">{{ forloop.counter }}</td>
-                                    <td style="text-align: left;">{{ sale.name|slice:":5" }}</td>
-                                    <td style="text-align: left;">{{ sale.product|slice:":2" }}</td>
-                                    <td style="text-align: left;">{{ sale.quantity|slice:":5" }}</td>
-                                    <td style="text-align: left;">{{ sale.price|slice:":5" }}</td>
-                                    <td style="text-align: left;">{{ sale.total|slice:":5"}}</td>
-                                    <td style="text-align: left;">{{ sale.contact_no|slice:":10" }}</td>
-                                    <td style="text-align: left;">{{ sale.expiring_date|date:"Y-m-d " }}</td>
-                                    <td style="text-align: left;">{{ sale.created_at|date:"Y-m-d " }}</td>
+                                    <td style="text-align: left;">{{ sale.user.full_name }}</td>
+                                    <td style="text-align: left;">{{ sale.product.name }}</td> <!-- Assuming product has a name field -->
+                                    <td style="text-align: left;">{{ sale.quantity }}</td>
+                                    <td style="text-align: left;">${{ sale.price }}</td>
+                                    <td style="text-align: left;">${{ sale.total }}</td>
+                                    <td style="text-align: left;">{{ sale.user.phone }}</td>
+                                    <td style="text-align: left;">{{ sale.expiring_date|date:"Y-m-d" }}</td>
+                                    <td style="text-align: left;">{{ sale.created_at|date:"Y-m-d H:i" }}</td> <!-- Showing timestamp -->
                                     <td class="text-center">
                                         <a href="{% url 'sales_update' pk=sale.id %}" class="btn btn-sm btn-success me-1">Update</a>
                                         <a href="{% url 'sales_delete' pk=sale.id %}" class="btn btn-sm btn-danger">Delete</a>
                                     </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="10" class="text-center">No sales found</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

@@ -18,7 +18,6 @@ urlpatterns = [
     path('category/<int:pk>/delete/', CategoryDeleteView,name='category_delete'),
     
     path('product/', ProductListView, name='product'),
-    path('product/create/', ProductCreateView,name='product_create'),
     path('product/<int:pk>/update/', ProductUpdateView,name='product_update'),
     path('product/<int:pk>/delete/', ProductDeleteView,name='product_delete'),
     
@@ -27,10 +26,6 @@ urlpatterns = [
     path('sales/<int:pk>/update/', SalesUpdateView,name='sales_update'),
     path('sales/<int:pk>/delete/', SalesDeleteView,name='sales_delete'),
     
-    path('vendor/', VendorListView, name='vendor'),
-    path('vendor/create/', VendorCreateView,name='vendor_create'),
-    path('vendor/<int:pk>/update/', VendorUpdateView,name='vendor_update'),
-    path('vendor/<int:pk>/delete/', VendorDeleteView,name='vendor_delete'),
     
     path('purchase/', PurchaseListView, name='purchase'),
     path('purchase/create/', PurchaseCreateView,name='purchase_create'),
@@ -47,7 +42,19 @@ urlpatterns = [
     path('repair_detail/<int:pk>/update/', RepairDetailUpdateView,name='repair_detail_update'),
     path('repair_detail/<int:pk>/delete/', RepairDetailDeleteView,name='repair_detail_delete'),
     
+    path('expense/', ExpenseListView, name='expense'),
+    path('expense/create/', ExpenseCreateView,name='expense_create'),
+    path('expense/<int:pk>/update/', ExpenseUpdateView,name='expense_update'),
+    path('expense/<int:pk>/delete/', ExpenseDeleteView,name='expense_delete'),
+    
     path('invoice/', InvoiceListView, name='invoice'),
+    path('invoice/<int:pk>/update/', InvoiceUpdateView,name='invoice_update'),
+    
+    path('return/', ReturnListView, name='return'),
+    path('return/create/', ExpenseCreateView,name='return_create'),
+    path('return/<int:pk>/update/', ExpenseUpdateView,name='return_update'),
+    path('return/<int:pk>/delete/', ExpenseDeleteView,name='return_delete'),
+
 
     
     path('user_report/', UserReportListView, name='user_report'),

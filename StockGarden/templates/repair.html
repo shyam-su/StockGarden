@@ -7,14 +7,15 @@
         <div class="col-12"> 
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Repair</h5> 
+                    <h5 class="mb-0">Repair List</h5> 
                     <a href="{% url 'repair_create' %}" class="btn btn-primary btn-sm">Add New</a>
                 </div>
                 <div class="card-body">   
                     
+                    <!-- Search Form -->
                     <form method="GET" class="mb-3 d-flex justify-content-end">
                         <div class="input-group w-25">
-                            <input type="text" name="q" class="form-control" placeholder="Search Sales..." value="{{ query }}">
+                            <input type="text" name="q" class="form-control" placeholder="Search Repairs..." value="{{ query }}">
                             <button type="submit" class="btn btn-primary ml-1">Search</button>
                         </div>
                     </form>
@@ -23,30 +24,41 @@
                         <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
                             <thead class="table-primary text-center">
                                 <tr>
-                                    <th style="text-align: left;">ID</th>
-                                    <th style="text-align: left;">Product Name</th>
-                                    <th style="text-align: left;">Device Model</th>
-                                    <th style="text-align: left;">Name</th>
-                                    <th style="text-align: left;">Issue Description</th>
-                                    <th style="text-align: left;">Out Date</th>
-                                    <th style="text-align: left;">Status</th>
+                                    <th>ID</th>
+                                    <th>Customer</th>
+                                    <th>Product</th>
+                                    <th>Device Model</th>
+                                    <th>Issue</th>
+                                    <th>Out Date</th>
+                                    <th>Status</th>
                                     <th style="text-align: center;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody">
                                 {% for repa in repair %}
                                 <tr>
-                                    <td style="text-align: left;">{{ forloop.counter }}</td>
-                                    <td style="text-align: left;">{{ repa.product_name|slice:":12" }}</td>
-                                    <td style="text-align: left;">{{ repa.device_model|slice:":8" }}</td>
-                                    <td style="text-align: left;">{{ repa.name|slice:":10" }}</td>
-                                    <td style="text-align: left;">{{ repa.issue_description|slice:":20" }}</td>
-                                    <td style="text-align: left;">{{ repa.out_date }}</td>
-                                    <td style="text-align: left;">{{ repa.status }}</td>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ repa.user.full_name|default:"N/A" }}</td>
+                                    <td>{{ repa.product_name|truncatechars:15 }}</td>
+                                    <td>{{ repa.device_model|truncatechars:12 }}</td>
+                                    <td>{{ repa.issue_description|truncatechars:25 }}</td>
+                                    <td>{{ repa.out_date|date:"Y-m-d" }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if repa.status == 'completed' %}badge-success
+                                            {% elif repa.status == 'in-progress' %}badge-warning
+                                            {% else %}badge-secondary{% endif %}">
+                                            {{ repa.get_status_display }}
+                                        </span>
+                                    </td>
                                     <td class="text-center">
                                         <a href="{% url 'repair_update' pk=repa.id %}" class="btn btn-sm btn-success me-1">Update</a>
                                         <a href="{% url 'repair_delete' pk=repa.id %}" class="btn btn-sm btn-danger">Delete</a>
                                     </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted">No repair records found.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

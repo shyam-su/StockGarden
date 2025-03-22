@@ -7,14 +7,14 @@
         <div class="col-12"> 
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Purchase</h5> 
+                    <h5 class="mb-0">Purchases</h5> 
                     <a href="{% url 'purchase_create' %}" class="btn btn-primary btn-sm">Add New</a>
                 </div>
                 <div class="card-body">   
                     
                     <form method="GET" class="mb-3 d-flex justify-content-end">
                         <div class="input-group w-25">
-                            <input type="text" name="q" class="form-control" placeholder="Search Sales..." value="{{ query }}">
+                            <input type="text" name="q" class="form-control" placeholder="Search Purchases..." value="{{ query }}">
                             <button type="submit" class="btn btn-primary ml-1">Search</button>
                         </div>
                     </form>
@@ -27,9 +27,11 @@
                                     <th style="text-align: left;">Vendor</th>
                                     <th style="text-align: left;">Product</th>
                                     <th style="text-align: left;">Description</th>
+                                    <th style="text-align: left;">Condition</th>
                                     <th style="text-align: left;">Quantity</th>
                                     <th style="text-align: left;">Price</th>
-                                    <th style="text-align: left;">Total Value</th>
+                                    <th style="text-align: left;">Total Price</th>
+                                    <th style="text-align: left;">Remaining Amount</th>
                                     <th style="text-align: left;">Date</th>
                                     <th style="text-align: center;">Actions</th>
                                 </tr>
@@ -38,13 +40,15 @@
                                 {% for purc in purches %}
                                 <tr>
                                     <td style="text-align: left;">{{ forloop.counter }}</td>
-                                    <td style="text-align: left;">{{ purc.vendor|slice:":10" }}</td>
-                                    <td style="text-align: left;">{{ purc.product|slice:":15" }}</td>
+                                    <td style="text-align: left;">{{ purc.vendor.full_name|slice:":10" }}</td>
+                                    <td style="text-align: left;">{{ purc.product_name|slice:":15" }}</td>
                                     <td style="text-align: left;">{{ purc.description|slice:":20" }}</td>
+                                    <td style="text-align: left;">{{ purc.condition }}</td>
                                     <td style="text-align: left;">{{ purc.quantity }}</td>
                                     <td style="text-align: left;">{{ purc.price }}</td>
-                                    <td style="text-align: left;">{{ purc.total_value }}</td>
-                                    <td style="text-align: left;">{{ purc.created_at|date:"Y-m-d H" }}</td>
+                                    <td style="text-align: left;">{{ purc.total_price }}</td>
+                                    <td style="text-align: left;">{{ purc.remaining_amount }}</td>
+                                    <td style="text-align: left;">{{ purc.created_at|date:"Y-m-d H:i" }}</td>
                                     <td class="text-center">
                                         <a href="{% url 'purchase_update' pk=purc.id %}" class="btn btn-sm btn-success me-1">Update</a>
                                         <a href="{% url 'purchase_delete' pk=purc.id %}" class="btn btn-sm btn-danger">Delete</a>

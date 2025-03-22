@@ -28,7 +28,7 @@ class ExpenseCategoryAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     
 @admin.register(Purchase)
 class PurchaseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display=('vendor','brand','categories','product_name','description','Imei','image','price','quantity','paid_amount','remaining_amount','created_at',)
+    list_display=('vendor','brand','categories','product_name','description','Imei','image','price','quantity','total_price','paid_amount','remaining_amount','created_at',)
     search_fields = ('vendor',)
     
 @admin.register(Product)
@@ -62,7 +62,7 @@ class ExpenseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     
 @admin.register(Invoice)
 class InvoiceAdmin(ImportExportModelAdmin, admin.ModelAdmin):  
-    list_display=('invoice_number','sales','customer_name','product_name','customer_number','customer_address','payment_method','subtotal','discount_amount','total_amount','payment_status','due_date','created_at')
+    list_display=('invoice_number','sales','customer_name','product_name','customer_number','customer_address','payment_method','discount_amount','total_amount','payment_status','due_date','created_at')
     list_filter=('invoice_number','customer_name',)
     
 @admin.register(Return)

@@ -234,7 +234,88 @@ def CategoryDeleteView(request,pk):
         logger.error(f"Error in CategoryDeleteView: {e}")
         messages.error(request, 'An error occurred while processing the category.')
         return render(request, '404.html', {"message": "An error occurred."})
+
+
+@login_required
+def PurchaseListView(request):
+    try:
+        query = request.GET.get('q', '')
+        purches=Purchase.objects.all()
+
+        if query:
+            purches = purches.filter(
+                Q(vendor__company_name__icontains=query) |  
+                Q(product__name__icontains=query) |       
+                Q(description__icontains=query)      
+            )
+
+        pagination =Paginator(purches,10)
+        page_number=request.GET.get('page')
+        page_obj=pagination.get_page(page_number)
+        context={
+            'purches':page_obj,
+        }
+        return render(request, 'purchases.html',context)
+    except Exception as e:
+        logger.error(f"Error in PurchaseListView: {e}")
+        messages.error(request, 'An error occurred while loading the purchase list.')
+        return render(request, '404.html', {"message": "An error occurred."})
+
+@login_required
+def PurchaseCreateView(request,pruchase_id=None):
+    try:
+        if pruchase_id:
+            purchase=get_object_or_404(Purchase,id=pruchase_id)
+            form=PurchaseForm(request.POST or None,instance=purchase)
+            action='update'
+        else:
+            form=PurchaseForm(request.POST or None)
+            action='create'
+        if request.method == 'POST':
+            if form.is_valid():
+                form.save()
+                messages.success(request,f'Purchase {action.lower()}d successfully!')
+                return redirect('purchase')
+        return render(request, 'purchases_create.html',{'form':form,'action':action})
+    except Exception as e:
+        logger.error(f"Error in PurchaseCreateView: {e}")
+        messages.error(request, 'An error occurred while processing the purchase.')
+        return render(request, '404.html', {"message": "An error occurred."})
+
+@login_required
+def PurchaseUpdateView(request,pk):
+    try:
+        purchase = get_object_or_404(Purchase,pk=pk)
+        if request.method == 'POST':
+            form= PurchaseForm(request.POST,instance=purchase)
+            if form.is_valid():
+                form.save()
+                messages.success(request,f'Purchase updated successfully!')
+                return redirect('purchase')
+        else:
+            form = PurchaseForm(instance=purchase)
+            return render(request, 'purchases_update.html',{'form':form,'purchase':purchase})
+    except Exception as e:
+        logger.error(request, 'An error occurred while processing the purchase.')
+        messages.error(request, 'An error occurred while processing the purchase.')
+        return render(request, '404.html', {"message": "An error occurred."})
+
+@login_required
+def PurchaseDeleteView(request,pk):
+    try:
+        purchase= get_object_or_404(Purchase,pk=pk)
+        if request.method == 'POST':
+            purchase_name=purchase.product.name
+            purchase.delete()
+            messages.success(request,f'Purchase {purchase_name} deleted successfully!')
+            return redirect('purchase')
+        return render(request, 'purchase_delete.html',{'purchase':purchase})
+    except Exception as e:
+        logger.error(f"Error in PurchaseDeleteView: {e}")
+        messages.error(request, 'An error occurred while processing the purchase.')
+        return render(request, '404.html', {"message": "An error occurred."})
     
+        
 @login_required
 def ProductListView(request):
     try:
@@ -262,31 +343,6 @@ def ProductListView(request):
     except Exception as e:
         logger.error(f"Error in ProductListView: {e}")
         messages.error(request,"An error occurred while loading the product list.")
-        return render(request, '404.html', {"message": "An error occurred."})
-    
-@login_required
-def ProductCreateView(request, product_id=None):
-    try:
-        if product_id:
-            product = get_object_or_404(Product, id=product_id)
-            form = ProductForm(request.POST or None, request.FILES or None, instance=product)
-            action = 'Update'
-        else:
-            form = ProductForm(request.POST or None, request.FILES or None)
-            action = 'Create'
-
-        if request.method == 'POST':
-            if form.is_valid():
-                form.save()
-                messages.success(request, f'Product {action.lower()}d successfully!')
-                return redirect('product') 
-            else:
-                messages.error(request, 'Please correct the errors below.')
-
-        return render(request, 'product_create.html', {'form': form, 'action': action})
-    except Exception as e:
-        messages.error(request, 'An error occurred while processing the product.')
-        logger.error(f"Error in ProductCreateView: {e}")
         return render(request, '404.html', {"message": "An error occurred."})
     
 @login_required
@@ -407,166 +463,7 @@ def SalesDeleteView(request,pk):
         messages.error(request, 'An error occurred while processing the sales.')
         return render(request, '404.html', {"message": "An error occurred."})
 
-@login_required
-def VendorListView(request):
-    try:
-        query = request.GET.get('q', '')
-        vendor=Vendor.objects.all().order_by('-id')
 
-        if query:
-            vendor = vendor.filter(
-                Q(name__full_name__icontains=query) | 
-                Q(company_name__icontains=query) |    
-                Q(contact_no__icontains=query) |       
-                Q(email__icontains=query) |
-                Q(address__icontains=query)
-            )
-
-
-        paginator=Paginator(vendor,10)
-        page_number=request.GET.get('page')
-        page_obj=paginator.get_page(page_number)
-        context={
-            "vendors":page_obj,
-        }
-        return render(request, 'vendor.html',context)
-    except Exception as e:
-        logger.error(f"Error in VendorListView: {e}")
-        messages.error(request, 'An error occurred while loading the Vendor list.')
-        return render(request, '404.html', {"message": "An error occurred."})
-
-@login_required
-def VendorCreateView(request,vendor_id=None):
-    try:
-        if vendor_id:
-            vendor = get_object_or_404(Vendor,id=vendor_id)
-            form =VendorForm(request.POST or None,instance=vendor)
-            action = 'update'
-        else:
-            form = VendorForm(request.POST or None)
-            action = 'create'
-        if request.method == 'POST':
-            if form.is_valid():
-                form.save()
-                messages.success(request,f'Vendor {action.lower()}d successfully!')
-                return redirect('vendor')
-        return render(request, 'vendor_create.html',{'form':form,'action':action})
-    except Exception as e:
-        logger.error(f"Error in VendorCreateView: {e}")
-        messages.error(request,"An error occurred while processing the vendor.")
-        return redirect('404.html', {"message": "An error occurred."})
-    
-@login_required
-def VendorUpdateView(request,pk):
-    try:
-        vendor=get_object_or_404(Vendor,pk=pk)
-        if request.method == 'POST':
-            form=VendorForm(request.POST or None,instance=vendor)
-            if form.is_valid():
-                form.save()
-                messages.success(request,f'Vendor updated successfully!')
-                return redirect('vendor')
-        else:
-            form =VendorForm(instance=vendor)
-            return render(request, 'vendor_update.html',{'form':form,'vendor':vendor})
-    except Exception as e:
-        logger.error(f"Error in VendorUpdateView: {e}")
-        messages.error(request,"An error occurred while processing the vendor.")
-        return redirect('404.html', {"message": "An error occurred."})
-    
-@login_required
-def VendorDeleteView(request,pk):
-    try:
-        vendor=get_object_or_404(Vendor,pk=pk)
-        if request.method == 'POST':
-            vendo_name = vendor.name
-            vendor.delete()
-            messages.success(request,f'Vendor {vendo_name} deleted successfully!')
-            return redirect('vendor')
-        return render(request, 'vendor_delete.html',{'vendor':vendor})
-    except Exception as e:
-        logger.error(f"Error in VendorDeleteView: {e}")
-        messages.error(request,"An error occurred while processing the vendor.")
-        return redirect('404.html', {"message": "An error occurred."})
-
-@login_required
-def PurchaseListView(request):
-    try:
-        query = request.GET.get('q', '')
-        purches=Purchase.objects.all()
-
-        if query:
-            purches = purches.filter(
-                Q(vendor__company_name__icontains=query) |  
-                Q(product__name__icontains=query) |       
-                Q(description__icontains=query)      
-            )
-
-        pagination =Paginator(purches,10)
-        page_number=request.GET.get('page')
-        page_obj=pagination.get_page(page_number)
-        context={
-            'purches':page_obj,
-        }
-        return render(request, 'purchases.html',context)
-    except Exception as e:
-        logger.error(f"Error in PurchaseListView: {e}")
-        messages.error(request, 'An error occurred while loading the purchase list.')
-        return render(request, '404.html', {"message": "An error occurred."})
-
-@login_required
-def PurchaseCreateView(request,pruchase_id=None):
-    try:
-        if pruchase_id:
-            purchase=get_object_or_404(Purchase,id=pruchase_id)
-            form=PurchaseForm(request.POST or None,instance=purchase)
-            action='update'
-        else:
-            form=PurchaseForm(request.POST or None)
-            action='create'
-        if request.method == 'POST':
-            if form.is_valid():
-                form.save()
-                messages.success(request,f'Purchase {action.lower()}d successfully!')
-                return redirect('purchase')
-        return render(request, 'purchases_create.html',{'form':form,'action':action})
-    except Exception as e:
-        logger.error(f"Error in PurchaseCreateView: {e}")
-        messages.error(request, 'An error occurred while processing the purchase.')
-        return render(request, '404.html', {"message": "An error occurred."})
-
-@login_required
-def PurchaseUpdateView(request,pk):
-    try:
-        purchase = get_object_or_404(Purchase,pk=pk)
-        if request.method == 'POST':
-            form= PurchaseForm(request.POST,instance=purchase)
-            if form.is_valid():
-                form.save()
-                messages.success(request,f'Purchase updated successfully!')
-                return redirect('purchase')
-        else:
-            form = PurchaseForm(instance=purchase)
-            return render(request, 'purchases_update.html',{'form':form,'purchase':purchase})
-    except Exception as e:
-        logger.error(request, 'An error occurred while processing the purchase.')
-        messages.error(request, 'An error occurred while processing the purchase.')
-        return render(request, '404.html', {"message": "An error occurred."})
-
-@login_required
-def PurchaseDeleteView(request,pk):
-    try:
-        purchase= get_object_or_404(Purchase,pk=pk)
-        if request.method == 'POST':
-            purchase_name=purchase.product.name
-            purchase.delete()
-            messages.success(request,f'Purchase {purchase_name} deleted successfully!')
-            return redirect('purchase')
-        return render(request, 'purchase_delete.html',{'purchase':purchase})
-    except Exception as e:
-        logger.error(f"Error in PurchaseDeleteView: {e}")
-        messages.error(request, 'An error occurred while processing the purchase.')
-        return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
 def RepairListView(request):
@@ -731,6 +628,22 @@ def RepairDetailDeleteView(request, pk):
         logger.error(f"Error in RepairDetailDeleteView: {e}", exc_info=True)
         messages.error(request, 'An error occurred while processing the repair detail. Please try again later.')
         return render(request, '404.html', {"message": "An error occurred."})
+    
+@login_required
+def ExpenseListView(request):
+    return render(request, 'expense.html')
+
+@login_required
+def ExpenseCreateView(request,expense_id=None):
+    return render(request, 'expense.html')
+
+@login_required
+def ExpenseUpdateView(request,pk):
+    return render(request, 'expense.html')
+
+@login_required
+def ExpenseDeleteView(request,pk):
+    return render(request, 'expense.html')
 
 @login_required
 def InvoiceListView(request):
@@ -752,7 +665,6 @@ def InvoiceListView(request):
         payment_forms = {}
         for invoice in invoices:
             update_forms[invoice.id] = InvoiceForm(instance=invoice, prefix=f'update_{invoice.id}')
-            payment_forms[invoice.id] = PaymentForm(initial={'invoice': invoice}, prefix=f'payment_{invoice.id}')
 
             if request.method == 'POST' and f'update_submit_{invoice.id}' in request.POST:
                 update_form = InvoiceForm(request.POST, instance=invoice, prefix=f'update_{invoice.id}')
@@ -767,16 +679,10 @@ def InvoiceListView(request):
                 messages.success(request, 'Invoice deleted successfully!')
                 return redirect('invoice')
             elif request.method == 'POST' and f'payment_submit_{invoice.id}' in request.POST:
-                payment_form = PaymentForm(request.POST, prefix=f'payment_{invoice.id}')
-                if payment_form.is_valid():
-                    payment = payment_form.save(commit=False)
-                    payment.invoice = invoice
-                    payment.save()
+                
                     # Ensure amounts update correctly
-                    invoice.paid_amount = (invoice.paid_amount or 0) + payment.amount
                     invoice.remaining_amount = invoice.total_amount - invoice.paid_amount
                     invoice.save()
-                    logger.info(f"Payment added for invoice {invoice.id}: {payment.amount}")
                     messages.success(request, 'Payment added successfully!')
                     return redirect('invoice')
 
@@ -792,7 +698,14 @@ def InvoiceListView(request):
         messages.error(request, 'An error occurred while processing the request.')
         # return render(request, '404.html', {"message": "An error occurred."})
     
+@login_required
+def InvoiceUpdateView(request,pk):
+    return render(request, 'invoice.html')
 
+
+@login_required
+def ReturnListView(request):
+    return render(request, 'return.html')
 
 @login_required
 def UserReportListView(request):
@@ -829,7 +742,6 @@ def global_search(request):
             sales = Sales.objects.filter(Q(name__full_name__icontains=query) | Q(product__name__icontains=query))
             purchases = Purchase.objects.filter(Q(vendor__company_name__icontains=query) | Q(product__name__icontains=query))
             repairs = Repair.objects.filter(Q(product_name__icontains=query) | Q(device_model__icontains=query) | Q(name__full_name__icontains=query))
-            vendors = Vendor.objects.filter(Q(company_name__icontains=query) | Q(name__full_name__icontains=query))
             brands = Brand.objects.filter(Q(name__icontains=query))
             categories = Category.objects.filter(Q(name__icontains=query))
             users = User.objects.filter(Q(full_name__icontains=query))
@@ -839,7 +751,6 @@ def global_search(request):
                 'sales': sales,
                 'purchases': purchases,
                 'repairs': repairs,
-                'vendors': vendors,
                 'brands': brands,
                 'categories': categories,
                 'users': users,
