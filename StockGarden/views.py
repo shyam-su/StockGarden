@@ -63,7 +63,7 @@ def get_chart_data(request):
 
 
 @login_required
-def BrandListView(request):
+def BrandList(request):
     try:
         query = request.GET.get('q', '')
         brands = Brand.objects.all().order_by('-id')
@@ -91,7 +91,7 @@ def BrandListView(request):
         return render(request, '404.html', {"message": "An error occurred while loading the brand list."})
 
 @login_required
-def BrandCreateView(request, brand_id=None):
+def BrandCreate(request, brand_id=None):
     try:
         if brand_id:
             brand = get_object_or_404(Brand, id=brand_id)
@@ -119,7 +119,7 @@ def BrandCreateView(request, brand_id=None):
         return render(request, '404.html', {"message": "An error occurred."})
     
 @login_required
-def BrandUpdateView(request, pk):
+def BrandUpdate(request, pk):
     try:
         brand = get_object_or_404(Brand, pk=pk)
 
@@ -139,7 +139,7 @@ def BrandUpdateView(request, pk):
         return render(request, 'error.html', {"message": "An error occurred while updating the brand."})
 
 @login_required
-def BrandDeleteView(request, pk):
+def BrandDelete(request, pk):
     try:
         brand = get_object_or_404(Brand, pk=pk)
 
@@ -156,7 +156,7 @@ def BrandDeleteView(request, pk):
         return render(request, '404.html', {"message": "An error occurred while deleting the brand."})
 
 @login_required
-def CategoryListView(request):
+def CategoryList(request):
     try:
         query = request.GET.get('q', '').strip()
         category =Category.objects.all().order_by('-id')
@@ -181,7 +181,7 @@ def CategoryListView(request):
         return render(request, '404.html', {"message": "An error occurred."})
     
 @login_required
-def CategoryCreateView(request,catagory_id=None):
+def CategoryCreate(request,catagory_id=None):
     try:
         if catagory_id:
             category =get_object_or_404(Category,id=catagory_id)
@@ -202,7 +202,7 @@ def CategoryCreateView(request,catagory_id=None):
         return render(request, '404.html', {"message": "An error occurred."})
     
 @login_required    
-def CategoryUpdateView(request,pk):
+def CategoryUpdate(request,pk):
     try:
         category=get_object_or_404(Category,pk=pk)
         if request.method == 'POST':
@@ -220,7 +220,7 @@ def CategoryUpdateView(request,pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def CategoryDeleteView(request,pk):
+def CategoryDelete(request,pk):
     try:
         category=get_object_or_404(Category,pk=pk)
         if request.method == 'POST':
@@ -237,7 +237,7 @@ def CategoryDeleteView(request,pk):
 
 
 @login_required
-def PurchaseListView(request):
+def PurchaseList(request):
     try:
         query = request.GET.get('q', '')
         purches=Purchase.objects.all()
@@ -262,7 +262,7 @@ def PurchaseListView(request):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def PurchaseCreateView(request,pruchase_id=None):
+def PurchaseCreate(request,pruchase_id=None):
     try:
         if pruchase_id:
             purchase=get_object_or_404(Purchase,id=pruchase_id)
@@ -283,7 +283,7 @@ def PurchaseCreateView(request,pruchase_id=None):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def PurchaseUpdateView(request,pk):
+def PurchaseUpdate(request,pk):
     try:
         purchase = get_object_or_404(Purchase,pk=pk)
         if request.method == 'POST':
@@ -301,7 +301,7 @@ def PurchaseUpdateView(request,pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def PurchaseDeleteView(request,pk):
+def PurchaseDelete(request,pk):
     try:
         purchase= get_object_or_404(Purchase,pk=pk)
         if request.method == 'POST':
@@ -317,7 +317,7 @@ def PurchaseDeleteView(request,pk):
     
         
 @login_required
-def ProductListView(request):
+def ProductList(request):
     try:
         query = request.GET.get('q', '')
         product =Product.objects.all().order_by('-id')
@@ -346,7 +346,7 @@ def ProductListView(request):
         return render(request, '404.html', {"message": "An error occurred."})
     
 @login_required
-def ProductUpdateView(request, pk):
+def ProductUpdate(request, pk):
     try:
         product = get_object_or_404(Product, pk=pk)
 
@@ -368,7 +368,7 @@ def ProductUpdateView(request, pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def ProductDeleteView(request,pk):
+def ProductDelete(request,pk):
     try:
         product = get_object_or_404(Product,pk=pk)
         if request.method == 'POST':
@@ -383,7 +383,7 @@ def ProductDeleteView(request,pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def SalesListView(request):
+def SalesList(request):
     try:
         query = request.GET.get('q', '')
         sales = Sales.objects.all().order_by('-id')
@@ -408,7 +408,7 @@ def SalesListView(request):
         return render(request, '404.html', {"message": "An error occurred."})
     
 @login_required
-def SalesCreateView(request,sales_id=None):
+def SalesCreate(request,sales_id=None):
     try:
         if sales_id:
             sales = get_object_or_404(Sales,id = sales_id)
@@ -429,7 +429,7 @@ def SalesCreateView(request,sales_id=None):
         return render(request, '404.html', {"message": "An error occurred."})
     
 @login_required
-def SalesUpdateView(request, pk):
+def SalesUpdate(request, pk):
     try:
         sales = get_object_or_404(Sales, pk=pk)
 
@@ -449,7 +449,7 @@ def SalesUpdateView(request, pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def SalesDeleteView(request,pk):
+def SalesDelete(request,pk):
     try:
         sales =get_object_or_404(Sales,pk=pk)
         if request.method == 'POST':
@@ -466,7 +466,7 @@ def SalesDeleteView(request,pk):
 
 
 @login_required
-def RepairListView(request):
+def RepairList(request):
     try:
         query = request.GET.get('q', '')
         repair=Repair.objects.all().order_by('id')
@@ -492,7 +492,7 @@ def RepairListView(request):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def RepairCreateView(request,repair_id=None):
+def RepairCreate(request,repair_id=None):
     try:
         if repair_id:
             repair=get_object_or_404(Repair,id=repair_id)
@@ -516,7 +516,7 @@ def RepairCreateView(request,repair_id=None):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def RepairUpdateView(request,pk):
+def RepairUpdate(request,pk):
     try:
         repair=get_object_or_404(Repair,pk=pk)
         if request.method =='POST':
@@ -534,7 +534,7 @@ def RepairUpdateView(request,pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def RepairDeleteView(request,pk):
+def RepairDelete(request,pk):
     try:
         repair=get_object_or_404(Repair,pk=pk)
         if request.method == 'POST':
@@ -549,7 +549,7 @@ def RepairDeleteView(request,pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def RepairDetailListView(request):
+def RepairDetailList(request):
     try:
         query = request.GET.get('q', '')
         repairdetail = RepairDetail.objects.all().order_by('id')
@@ -595,7 +595,7 @@ def RepairDetailCreate(request,repairde_id=None):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def RepairDetailUpdateView(request,pk):
+def RepairDetailUpdate(request,pk):
     try:
         repairdetail=get_object_or_404(RepairDetail,pk=pk)
         if request.method == 'POST':
@@ -613,7 +613,7 @@ def RepairDetailUpdateView(request,pk):
         return render(request, '404.html', {"message": "An error occurred."})
     
 @login_required    
-def RepairDetailDeleteView(request, pk):
+def RepairDetailDelete(request, pk):
     try:
         repairdetail = get_object_or_404(RepairDetail, pk=pk)
 
@@ -630,23 +630,23 @@ def RepairDetailDeleteView(request, pk):
         return render(request, '404.html', {"message": "An error occurred."})
     
 @login_required
-def ExpenseListView(request):
+def ExpenseList(request):
     return render(request, 'expense.html')
 
 @login_required
-def ExpenseCreateView(request,expense_id=None):
-    return render(request, 'expense.html')
+def ExpenseCreate(request,expense_id=None):
+    return render(request, 'expense_create.html')
 
 @login_required
-def ExpenseUpdateView(request,pk):
-    return render(request, 'expense.html')
+def ExpenseUpdate(request,pk):
+    return render(request, 'expense_update.html')
 
 @login_required
-def ExpenseDeleteView(request,pk):
-    return render(request, 'expense.html')
+def ExpenseDelete(request,pk):
+    return render(request, 'expense_delete.html')
 
 @login_required
-def InvoiceListView(request):
+def SalesInvoiceList(request):
     try:
         invoices = Invoice.objects.all().order_by('id')
         pagination = Paginator(invoices, 10)
@@ -692,23 +692,91 @@ def InvoiceListView(request):
             "update_forms": update_forms,
             "payment_forms": payment_forms,
         }
-        return render(request, 'invoice.html', context)
+        return render(request, 'sales_invoice.html', context)
     except Exception as e:
         logger.error(f"Error in InvoiceListView: {e}")
         messages.error(request, 'An error occurred while processing the request.')
-        # return render(request, '404.html', {"message": "An error occurred."})
+        return render(request, '404.html', {"message": "An error occurred."})
     
 @login_required
-def InvoiceUpdateView(request,pk):
-    return render(request, 'invoice.html')
+def SalesInvoiceUpdate(request,pk):
+    return render(request, 'sales_invoice_update.html')
+
+@login_required
+def RepairInvoice(request):
+    try:
+        invoices = Invoice.objects.all().order_by('id')
+        pagination = Paginator(invoices, 10)
+        page_number = request.GET.get('page')
+        page_obj = pagination.get_page(page_number)
+
+        create_form = InvoiceForm(request.POST or None, prefix='create')
+        if request.method == 'POST' and 'create_submit' in request.POST:
+            if create_form.is_valid():
+                invoice = create_form.save()
+                logger.info(f"Invoice created with ID: {invoice.id}")
+                messages.success(request, 'Invoice created successfully!')
+                return redirect('invoice')
+
+        update_forms = {}
+        payment_forms = {}
+        for invoice in invoices:
+            update_forms[invoice.id] = InvoiceForm(instance=invoice, prefix=f'update_{invoice.id}')
+
+            if request.method == 'POST' and f'update_submit_{invoice.id}' in request.POST:
+                update_form = InvoiceForm(request.POST, instance=invoice, prefix=f'update_{invoice.id}')
+                if update_form.is_valid():
+                    update_form.save()
+                    logger.info(f"Invoice updated with ID: {invoice.id}")
+                    messages.success(request, 'Invoice updated successfully!')
+                    return redirect('invoice')
+            elif request.method == 'POST' and f'delete_{invoice.id}' in request.POST:
+                invoice.delete()
+                logger.info(f"Invoice deleted with ID: {invoice.id}")
+                messages.success(request, 'Invoice deleted successfully!')
+                return redirect('invoice')
+            elif request.method == 'POST' and f'payment_submit_{invoice.id}' in request.POST:
+                
+                    # Ensure amounts update correctly
+                    invoice.remaining_amount = invoice.total_amount - invoice.paid_amount
+                    invoice.save()
+                    messages.success(request, 'Payment added successfully!')
+                    return redirect('invoice')
+
+        context = {
+            "invoices": page_obj,
+            "create_form": create_form,
+            "update_forms": update_forms,
+            "payment_forms": payment_forms,
+        }
+        return render(request, 'repair_invoice.html', context)
+    except Exception as e:
+        logger.error(f"Error in InvoiceListView: {e}")
+        messages.error(request, 'An error occurred while processing the request.')
+        return render(request, '404.html', {"message": "An error occurred."})
+    
+    
+@login_required
+def RepairUpdate(request,pk):
+    return render(request, 'repair_invoice_update.html')
 
 
 @login_required
-def ReturnListView(request):
+def ReturnList(request):
     return render(request, 'return.html')
 
 @login_required
-def UserReportListView(request):
+def ReturnCreate(request,return_id=None):
+    return render(request, 'return_create.html')
+@login_required
+def ReturnUpdate(request,pk):
+    return render(request, 'return_update.html')
+@login_required
+def ReturnDelete(request,pk):
+    return render(request, 'return_delete.html')
+
+@login_required
+def UserReportList(request):
     try:
         selected_role = request.GET.get('role', '') 
         users = User.objects.all().order_by('id')
@@ -763,7 +831,7 @@ def global_search(request):
     return render(request, 'search_results.html', context)
 
 @login_required
-def SalesReportListView(request):
+def SalesReportList(request):
     context = {}
 
     try:
@@ -789,7 +857,7 @@ def SalesReportListView(request):
     return render(request, 'sales_report.html', context)
 
 @login_required
-def StockReportListView(request):
+def StockReportList(request):
     # Get query parameters for filtering
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
@@ -1080,7 +1148,7 @@ def generate_excel(request):
 
 
 @login_required
-def RepairReportListView(request):
+def RepairReportList(request):
     try:
         status = request.GET.get('status', '')  
         customer_id = request.GET.get('customer', '')  
@@ -1118,7 +1186,7 @@ def RepairReportListView(request):
     return render(request, 'repair_report.html', context)
 
 @login_required
-def RepairDetailReportListView(request):
+def RepairDetailReportList(request):
     try:
         repair_order_id = request.GET.get('repair_order', '')  
         repair_action = request.GET.get('repair_action', '')  
