@@ -50,7 +50,7 @@ class RepairOrderAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     
 @admin.register(RepairDetail)   
 class RepairDetailAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display=('repair_order','repair_cost','repair_action','created_at')
+    list_display=('repair_order','repair_cost','repair_detail_cost','repair_action','created_at')
     list_filter=('repair_order','repair_action',)
     
 

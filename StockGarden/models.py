@@ -2,6 +2,7 @@ from django.db import models
 from user.models import User
 from django.utils.text import slugify
 import uuid
+from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 
@@ -134,7 +135,7 @@ class Sales(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="sales") 
     Imei = models.CharField(max_length=100,unique=True, blank=True, null=True)
     quantity = models.IntegerField(default=1)
-    price = models.IntegerField()
+    price = models.IntegerField(blank=True, null=True)
     discount=models.IntegerField(null=True, blank=True, default=0)
     payment_method = models.CharField(max_length=20,choices=PaymentMethodChoices.choices,default=PaymentMethodChoices.CASH)
     payment_status=models.CharField(max_length=191,choices=PaymentStatusChoices, default='Pending')
@@ -148,15 +149,13 @@ class Sales(models.Model):
     updated_at=models.DateTimeField(auto_now=True)
     
     def save(self, *args, **kwargs):
-        self.total = self.quantity * self.price  # Ensure total is calculated before saving
-        with transaction.atomic():
-            if self.product and self.product.stock is not None:
-                if self.quantity > self.product.stock:
-                    raise ValueError("Not enough stock available.")
-                self.product.stock -= self.quantity
-                self.product.save()
-            super().save(*args, **kwargs)  # Corrected super() syntax
-    
+        self.price = self.product.price  
+        self.total_amount = Decimal(self.quantity) * Decimal(self.price)
+        self.paid_amount = Decimal(self.paid_amount)
+        self.discount = Decimal(self.discount or 0) 
+        self.remaining_amount = self.total_amount - self.paid_amount - self.discount
+        super().save(*args, **kwargs)
+            
     class Meta:
         verbose_name = "Sells"
         indexes = [models.Index(fields=['user','product','price'])]
@@ -188,6 +187,12 @@ class Repair(models.Model):
     out_date = models.DateTimeField(null=True, blank=True) 
     created_at=models.DateTimeField(auto_now_add=True)
     
+    def save(self, *args, **kwargs):
+        self.paid_amount = Decimal(self.paid_amount)
+        self.discount_amount = Decimal(self.discount_amount or 0) 
+        self.remaining_amount = self.total_amount - self.paid_amount - self.discount_amount
+        super().save(*args, **kwargs)
+    
     class Meta:
         verbose_name = "Repair"
         indexes = [models.Index(fields=['product_name','device_model','status'])]
@@ -209,6 +214,7 @@ class RepairDetail(models.Model):
     product_name=models.CharField(max_length=100)
     device_model=models.CharField(max_length=100)
     repair_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    repair_detail_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     issue_description = models.TextField() 
     fixed_description = models.TextField() 
     repair_action = models.CharField(choices=STATUS_CHOICES, max_length=100)
@@ -268,7 +274,7 @@ class SalesInvoice(models.Model):
 
 
 class RepairInvoice(models.Model):
-    invoice_number = models.CharField(max_length=6, unique=True, default=uuid.uuid4)
+    invoice_number = models.CharField(max_length=36, unique=True, default=uuid.uuid4)
     repair = models.ForeignKey(Repair, on_delete=models.CASCADE, related_name="repairinvoice", null=True, blank=True)  
     product_name = models.CharField(max_length=255)
     customer_name = models.CharField(max_length=255)
@@ -283,6 +289,8 @@ class RepairInvoice(models.Model):
     due_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+
     
     class Meta:
         verbose_name = "Repair Invoice"
