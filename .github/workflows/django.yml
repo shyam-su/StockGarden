@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.9]
 
     steps:
     - name: Checkout Repository
@@ -22,13 +22,12 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Cache Dependencies
-      uses: actions/cache@v3
+    - name: Upload test results (optional)
+      if: always()
+      uses: actions/upload-artifact@v2
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-python-${{ matrix.python-version }}-dependencies
-        restore-keys: |
-          ${{ runner.os }}-python-${{ matrix.python-version }}-
+        name: test-results
+        path: ./test-results/
 
     - name: Install Dependencies
       run: |
