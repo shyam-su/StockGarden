@@ -1,8 +1,4 @@
-name: Python application
-
-on:
-  push:
-    branches: [main]name: Django CI
+name: Django CI
 
 on:
   push:
@@ -53,45 +49,3 @@ jobs:
       with:
         name: test-results
         path: ./test-results/
-
-  pull_request:
-    branches: [main]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60  # Increase timeout to 60 minutes
-
-    strategy:
-      matrix:
-        python-version: [3.10, 3.11]
-
-    steps:
-      # Step 1: Checkout the repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # Step 2: Set up Python environment for the current version in the matrix
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      # Step 3: Cache Python dependencies
-      - name: Cache Python dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-python-${{ matrix.python-version }}-dependencies
-          restore-keys: |
-            ${{ runner.os }}-python-${{ matrix.python-version }}-
-
-      # Step 4: Upgrade pip and install dependencies from requirements.txt
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install --no-cache-dir -r requirements.txt
-
-      # Step 5: Run tests
-      - name: Run tests
-        run: python manage.py test
