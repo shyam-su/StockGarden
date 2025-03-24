@@ -75,10 +75,11 @@ class Purchase(models.Model):
         ('good', 'Good'),
         ('needs_repair', 'Needs Repair'),
     ]
-    vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="purchases") 
-    brand = models.ForeignKey('Brand', on_delete=models.CASCADE, related_name="purchases") 
-    categories = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="purchased_categories")
+    vendor = models.ForeignKey(User, on_delete=models.SET_NULL,null=True, related_name="purchases") 
+    brand = models.ForeignKey('Brand', on_delete=models.SET_NULL,null=True, related_name="purchases") 
+    categories = models.ForeignKey(Category, on_delete=models.SET_NULL,null=True, related_name="purchased_categories")
     product_name = models.CharField(max_length=191, null=True, blank=True, db_index=True)
+    warranty = models.IntegerField(null=True, blank=True)
     condition = models.CharField(max_length=20, choices=CONDITION_CHOICES, default='new', db_index=True)
     description = models.TextField(max_length=191, blank=True, null=True)
     Imei = models.CharField(max_length=100,unique=True, blank=True, null=True)
@@ -103,15 +104,16 @@ class Purchase(models.Model):
         
         
 class Product(models.Model):
-    vendor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="products") 
+    vendor = models.ForeignKey(User, on_delete=models.SET_NULL,null=True, related_name="products") 
     name = models.CharField(max_length=191, null=False, blank=False, verbose_name="Product Name", db_index=True)
     description = models.TextField(max_length=191,null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2,null=False, blank=False,verbose_name="Product Price",db_index=True)
+    warranty = models.IntegerField(null=True, blank=True)
     Imei = models.CharField(max_length=100,null=True, blank=True,db_index=True)
     image = models.ImageField(upload_to='media/products_imgs/',null=True, blank=True,db_index=True)
-    categories = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="products") 
+    categories = models.ForeignKey(Category, on_delete=models.SET_NULL,null=True, related_name="products") 
     stock=models.IntegerField(null=True, blank=True,db_index=True)
-    brand = models.ForeignKey('Brand', on_delete=models.CASCADE, related_name="products") 
+    brand = models.ForeignKey('Brand', on_delete=models.SET_NULL,null=True, related_name="products") 
     slug = models.SlugField(max_length=191,null=True, blank=True,db_index=True)
     created_at=models.DateTimeField(auto_now_add=True)
     
@@ -131,9 +133,10 @@ class Product(models.Model):
     
 
 class Sales(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sales")  
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="sales") 
+    user = models.ForeignKey(User, on_delete=models.SET_NULL,null=True, related_name="sales")  
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL,null=True, related_name="sales") 
     Imei = models.CharField(max_length=100,unique=True, blank=True, null=True)
+    warranty = models.IntegerField(null=True, blank=True)
     quantity = models.IntegerField(default=1)
     price = models.IntegerField(blank=True, null=True)
     discount=models.IntegerField(null=True, blank=True, default=0)
@@ -150,6 +153,7 @@ class Sales(models.Model):
     
     def save(self, *args, **kwargs):
         self.price = self.product.price  
+        self.warranty = self.product.warranty  
         self.total_amount = Decimal(self.quantity) * Decimal(self.price)
         self.paid_amount = Decimal(self.paid_amount)
         self.discount = Decimal(self.discount or 0) 
@@ -173,7 +177,7 @@ class Repair(models.Model):
     ]
 
     id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE,related_name="user",null=True, blank=True,verbose_name="Customer Name",db_index=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL,null=True,related_name="user",blank=True,verbose_name="Customer Name",db_index=True)
     product_name = models.CharField(max_length=100) 
     device_model = models.CharField(max_length=100)
     issue_description = models.TextField() 
@@ -210,7 +214,7 @@ class RepairDetail(models.Model):
         ('repaired', 'Repaired'),
         ('returned', 'Returned'),
     ]
-    repair_order = models.ForeignKey(Repair, on_delete=models.CASCADE, related_name="details")  
+    repair_order = models.ForeignKey(Repair, on_delete=models.SET_NULL,null=True, related_name="details")  
     product_name=models.CharField(max_length=100)
     device_model=models.CharField(max_length=100)
     repair_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -226,7 +230,7 @@ class RepairDetail(models.Model):
         indexes = [models.Index(fields=['repair_order','repair_action'])]
     
     def __str__(self):
-        return f"{self.repair_order.device_model}"
+        return f"{self.device_model}"
 
 class Expense(models.Model):
     category = models.ForeignKey(ExpenseCategory, on_delete=models.SET_NULL, null=True, blank=True)
@@ -250,8 +254,9 @@ class Expense(models.Model):
  
 class SalesInvoice(models.Model):
     invoice_number = models.CharField(max_length=6, unique=True, default=uuid.uuid4)
-    sales = models.ForeignKey(Sales, on_delete=models.CASCADE, related_name="salesinvoice", null=True, blank=True)  
+    sales = models.ForeignKey(Sales, on_delete=models.SET_NULL,related_name="salesinvoice", null=True, blank=True)  
     product_name = models.CharField(max_length=255)
+    warranty = models.IntegerField(null=True, blank=True)
     customer_name = models.CharField(max_length=255)
     customer_number = models.IntegerField(null=True, blank=True)
     customer_address = models.TextField(null=True, blank=True)
@@ -265,17 +270,18 @@ class SalesInvoice(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    
     class Meta:
         verbose_name = "Sales Invoice"
         indexes = [models.Index(fields=['invoice_number', 'due_date'])]
     
     def __str__(self):
-        return f"Sales Invoice {self.invoice_number} for Sale {self.sales.id}"
+        return f"Sales Invoice {self.invoice_number} for Sale {self.customer_name}"
 
 
 class RepairInvoice(models.Model):
     invoice_number = models.CharField(max_length=36, unique=True, default=uuid.uuid4)
-    repair = models.ForeignKey(Repair, on_delete=models.CASCADE, related_name="repairinvoice", null=True, blank=True)  
+    repair = models.ForeignKey(Repair, on_delete=models.SET_NULL,related_name="repairinvoice", null=True, blank=True)  
     product_name = models.CharField(max_length=255)
     customer_name = models.CharField(max_length=255)
     customer_number = models.IntegerField(null=True, blank=True)
@@ -297,10 +303,10 @@ class RepairInvoice(models.Model):
         indexes = [models.Index(fields=['invoice_number', 'due_date'])]
     
     def __str__(self):
-        return f"Repair Invoice {self.invoice_number} for Sale {self.repair.id}"
+        return f"Repair Invoice {self.invoice_number} for Sale {self.customer_name}"
 
 class Return(models.Model):
-    invoice = models.ForeignKey(SalesInvoice, on_delete=models.CASCADE,related_name="invoice")
+    invoice = models.ForeignKey(SalesInvoice, on_delete=models.SET_NULL,null=True,related_name="invoice")
     product = models.ForeignKey(Product, on_delete=models.CASCADE,related_name="product") 
     quantity_returned = models.PositiveIntegerField()
     reason = models.TextField(null=True, blank=True)

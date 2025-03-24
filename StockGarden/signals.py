@@ -10,6 +10,7 @@ def create_or_update_product_from_purchase(sender, instance, created, **kwargs):
         defaults={
             "description": instance.description,
             "price": instance.price,
+            "warranty": instance.warranty,
             "Imei": instance.Imei,
             "image": instance.image,
             "categories": instance.categories,
@@ -24,6 +25,7 @@ def create_or_update_sales_invoice(sender, instance, created, **kwargs):
         sales=instance,
         defaults={
             "product_name": instance.product.name,
+            "warranty": instance.warranty,
             "customer_name": instance.user.full_name,
             "customer_number": instance.user.phone if instance.user.phone else None,
             "customer_address": instance.user.address if instance.user.address else None,
