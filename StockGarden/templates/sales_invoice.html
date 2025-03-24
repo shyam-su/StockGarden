@@ -1,133 +1,112 @@
 {% extends 'base.html' %}
-{% load dict_lookup %}
 
 {% block content %}
-<div class="container-fluid"> 
+<div class="container-fluid">
     <div class="row">
-        <div class="col-12"> 
+        <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Sales Invoices</h6>
-                    <!-- Search Form (Larger Size) -->
-                    <form method="GET" class="d-flex justify-content-end mb-0 w-31">
-                        <div class="input-group">
-                            <input type="text" name="q" class="form-control form-control-lg" placeholder="Search Sales..." value="{{ query }}">
-                            <button type="submit" class="btn btn-primary ml-1 btn-lg">
-                                <i class="fas fa-search"></i> Search
-                            </button>
+                    <h5 class="mb-0">Invoices</h5>
+                    <a href="" class="btn btn-primary btn-sm">Add New</a>
+                </div>
+                <div class="card-body">
+                    
+                    <form method="get" action="" class="mb-3 d-flex justify-content-end">
+                        <div class="input-group w-auto">
+                            <input type="text" name="search" class="form-control" placeholder="Search invoices..." value="{{ query }}">
+                            <button type="submit" class="btn btn-primary">Search</button>
                         </div>
                     </form>
-                </div>
-                
-                <div class="card-body">      
+
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
                             <thead class="table-primary text-center">
                                 <tr>
-                                    <th style="text-align: left;">ID</th>
-                                    <th style="text-align: left;">Customer</th>
-                                    <th style="text-align: left;">Product</th>
-                                    <th style="text-align: left;">Price</th>
-                                    <th style="text-align: left;">Qty</th>
-                                    <th style="text-align: left;">Total</th>
-                                    <th style="text-align: left;">Paid</th>
-                                    <th style="text-align: left;">Remaining</th>
-                                    <th style="text-align: left;">Status</th>
-                                    <th style="text-align: left;">Due</th>
-                                    <th style="text-align: center;">Actions</th>
+                                    <th>ID</th>
+                                    <th>Invoice Number</th>
+                                    <th>Customer Name</th>
+                                    <th>Product</th>
+                                    <th>Total Amount</th>
+                                    <th>Paid Amount</th>
+                                    <th>Remaining Amount</th>
+                                    <th>Payment Status</th>
+                                    <th>Due Date</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="tableBody">
+                            <tbody>
                                 {% for invoice in invoices %}
-                                <tr data-invoice-id="{{ invoice.id }}">
-                                    <td style="text-align: left;">{{ invoice.id }}</td>
-                                    <td style="text-align: left;">{{ invoice.customer_name|default:"N/A" }}</td>
-                                    <td style="text-align: left;">{{ invoice.product_name }}</td>
-                                    <td style="text-align: left;">{{ invoice.sales.price|default:"N/A" }}</td>
-                                    <td style="text-align: left;">{{ invoice.sales.quantity|default:"N/A" }}</td>
-                                    <td style="text-align: left;">{{ invoice.total_amount|floatformat:2 }}</td>
-                                    <td style="text-align: left;" class="paid-amount">{{ invoice.paid_amount|floatformat:2 }}</td>
-                                    <td style="text-align: left;" class="remaining-amount">{{ invoice.remaining_amount|floatformat:2 }}</td>
-                                    <td style="text-align: left;">{{ invoice.payment_status }}</td>
-                                    <td style="text-align: left;">{{ invoice.due_date|date:"M d, Y"|default:"N/A" }}</td>
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ invoice.invoice_numberk }}</td>
+                                    <td>{{ invoice.customer_name|default:"N/A" }}</td>
+                                    <td>{{ invoice.product_name|default:"N/A" }}</td>
+                                    <td>{{ invoice.total_amount }}</td>
+                                    <td>{{ invoice.paid_amount }}</td>
+                                    <td>{{ invoice.remaining_amount }}</td>
+                                    <td>{{ invoice.get_payment_status_display }}</td>
+                                    <td>{{ invoice.due_date|date:"M d, Y"|default:"N/A" }}</td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#updateInvoiceModal{{ invoice.id }}">Edit</button>
-                                        <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#viewPaymentsModal{{ invoice.id }}">Print</button>
+                                        <a href="{% url 'invoice_update' pk=invoice.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                        <a href="" class="btn btn-sm btn-danger">Print</a>
                                     </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="14" class="text-center">No invoices yet.</td>
+                                    <td colspan="10" class="text-center">No invoices found.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                 </div>
-                                <!-- Pagination -->
-                                <nav class="mt-4">
-                                    <ul class="pagination justify-content-center">
-                                        {% if sales.has_previous %}
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page=1" aria-label="First">
-                                                <span aria-hidden="true">&laquo;&laquo;</span>
-                                            </a>
-                                        </li>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page={{ sales.previous_page_number }}" aria-label="Previous">
-                                                <span aria-hidden="true">&laquo;</span>
-                                            </a>
-                                        </li>
-                                        {% else %}
-                                        <li class="page-item disabled">
-                                            <a class="page-link" href="#" aria-label="First">
-                                                <span aria-hidden="true">&laquo;&laquo;</span>
-                                            </a>
-                                        </li>
-                                        <li class="page-item disabled">
-                                            <a class="page-link" href="#" aria-label="Previous">
-                                                <span aria-hidden="true">&laquo;</span>
-                                            </a>
-                                        </li>
-                                        {% endif %}
-                
-                                        <!-- Page Numbers -->
-                                        {% for num in sales.paginator.page_range %}
-                                            {% if sales.number == num %}
-                                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
-                                            {% else %}
-                                            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
-                                            {% endif %}
-                                        {% endfor %}
-                
-                                        {% if sales.has_next %}
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page={{ sales.next_page_number }}" aria-label="Next">
-                                                <span aria-hidden="true">&raquo;</span>
-                                            </a>
-                                        </li>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page={{ sales.paginator.num_pages }}" aria-label="Last">
-                                                <span aria-hidden="true">&raquo;&raquo;</span>
-                                            </a>
-                                        </li>
-                                        {% else %}
-                                        <li class="page-item disabled">
-                                            <a class="page-link" href="#" aria-label="Next">
-                                                <span aria-hidden="true">&raquo;</span>
-                                            </a>
-                                        </li>
-                                        <li class="page-item disabled">
-                                            <a class="page-link" href="#" aria-label="Last">
-                                                <span aria-hidden="true">&raquo;&raquo;</span>
-                                            </a>
-                                        </li>
-                                        {% endif %}
-                                    </ul>
-                                </nav>
+
+                <!-- Pagination -->
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if invoices.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1" aria-label="First">&laquo;&laquo;</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ invoices.previous_page_number }}" aria-label="Previous">&laquo;</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="First">&laquo;&laquo;</a>
+                        </li>
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Previous">&laquo;</a>
+                        </li>
+                        {% endif %}
+
+                        {% for num in invoices.paginator.page_range %}
+                            {% if invoices.number == num %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                            {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if invoices.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ invoices.next_page_number }}" aria-label="Next">&raquo;</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ invoices.paginator.num_pages }}" aria-label="Last">&raquo;&raquo;</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Next">&raquo;</a>
+                        </li>
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Last">&raquo;&raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
 </div>
-
-{% endblock content %}
+{% endblock %}

@@ -631,7 +631,16 @@ def RepairDetailDelete(request, pk):
     
 @login_required
 def ExpenseList(request):
-    return render(request, 'expense.html')
+    query = request.GET.get('search', '')
+    expenses = Expense.objects.filter(
+        description__icontains=query
+    ) if query else Expense.objects.all()
+
+    # Pagination
+    paginator = Paginator(expenses, 10)  # 10 expenses per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'expense.html',{'expenses': page_obj, 'query': query})
 
 @login_required
 def ExpenseCreate(request,expense_id=None):
@@ -647,56 +656,20 @@ def ExpenseDelete(request,pk):
 
 @login_required
 def SalesInvoiceList(request):
-    try:
-        invoices = Invoice.objects.all().order_by('id')
-        pagination = Paginator(invoices, 10)
-        page_number = request.GET.get('page')
-        page_obj = pagination.get_page(page_number)
+    query = request.GET.get('search', '')
+    invoices = SalesInvoice.objects.filter(
+        invoice_number__icontains=query
+        ) if query else SalesInvoice.objects.all()
 
-        create_form = InvoiceForm(request.POST or None, prefix='create')
-        if request.method == 'POST' and 'create_submit' in request.POST:
-            if create_form.is_valid():
-                invoice = create_form.save()
-                logger.info(f"Invoice created with ID: {invoice.id}")
-                messages.success(request, 'Invoice created successfully!')
-                return redirect('invoice')
-
-        update_forms = {}
-        payment_forms = {}
-        for invoice in invoices:
-            update_forms[invoice.id] = InvoiceForm(instance=invoice, prefix=f'update_{invoice.id}')
-
-            if request.method == 'POST' and f'update_submit_{invoice.id}' in request.POST:
-                update_form = InvoiceForm(request.POST, instance=invoice, prefix=f'update_{invoice.id}')
-                if update_form.is_valid():
-                    update_form.save()
-                    logger.info(f"Invoice updated with ID: {invoice.id}")
-                    messages.success(request, 'Invoice updated successfully!')
-                    return redirect('invoice')
-            elif request.method == 'POST' and f'delete_{invoice.id}' in request.POST:
-                invoice.delete()
-                logger.info(f"Invoice deleted with ID: {invoice.id}")
-                messages.success(request, 'Invoice deleted successfully!')
-                return redirect('invoice')
-            elif request.method == 'POST' and f'payment_submit_{invoice.id}' in request.POST:
-                
-                    # Ensure amounts update correctly
-                    invoice.remaining_amount = invoice.total_amount - invoice.paid_amount
-                    invoice.save()
-                    messages.success(request, 'Payment added successfully!')
-                    return redirect('invoice')
-
-        context = {
-            "invoices": page_obj,
-            "create_form": create_form,
-            "update_forms": update_forms,
-            "payment_forms": payment_forms,
-        }
-        return render(request, 'sales_invoice.html', context)
-    except Exception as e:
-        logger.error(f"Error in InvoiceListView: {e}")
-        messages.error(request, 'An error occurred while processing the request.')
-        return render(request, '404.html', {"message": "An error occurred."})
+        # Pagination
+    paginator = Paginator(invoices, 10)  # 10 invoices per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    context = ({            
+            'invoices': page_obj,
+            'query': query
+        })
+    return render(request, 'sales_invoice.html', context)
     
 @login_required
 def SalesInvoiceUpdate(request,pk):
@@ -704,56 +677,21 @@ def SalesInvoiceUpdate(request,pk):
 
 @login_required
 def RepairInvoice(request):
-    try:
-        invoices = Invoice.objects.all().order_by('id')
-        pagination = Paginator(invoices, 10)
-        page_number = request.GET.get('page')
-        page_obj = pagination.get_page(page_number)
+    query = request.GET.get('search', '')
+    repair = RepairInvoice.objects.filter(
+        repair_number__icontains=query
+        ) if query else SalesInvoice.objects.all()
 
-        create_form = InvoiceForm(request.POST or None, prefix='create')
-        if request.method == 'POST' and 'create_submit' in request.POST:
-            if create_form.is_valid():
-                invoice = create_form.save()
-                logger.info(f"Invoice created with ID: {invoice.id}")
-                messages.success(request, 'Invoice created successfully!')
-                return redirect('invoice')
+        # Pagination
+    paginator = Paginator(repair, 10)  # 10 invoices per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    context = ({            
+            'invoices': page_obj,
+            'query': query
+        })
+    return render(request, 'repair_invoice.html', context)
 
-        update_forms = {}
-        payment_forms = {}
-        for invoice in invoices:
-            update_forms[invoice.id] = InvoiceForm(instance=invoice, prefix=f'update_{invoice.id}')
-
-            if request.method == 'POST' and f'update_submit_{invoice.id}' in request.POST:
-                update_form = InvoiceForm(request.POST, instance=invoice, prefix=f'update_{invoice.id}')
-                if update_form.is_valid():
-                    update_form.save()
-                    logger.info(f"Invoice updated with ID: {invoice.id}")
-                    messages.success(request, 'Invoice updated successfully!')
-                    return redirect('invoice')
-            elif request.method == 'POST' and f'delete_{invoice.id}' in request.POST:
-                invoice.delete()
-                logger.info(f"Invoice deleted with ID: {invoice.id}")
-                messages.success(request, 'Invoice deleted successfully!')
-                return redirect('invoice')
-            elif request.method == 'POST' and f'payment_submit_{invoice.id}' in request.POST:
-                
-                    # Ensure amounts update correctly
-                    invoice.remaining_amount = invoice.total_amount - invoice.paid_amount
-                    invoice.save()
-                    messages.success(request, 'Payment added successfully!')
-                    return redirect('invoice')
-
-        context = {
-            "invoices": page_obj,
-            "create_form": create_form,
-            "update_forms": update_forms,
-            "payment_forms": payment_forms,
-        }
-        return render(request, 'repair_invoice.html', context)
-    except Exception as e:
-        logger.error(f"Error in InvoiceListView: {e}")
-        messages.error(request, 'An error occurred while processing the request.')
-        return render(request, '404.html', {"message": "An error occurred."})
     
     
 @login_required
@@ -763,7 +701,29 @@ def RepairUpdate(request,pk):
 
 @login_required
 def ReturnList(request):
-    return render(request, 'return.html')
+    # Get search query from request
+    query = request.GET.get('search', '')
+
+    # Filter returns based on search query
+    if query:
+        returns = Return.objects.filter(
+            Q(invoice__invoice_number__icontains=query) | 
+            Q(product__name__icontains=query) | 
+            Q(customer_name__icontains=query)
+        )
+    else:
+        returns = Return.objects.all()
+
+    # Paginate the returns
+    paginator = Paginator(returns, 10)  # Show 10 returns per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Render the return list template
+    return render(request, 'return.html', {
+        'returns': page_obj,
+        'query': query
+    })
 
 @login_required
 def ReturnCreate(request,return_id=None):
