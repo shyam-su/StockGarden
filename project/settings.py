@@ -93,13 +93,13 @@ DATABASES = {
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'stockgardendb',  # Your database name
-#         'USER': 'root',           # Default XAMPP MySQL username
-#         'PASSWORD': '123',           # Default is empty (change if needed)
-#         'HOST': 'localhost',      # Use '127.0.0.1' instead of 'localhost' if needed
-#         'PORT': '3306',           # Default MySQL port
+#         'NAME': 'stockgardendb',
+#         'USER': 'root',
+#         'PASSWORD': '',
+#         'HOST': 'localhost',
+#         'PORT': '3306',
 #         'OPTIONS': {
-#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES,STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'",
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'",
 #         },
 #     }
 # }

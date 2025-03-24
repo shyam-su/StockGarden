@@ -49,7 +49,7 @@
                                     <td>{{ pro.Imei|slice:":7" }}</td>
                                     <td>
                                         {% if pro.image %}
-                                            <img src="{{ pro.image.url }}" alt="{{ pro.name }}" style="max-width: 80px; max-height: 70px;">
+                                            <img src="{{ pro.image.url }}" alt="{{ pro.name }}" style="max-width: 80px; max-height: 70px;"class="img-thumbnail">
                                         {% else %}
                                             No image available
                                         {% endif %}
