@@ -4,9 +4,6 @@ from django.utils.text import slugify
 import uuid
 from decimal import Decimal
 from PIL import Image
-from django.db import transaction
-from django.utils import timezone
-
 
 # Create your models here.
 class PaymentMethodChoices(models.TextChoices):
@@ -136,7 +133,7 @@ class Product(models.Model):
         if self.image:
             img_path = self.image.path
             img = Image.open(img_path)
-            img = img.resize((90, 25), Image.ANTIALIAS)
+            img = img.resize((90, 25), Image.Resampling.LANCZOS)
             img.save(img_path)
 
 
@@ -178,8 +175,6 @@ class Sales(models.Model):
 
     def __str__(self):
        return f"{self.user} - {self.product} - Quantity: {self.quantity} - Price: {self.price}"
-
-
  
 class Repair(models.Model):
     STATUS_CHOICES = [
@@ -215,9 +210,6 @@ class Repair(models.Model):
     
     def __str__(self):
         return f"{self.device_model} - {self.status} ({self.user})"
-    
-
-    
     
 class RepairDetail(models.Model):
     STATUS_CHOICES = [

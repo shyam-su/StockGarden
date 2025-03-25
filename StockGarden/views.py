@@ -320,7 +320,7 @@ def PurchaseDelete(request,pk):
 def ProductList(request):
     try:
         query = request.GET.get('q', '')
-        product =Product.objects.all().order_by('-id')
+        product =Product.objects.all().order_by('-created_at')
 
         if query:
             product = product.filter(
@@ -335,7 +335,7 @@ def ProductList(request):
         page_obj =paginator.get_page(page_number)
         
         context ={
-            "product":page_obj,
+            "products":page_obj,
             "query": query,
         }
         return render(request, 'product.html',context)

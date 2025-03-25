@@ -51,6 +51,7 @@ class PurchaseForm(forms.ModelForm):
             "condition",
             "description",
             "Imei",  
+            "warranty",  
             "image",
             "quantity",
             "price",
@@ -95,6 +96,13 @@ class PurchaseForm(forms.ModelForm):
                     "placeholder": "Enter Description",
                     "id": "description",
                     "rows": 3,
+                }
+            ),
+            "warranty": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Warranty",
+                    "id": "warranty",
                 }
             ),
             "Imei": forms.TextInput( 
@@ -147,7 +155,8 @@ class PurchaseForm(forms.ModelForm):
             "product_name": "Product Name",
             "condition": "Condition",
             "description": "Description",
-            "Imei": "IMEI Number",  
+            "Imei": "IMEI Number", 
+            "warranty": "warranty", 
             "image": "Image",
             "price": "Price",
             "quantity": "Stock Quantity",
@@ -168,6 +177,7 @@ class ProductForm(forms.ModelForm):
             "name",
             "description",
             "price",
+            "warranty",
             "Imei",
             "image",
             "categories",
@@ -206,6 +216,13 @@ class ProductForm(forms.ModelForm):
 
                 }
             ),
+            "warranty": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Warranty",
+                    "id": "warranty",
+                }
+            ),
             "Imei": forms.TextInput(
                 attrs={
                     "class": "form-control",
@@ -228,14 +245,15 @@ class ProductForm(forms.ModelForm):
         }
         labels = {
             "vendor": "Vendor Name",
+            "brand": "Brand",
+            "categories": "Categories",
             "name": "Product Name",
             "description": "Description",
             "price": "Price",
+            "warranty": "warranty",
             "Imei": "Imei Number",
             "image": "Image",
-            "categories": "Categories",
             "stock": "Stock Quantity",
-            "brand": "Brand",
         }
 
 
@@ -246,6 +264,7 @@ class SalesForm(forms.ModelForm):
             "user",
             "product",
             "Imei",
+            "warranty",
             "quantity",
             "price",
             'discount',
@@ -278,6 +297,13 @@ class SalesForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Imei",
                     "id": "Imei",
+                }
+            ),
+            "warranty": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Warranty",
+                    "id": "warranty",
                 }
             ),
             "quantity": forms.NumberInput(
@@ -369,6 +395,7 @@ class SalesForm(forms.ModelForm):
             "name": "Customer Name",
             "product": "Product Name",
             "Imei": "Imei",
+            "warranty": "Warranty",
             "quantity": "Quantity",
             "price": "Price",
             "discount": "Discount",

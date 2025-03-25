@@ -7,19 +7,21 @@
         <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Create Purchase/Product</h5>
+                    <h5 class="mb-0">Create Purchase</h5>
                 </div>
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
-                <!-- Vendor with Search Filter -->
+                        
+                        <!-- Vendor with Search Filter -->
                         <div class="form-row">
                             <div class="form-group col-md-12">
                                 <label for="{{ form.vendor.id_for_label }}">Vendor</label>
                                 {{ form.vendor }} <!-- This will render the complete field with all the necessary HTML -->
                             </div>
                         </div>
-                        <!-- Product Name -->
+
+                        <!-- Product Name and Brand -->
                         <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="{{ form.product_name.id_for_label }}">Product Name</label>
@@ -31,15 +33,15 @@
                             </div>
                         </div>
 
-                        <!-- Description and Price -->
+                        <!-- Condition and Description -->
                         <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.condition.id_for_label }}">Condition</label>
+                                {{ form.condition }}
+                            </div>
                             <div class="form-group col-md-6">
                                 <label for="{{ form.description.id_for_label }}">Description</label>
                                 {{ form.description }}
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label for="{{ form.price.id_for_label }}">Price</label>
-                                {{ form.price }}
                             </div>
                         </div>
 
@@ -55,7 +57,7 @@
                             </div>
                         </div>
 
-                        <!-- Categories and Stock -->
+                        <!-- Categories and Stock Quantity -->
                         <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="{{ form.categories.id_for_label }}">Categories</label>
@@ -67,7 +69,19 @@
                             </div>
                         </div>
 
-                        <!-- Paid and Remaining Amount -->
+                        <!-- Price and Warranty -->
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.price.id_for_label }}">Price</label>
+                                {{ form.price }}
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="{{ form.warranty.id_for_label }}">Warranty</label>
+                                {{ form.warranty }}
+                            </div>
+                        </div>
+
+                        <!-- Paid Amount and Remaining Amount -->
                         <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="{{ form.paid_amount.id_for_label }}">Paid Amount</label>
