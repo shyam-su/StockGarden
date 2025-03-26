@@ -876,6 +876,21 @@ def UserReportList(request):
         if selected_role:
             users = users.filter(role=selected_role)
 
+        customer_count = users.filter(role='Customer').count()
+        vendor_count = users.filter(role='Vendor').count()
+        active_users = users.filter(is_active=True).count()
+        inactive_users = users.filter(is_active=False).count()
+
+        # Prepare chart data
+        role_chart_data = {
+            'labels': ['Customers', 'Vendors'],
+            'data': [customer_count, vendor_count] if customer_count or vendor_count else [0, 0]
+        }
+        status_chart_data = {
+            'labels': ['Active', 'Inactive'],
+            'data': [active_users, inactive_users] if active_users or inactive_users else [0, 0]
+        }
+
         pagination = Paginator(users, 10)
         page_number = request.GET.get('page')
         page_obj = pagination.get_page(page_number)
@@ -883,6 +898,13 @@ def UserReportList(request):
         context = {
             'page_obj': page_obj,
             'selected_role': selected_role,
+            'customer_count': customer_count,
+            'vendor_count': vendor_count,
+            'active_users': active_users,
+            'inactive_users': inactive_users,
+            'role_chart_data': role_chart_data,
+            'status_chart_data': status_chart_data,
+
         }
         return render(request, 'user_report.html', context)
 

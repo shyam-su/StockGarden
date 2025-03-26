@@ -48,6 +48,20 @@
                         }
                     </script>
 
+
+                    <!-- Charts Section -->
+                    <div class="row mb-4 no-print">
+                        <div class="col-md-6">
+                            <h6 class="text-center">User Roles Distribution</h6>
+                            <canvas id="rolePieChart"></canvas>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-center">User Status Distribution</h6>
+                            <canvas id="statusBarChart"></canvas>
+                        </div>
+                    </div>
+
+
                     <!-- User Table -->
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover">
@@ -154,5 +168,79 @@
         </div> <!-- End Col -->
     </div> <!-- End Row -->
 </div> <!-- End Container -->
+
+
+<style>
+    .chart-container {
+        position: relative;
+        width: 100%;
+        height: 350px; /* Set a consistent height for both charts */
+    }
+    canvas {
+        width: 90% !important;
+        height: 90% !important;
+    }
+</style>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Role Pie Chart
+    const roleCtx = document.getElementById('rolePieChart').getContext('2d');
+    const roleChart = new Chart(roleCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ role_chart_data.labels|safe }},
+            datasets: [{
+                data: {{ role_chart_data.data|safe }},
+                backgroundColor: ['#007bff', '#dc3545'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Status Bar Chart
+    const statusCtx = document.getElementById('statusBarChart').getContext('2d');
+    const statusChart = new Chart(statusCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ status_chart_data.labels|safe }},
+            datasets: [{
+                label: 'Users',
+                data: {{ status_chart_data.data|safe }},
+                backgroundColor: ['#28a745', '#6c757d'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    function printReport() {
+        window.print();
+    }
+</script>
+
 
 {% endblock content %}
