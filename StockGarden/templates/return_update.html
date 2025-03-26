@@ -28,7 +28,7 @@
                             </div>
                         </div>
 
-                        <!-- Second Row: Quantity Returned -->
+                        <!-- Second Row: Quantity Returned and Refund Amount -->
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -44,9 +44,15 @@
                             </div>
                         </div>
 
-                        <!-- Third Row: Reason -->
+                        <!-- Third Row: Total Amount and Reason -->
                         <div class="row">
-                            <div class="col-md-12">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_total_amount">Total Amount</label>
+                                    {{ form.total_amount }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="id_reason">Reason</label>
                                     {{ form.reason }}

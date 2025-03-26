@@ -255,7 +255,7 @@ class Expense(models.Model):
 
  
 class SalesInvoice(models.Model):
-    invoice_number = models.CharField(max_length=6, unique=True, default=uuid.uuid4)
+    invoice_number = models.CharField(max_length=10, unique=True, editable=False)
     sales = models.ForeignKey(Sales, on_delete=models.SET_NULL,related_name="salesinvoice", null=True, blank=True)  
     product_name = models.CharField(max_length=255)
     warranty = models.IntegerField(null=True, blank=True)
@@ -273,6 +273,16 @@ class SalesInvoice(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    def save(self, *args, **kwargs):
+        if not self.pk: 
+            last_invoice = SalesInvoice.objects.all().order_by('-invoice_number').first()
+            if last_invoice:
+                last_invoice_number = int(last_invoice.invoice_number.replace("SINV", ""))
+                self.invoice_number = f"SINV{last_invoice_number + 1:06d}"  
+            else:
+                self.invoice_number = "SINV0000001"  
+        super(SalesInvoice, self).save(*args, **kwargs)
+    
     
     class Meta:
         verbose_name = "Sales Invoice"
@@ -283,7 +293,7 @@ class SalesInvoice(models.Model):
 
 
 class RepairInvoice(models.Model):
-    invoice_number = models.CharField(max_length=36, unique=True, default=uuid.uuid4)
+    invoice_number = models.CharField(max_length=10, unique=True, editable=False)
     repair = models.ForeignKey(Repair, on_delete=models.SET_NULL,related_name="repairinvoice", null=True, blank=True)  
     product_name = models.CharField(max_length=255)
     customer_name = models.CharField(max_length=255)
@@ -300,6 +310,16 @@ class RepairInvoice(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    def save(self, *args, **kwargs):
+        if not self.pk: 
+            last_invoice = RepairInvoice.objects.all().order_by('-invoice_number').first()          
+            if last_invoice and last_invoice.invoice_number.startswith("RINV"):
+                last_invoice_number = int(last_invoice.invoice_number.replace("RINV", ""))
+                self.invoice_number = f"RINV{last_invoice_number + 1:06d}" 
+            else:
+                self.invoice_number = "RINV0000001"  
+        super(RepairInvoice, self).save(*args, **kwargs)
+    
     class Meta:
         verbose_name = "Repair Invoice"
         indexes = [models.Index(fields=['invoice_number',])]
@@ -311,11 +331,17 @@ class Return(models.Model):
     invoice = models.ForeignKey(SalesInvoice, on_delete=models.SET_NULL,null=True,related_name="invoice")
     product = models.ForeignKey(Product, on_delete=models.CASCADE,related_name="product") 
     quantity_returned = models.PositiveIntegerField()
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     reason = models.TextField(null=True, blank=True)
     return_date = models.DateTimeField(auto_now_add=True)
     refund_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
+    def save(self, *args, **kwargs):
+        if self.product:
+            self.total_amount = self.product.price  
+        super(Return, self).save(*args, **kwargs)
+        
     class Meta:
         verbose_name = "Product Return"
         indexes = [models.Index(fields=['return_date'])]

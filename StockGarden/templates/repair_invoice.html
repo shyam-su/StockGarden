@@ -13,7 +13,7 @@
                     <form method="get" action="{% url 'repairinvoice' %}" class="mb-3 d-flex justify-content-end">
                         <div class="input-group w-auto">
                             <input type="text" name="search" class="form-control" placeholder="Search invoices..." value="{{ query }}">
-                            <button type="submit" class="btn btn-primary">Search</button>
+                            <button type="submit" class="btn btn-primary ml-1">Search</button>
                         </div>
                     </form>
 
@@ -22,13 +22,13 @@
                             <thead class="table-primary text-center">
                                 <tr>
                                     <th scope="col" aria-label="Invoice ID">ID</th>
-                                    <th scope="col" aria-label="Invoice Number">Invoice Number</th>
-                                    <th scope="col" aria-label="Customer Name">Customer Name</th>
+                                    <th scope="col" aria-label="Invoice Number">Invoice</th>
+                                    <th scope="col" aria-label="Customer Name">Customer</th>
                                     <th scope="col" aria-label="Product">Product</th>
-                                    <th scope="col" aria-label="Total Amount">Total Amount</th>
-                                    <th scope="col" aria-label="Paid Amount">Paid Amount</th>
-                                    <th scope="col" aria-label="Remaining Amount">Remaining Amount</th>
-                                    <th scope="col" aria-label="Payment Status">Payment Status</th>
+                                    <th scope="col" aria-label="Total Amount">Total</th>
+                                    <th scope="col" aria-label="Paid Amount">Paid</th>
+                                    <th scope="col" aria-label="Remaining Amount">Remaining</th>
+                                    <th scope="col" aria-label="Payment Status">Status</th>
                                     <th scope="col" aria-label="Due Date">Due Date</th>
                                     <th scope="col" aria-label="Actions">Actions</th>
                                 </tr>

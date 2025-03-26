@@ -36,7 +36,7 @@
                                     <td>{{ forloop.counter }}</td>
                                     <td>{{ product.vendor.full_name|default:"N/A" }}</td>
                                     <td>{{ product.name|default:"N/A" }}</td>
-                                    <td>${{ product.price }}</td>
+                                    <td>{{ product.price }}</td>
                                     <td>{{ product.stock|default:0 }}</td>
                                     <td>{{ product.brand.name|default:"N/A" }}</td>
                                     <td>{{ product.created_at|date:"M d, Y" }}</td>

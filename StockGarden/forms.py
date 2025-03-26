@@ -657,16 +657,10 @@ class ExpenseForm(forms.ModelForm):
 class SalesInvoiceForm(forms.ModelForm):
     class Meta:
         model = SalesInvoice
-        fields = ['invoice_number','sales', 'product_name', 'warranty', 'customer_name', 'customer_number', 'customer_address',
+        fields = ['sales', 'product_name', 'warranty', 'customer_name', 'customer_number', 'customer_address',
                   'payment_method', 'total_amount', 'discount_amount', 'paid_amount', 'remaining_amount',
                   'payment_status', 'due_date','notes']
         widgets = {
-            "invoice_number": forms.NumberInput(
-                attrs={
-                    'class': 'form-control',
-                    'id':'invoice_number'
-                }
-            ),
             "sales": forms.TextInput(
                 attrs={
                     "class": "form-control", 
@@ -772,7 +766,6 @@ class SalesInvoiceForm(forms.ModelForm):
             ),
         }
         labels = {
-            "invoice_number": "Invoice Number",
             "sales": "Sales",
             "product_name": "Product Name",
             "warranty": "Warranty (in months)",
@@ -792,14 +785,8 @@ class SalesInvoiceForm(forms.ModelForm):
 class RepairInvoiceForm(forms.ModelForm):
     class Meta:
         model = RepairInvoice
-        fields = ['invoice_number','repair','product_name','customer_name','customer_number','customer_address','payment_method','total_amount','discount_amount','paid_amount','remaining_amount','payment_status', 'due_date','notes']
+        fields = ['repair','product_name','customer_name','customer_number','customer_address','payment_method','total_amount','discount_amount','paid_amount','remaining_amount','payment_status', 'due_date','notes']
         widgets = {
-            "invoice_number": forms.NumberInput(
-                attrs={
-                    'class': 'form-control',
-                    'id':'invoice_number'
-                }
-            ),
             "repair": forms.TextInput(
                 attrs={
                     "class": "form-control",
@@ -918,7 +905,7 @@ class RepairInvoiceForm(forms.ModelForm):
 class ReturnForm(forms.ModelForm):
     class Meta:
         model = Return
-        fields = ['invoice', 'product', 'quantity_returned', 'reason','refund_amount']
+        fields = ['invoice', 'product', 'quantity_returned', 'reason','total_amount','refund_amount']
         widgets = {
             "invoice": forms.Select(
                 attrs={
@@ -946,6 +933,14 @@ class ReturnForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Reason",
                     "id": "reason",
+                    "rows": 2,
+                }
+            ),
+            "total_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Total Amount",
+                    "id": "total_amount",
                 }
             ),
             "refund_amount": forms.NumberInput(
@@ -953,7 +948,6 @@ class ReturnForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Refund Amount",
                     "id": "refund_amount",
-                    "step": "0.01",
                 }
             ),
         }
@@ -962,5 +956,6 @@ class ReturnForm(forms.ModelForm):
             "product": "Product",
             "quantity_returned": "Quantity Returned",
             "reason": "Reason",
+            "total_amount": "Total Amount",
             "refund_amount": "Refund Amount",
         }

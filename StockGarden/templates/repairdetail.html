@@ -12,8 +12,8 @@
                     
                     <form method="GET" class="mb-3 d-flex justify-content-end">
                         <div class="input-group w-auto">
-                            <input type="text" name="q" class="form-control" placeholder="Search Sales..." value="{{ query }}">
-                            <button type="submit" class="btn btn-primary">Search</button>
+                            <input type="text" name="q" class="form-control" placeholder="Search Repair Details..." value="{{ query }}">
+                            <button type="submit" class="btn btn-primary ml-1">Search</button>
                         </div>
                     </form>
 
@@ -34,7 +34,7 @@
                                 {% for repd in repairdetail %}
                                 <tr>
                                     <td style="text-align: left;">{{ forloop.counter }}</td>
-                                    <td style="text-align: left;">{{ repd.repair_order|slice:":12" }}</td>
+                                    <td style="text-align: left;">{{ repd.repair_order.id }} - {{ repd.repair_order.product_name }}</td>
                                     <td style="text-align: left;">{{ repd.repair_cost }}</td>
                                     <td style="text-align: left;">{{ repd.fixed_description|slice:":20" }}</td>
                                     <td style="text-align: left;">{{ repd.repair_action }}</td>

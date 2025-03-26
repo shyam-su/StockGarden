@@ -6,7 +6,7 @@
         <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Edit Repair Invoice</h5>
+                    <h5 class="mb-0">Edit Repair Detail</h5>
                 </div>
                 <div class="card-body">
                     {% if messages %}
@@ -20,31 +20,19 @@
                         {% endfor %}
                     {% endif %}
 
-                    <form method="POST" enctype="multipart/form-data" id="salesForm">
+                    <form method="POST" enctype="multipart/form-data" id="repairDetailForm">
                         {% csrf_token %}
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.invoice_number.id_for_label }}">Invoice Number</label>
-                                {{ form.invoice_number }}
-                                {% if form.invoice_number.errors %}
+                                <label for="{{ form.repair_order.id_for_label }}">Repair Order</label>
+                                {{ form.repair_order }}
+                                {% if form.repair_order.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {{ form.invoice_number.errors }}
+                                        {{ form.repair_order.errors }}
                                     </div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.repair.id_for_label }}">Repair</label>
-                                {{ form.repair }}
-                                {% if form.repair.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.repair.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.product_name.id_for_label }}">Product Name</label>
                                 {{ form.product_name }}
@@ -54,12 +42,24 @@
                                     </div>
                                 {% endif %}
                             </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.customer_name.id_for_label }}">Customer Name</label>
-                                {{ form.customer_name }}
-                                {% if form.customer_name.errors %}
+                                <label for="{{ form.device_model.id_for_label }}">Device Model</label>
+                                {{ form.device_model }}
+                                {% if form.device_model.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {{ form.customer_name.errors }}
+                                        {{ form.device_model.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.repair_cost.id_for_label }}">Repair Cost</label>
+                                {{ form.repair_cost }}
+                                {% if form.repair_cost.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.repair_cost.errors }}
                                     </div>
                                 {% endif %}
                             </div>
@@ -67,20 +67,20 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.customer_number.id_for_label }}">Customer Number</label>
-                                {{ form.customer_number }}
-                                {% if form.customer_number.errors %}
+                                <label for="{{ form.repair_detail_cost.id_for_label }}">Repair Detail Cost</label>
+                                {{ form.repair_detail_cost }}
+                                {% if form.repair_detail_cost.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {{ form.customer_number.errors }}
+                                        {{ form.repair_detail_cost.errors }}
                                     </div>
                                 {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.customer_address.id_for_label }}">Customer Address</label>
-                                {{ form.customer_address }}
-                                {% if form.customer_address.errors %}
+                                <label for="{{ form.issue_description.id_for_label }}">Issue Description</label>
+                                {{ form.issue_description }}
+                                {% if form.issue_description.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {{ form.customer_address.errors }}
+                                        {{ form.issue_description.errors }}
                                     </div>
                                 {% endif %}
                             </div>
@@ -88,92 +88,24 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.payment_method.id_for_label }}">Payment Method</label>
-                                {{ form.payment_method }}
-                                {% if form.payment_method.errors %}
+                                <label for="{{ form.fixed_description.id_for_label }}">Fixed Description</label>
+                                {{ form.fixed_description }}
+                                {% if form.fixed_description.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {{ form.payment_method.errors }}
+                                        {{ form.fixed_description.errors }}
                                     </div>
                                 {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.total_amount.id_for_label }}">Total Amount</label>
-                                {{ form.total_amount }}
-                                {% if form.total_amount.errors %}
+                                <label for="{{ form.repair_action.id_for_label }}">Repair Action</label>
+                                {{ form.repair_action }}
+                                {% if form.repair_action.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {{ form.total_amount.errors }}
+                                        {{ form.repair_action.errors }}
                                     </div>
                                 {% endif %}
                             </div>
                         </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.discount_amount.id_for_label }}">Discount Amount</label>
-                                {{ form.discount_amount }}
-                                {% if form.discount_amount.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.discount_amount.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.paid_amount.id_for_label }}">Paid Amount</label>
-                                {{ form.paid_amount }}
-                                {% if form.paid_amount.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.paid_amount.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.remaining_amount.id_for_label }}">Remaining Amount</label>
-                                {{ form.remaining_amount }}
-                                {% if form.remaining_amount.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.remaining_amount.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.payment_status.id_for_label }}">Payment Status</label>
-                                {{ form.payment_status }}
-                                {% if form.payment_status.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.payment_status.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.due_date.id_for_label }}">Due Date</label>
-                                {{ form.due_date }}
-                                <small class="form-text text-muted">Format: YYYY-MM-DD HH:MM</small>
-                                {% if form.due_date.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.due_date.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <label for="{{ form.notes.id_for_label }}">Notes</label>
-                                {{ form.notes }}
-                                {% if form.notes.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.notes.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
                         <div class="row">
                             <div class="col-12">
                                 <button type="submit" class="btn btn-primary">Save Changes</button>

@@ -14,7 +14,7 @@
                     <form method="get" action="" class="mb-3 d-flex justify-content-end">
                         <div class="input-group w-auto">
                             <input type="text" name="search" class="form-control" placeholder="Search returns..." value="{{ query }}">
-                            <button type="submit" class="btn btn-primary">Search</button>
+                            <button type="submit" class="btn btn-primary ml-1">Search</button>
                         </div>
                     </form>
 
@@ -23,10 +23,11 @@
                             <thead class="table-primary text-center">
                                 <tr>
                                     <th scope="col" aria-label="Return ID">ID</th>
-                                    <th scope="col" aria-label="Invoice Number">Invoice Number</th>
-                                    <th scope="col" aria-label="Product Name">Product Name</th>
-                                    <th scope="col" aria-label="Quantity Returned">Quantity Returned</th>
-                                    <th scope="col" aria-label="Refund Amount">Refund Amount</th>
+                                    <th scope="col" aria-label="Invoice Number">Invoice</th>
+                                    <th scope="col" aria-label="Product Name">Product</th>
+                                    <th scope="col" aria-label="Quantity Returned">Qty</th>
+                                    <th scope="col" aria-label="Refund Amount">Total</th>
+                                    <th scope="col" aria-label="Refund Amount">Refund</th>
                                     <th scope="col" aria-label="Return Date">Return Date</th>
                                     <th scope="col" aria-label="Reason">Reason</th>
                                     <th scope="col" aria-label="Actions">Actions</th>
@@ -39,6 +40,7 @@
                                     <td>{{ return_item.invoice.invoice_number }}</td>
                                     <td>{{ return_item.product.name }}</td>
                                     <td>{{ return_item.quantity_returned }}</td>
+                                    <td>{{ return_item.total_amount }}</td>
                                     <td>{{ return_item.refund_amount }}</td>
                                     <td>{{ return_item.return_date|date:"M d, Y" }}</td>
                                     <td>{{ return_item.reason|default:"N/A" }}</td>

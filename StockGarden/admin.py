@@ -72,7 +72,7 @@ class RepairInvoiceAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     
 @admin.register(Return)
 class ReturnAdmin(ImportExportModelAdmin, admin.ModelAdmin):  
-    list_display=('invoice','product','quantity_returned','reason','return_date','refund_amount','created_at')
+    list_display=('invoice','product','quantity_returned','reason','return_date','total_amount','refund_amount','created_at')
     list_filter=('invoice','product',)
     
 
