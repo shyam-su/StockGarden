@@ -644,15 +644,59 @@ def ExpenseList(request):
 
 @login_required
 def ExpenseCreate(request,expense_id=None):
-    return render(request, 'expense_create.html')
+    try:
+        if expense_id:
+            expense=get_object_or_404(Expense,id=expense_id)
+            form=ExpenseForm(request.POST or None,instance=expense)
+            action='update'
+        else:
+            form=ExpenseForm(request.POST or None)
+            action='create'
+        if request.method == 'POST':
+            if form.is_valid():
+                form.save()
+                messages.success(request,f'Expense {action.lower()}d successfully!')
+                return redirect('expense')
+            else:
+                messages.error(request, 'Expense Form is invalid.')
+        return render(request, 'expense_create.html',{'form':form,'action':action})
+    except Exception as e:
+        logger.error(f"Error in Expense Create: {e}")
+        messages.error(request, 'An error occurred while processing the Expense Create.')
+        return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
 def ExpenseUpdate(request,pk):
-    return render(request, 'expense_update.html')
+    try:
+        expense=get_object_or_404(Expense,pk=pk)
+        if request.method == 'POST':
+            form=ExpenseForm(request.POST or None,instance=expense)
+            if form.is_valid():
+                form.save()
+                messages.success(request,f'Expense updated successfully!')
+                return redirect('expense')
+        else:
+            form =ExpenseForm(instance=expense)
+            return render(request, 'expense_update.html', {'form': form, 'expenses': expense})
+    except Exception as e:
+        logger.error(f"Error in Expense Update: {e}")
+        messages.error(request, 'An error occurred while processing the expense.')
+        return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
 def ExpenseDelete(request,pk):
-    return render(request, 'expense_delete.html')
+    try:
+        expense= get_object_or_404(Expense,pk=pk)
+        if request.method == 'POST':
+            expense=expense.category.name
+            expense.delete()
+            messages.success(request,f'Expense {expense} deleted successfully!')
+            return redirect('expense')
+        return render(request, 'expense_delete.html',{'expenses':expense})
+    except Exception as e:
+        logger.error(f"Error in ExpenseDelete: {e}")
+        messages.error(request, 'An error occurred while processing the Expense Delete.')
+        return render(request, '404.html', {"message": "An error occurred Expense Delete."})
 
 @login_required
 def SalesInvoiceList(request):
@@ -673,7 +717,21 @@ def SalesInvoiceList(request):
     
 @login_required
 def SalesInvoiceUpdate(request,pk):
-    return render(request, 'sales_invoice_update.html')
+    try:
+        salesinvoice=get_object_or_404(SalesInvoice,pk=pk)
+        if request.method == 'POST':
+            form=SalesInvoiceForm(request.POST or None,instance=salesinvoice)
+            if form.is_valid():
+                form.save()
+                messages.success(request,f'Sales Invoice updated successfully!')
+                return redirect('salesinvoice')
+        else:
+            form =SalesInvoiceForm(instance=salesinvoice)
+            return render(request, 'sales_invoice_update.html', {'form': form, 'salesinvoices': salesinvoice})
+    except Exception as e:
+        logger.error(f"Error in Sales Invoice: {e}")
+        messages.error(request, 'An error occurred while processing the Sales Invoice.')
+        return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
 def RepairInvoice(request):
@@ -695,8 +753,22 @@ def RepairInvoice(request):
     
     
 @login_required
-def RepairUpdate(request,pk):
-    return render(request, 'repair_invoice_update.html')
+def RepairInvoiceUpdate(request,pk):
+    try:
+        repairinvoice=get_object_or_404(RepairInvoice,pk=pk)
+        if request.method == 'POST':
+            form=RepairInvoiceForm(request.POST or None,instance=repairinvoice)
+            if form.is_valid():
+                form.save()
+                messages.success(request,f'Repair Invoice updated successfully!')
+                return redirect('repairinvoice')
+        else:
+            form =RepairInvoiceForm(instance=repairinvoice)
+            return render(request, 'repair_invoice_update.html', {'form': form, 'repairinvoices': repairinvoice})
+    except Exception as e:
+        logger.error(f"Error in Repair Invoice: {e}")
+        messages.error(request, 'An error occurred while processing the Repair Invoice.')
+        return render(request, '404.html', {"message": "An error occurred."})
 
 
 @login_required
@@ -727,13 +799,60 @@ def ReturnList(request):
 
 @login_required
 def ReturnCreate(request,return_id=None):
-    return render(request, 'return_create.html')
+    try:
+        if return_id:
+            returns=get_object_or_404(Return,id=expense_id)
+            form=ReturnForm(request.POST or None,instance=returns)
+            action='update'
+        else:
+            form=ReturnForm(request.POST or None)
+            action='create'
+        if request.method == 'POST':
+            if form.is_valid():
+                form.save()
+                messages.success(request,f'Return {action.lower()}d successfully!')
+                return redirect('return')
+            else:
+                messages.error(request, 'Return Form is invalid.')
+        return render(request, 'return_create.html',{'form':form,'action':action})
+    except Exception as e:
+        logger.error(f"Error in Return Create: {e}")
+        messages.error(request, 'An error occurred while processing the Return Create.')
+        return render(request, '404.html', {"message": "An error occurred."})
+
 @login_required
 def ReturnUpdate(request,pk):
-    return render(request, 'return_update.html')
+    try:
+        returns=get_object_or_404(Return,pk=pk)
+        if request.method == 'POST':
+            form=ReturnForm(request.POST or None,instance=returns)
+            if form.is_valid():
+                form.save()
+                messages.success(request,f'Return updated successfully!')
+                return redirect('return')
+        else:
+            form =ExpenseForm(instance=expense)
+            return render(request, 'return_update.html', {'form': form, 'returns': returns})
+    except Exception as e:
+        logger.error(f"Error in Return Update: {e}")
+        messages.error(request, 'An error occurred while processing the Return.')
+        return render(request, '404.html', {"message": "An error occurred."})
+
+
 @login_required
 def ReturnDelete(request,pk):
-    return render(request, 'return_delete.html')
+    try:
+        returns= get_object_or_404(Return,pk=pk)
+        if request.method == 'POST':
+            returns=returns.invoice.invoice_number
+            returns.delete()
+            messages.success(request,f'Return {returns} deleted successfully!')
+            return redirect('return')
+        return render(request, 'return_delete.html',{'returns':returns})
+    except Exception as e:
+        logger.error(f"Error in Return Delete: {e}")
+        messages.error(request, 'An error occurred while processing the Return Delete.')
+        return render(request, '404.html', {"message": "An error occurred Return Delete."})
 
 @login_required
 def UserReportList(request):

@@ -1,12 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<style>
-    td.text-center img {
-        width:95%;  
-        object-fit: contain; 
-    }
-</style>
+
 <div class="container-fluid"> 
     <div class="row">
         <div class="col-12"> 
@@ -42,7 +37,7 @@
                                     <td>{{ brand.name|default:"N/A"|slice:":20" }}</td>
                                     <td class="text-center">
                                         {% if brand.image %}
-                                        <img src="{{ brand.image.url }}" alt="{{ brand.name }}" class="img-thumbnail">
+                                        <img src="{{ brand.image.url }}" alt="{{ brand.name }}" style="width: 93%; height: 31px; object-fit: cover;">
                                         {% else %}
                                         N/A
                                         {% endif %}

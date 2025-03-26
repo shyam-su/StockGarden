@@ -11,7 +11,7 @@
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
-                        
+
                         <!-- First Row -->
                         <div class="row">
                             <div class="col-md-6">
@@ -27,7 +27,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Second Row -->
                         <div class="row">
                             <div class="col-md-6">
@@ -43,7 +43,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Third Row -->
                         <div class="row">
                             <div class="col-md-6">
@@ -59,7 +59,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Fourth Row -->
                         <div class="row">
                             <div class="col-md-6">
@@ -75,7 +75,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Fifth Row -->
                         <div class="row">
                             <div class="col-md-6">
@@ -86,20 +86,14 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="id_notes">Notes</label>
-                                    {{ form.notes }}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Sixth Row -->
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
                                     <label for="id_status">Status</label>
                                     {{ form.status }}
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Sixth Row -->
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="id_out_date">Out Date</label>
@@ -108,7 +102,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Submit Button -->
                         <div class="form-group text-right">
                             <button type="submit" class="btn btn-primary">Create Repair</button>

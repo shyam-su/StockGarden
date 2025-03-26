@@ -47,11 +47,11 @@ urlpatterns = [
     path('expense/<int:pk>/update/', ExpenseUpdate,name='expense_update'),
     path('expense/<int:pk>/delete/', ExpenseDelete,name='expense_delete'),
     
-    path('invoice/', SalesInvoiceList, name='invoice'),
-    path('invoice/<int:pk>/update/', SalesInvoiceUpdate,name='invoice_update'),
+    path('salesinvoice/', SalesInvoiceList, name='salesinvoice'),
+    path('salesinvoice/<int:pk>/update/', SalesInvoiceUpdate,name='salesinvoice_update'),
     
-    path('repair/', RepairInvoice, name='repair'),
-    path('invoice/<int:pk>/update/', RepairUpdate,name='repair_update'),
+    path('repairinvoice/', RepairInvoice, name='repairinvoice'),
+    path('repairinvoice/<int:pk>/update/', RepairInvoiceUpdate,name='repairinvoice_update'),
     
     path('return/', ReturnList, name='return'),
     path('return/create/', ReturnCreate,name='return_create'),

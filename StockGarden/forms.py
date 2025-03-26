@@ -95,7 +95,7 @@ class PurchaseForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Description",
                     "id": "description",
-                    "rows": 3,
+                    "rows": 1,
                 }
             ),
             "warranty": forms.NumberInput(
@@ -452,6 +452,7 @@ class RepairForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Issue Description ",
                     "id": "issue_description",
+                    "rows": 1
                 }
             ),
             "payment_method": forms.Select(
@@ -618,55 +619,7 @@ class ExpenseForm(forms.ModelForm):
             "payment_status": "Payment Status",
         }
 
-class ExpenseForm(forms.ModelForm):
-    class Meta:
-        model = Expense
-        fields = ['category', 'amount', 'description', 'payment_method', 'payment_status']
-        widgets = {
-            "category": forms.Select(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Category",
-                    "id": "category",
-                }
-            ),
-            "amount": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Amount",
-                    "id": "amount",
-                    "step": "0.01",
-                }
-            ),
-            "description": forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Description",
-                    "id": "description",
-                }
-            ),
-            "payment_method": forms.Select(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Select Payment Method",
-                    "id": "payment_method",
-                }
-            ),
-            "payment_status": forms.Select(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Select Payment Status",
-                    "id": "payment_status",
-                }
-            ),
-        }
-        labels = {
-            "category": "Category",
-            "amount": "Amount",
-            "description": "Description",
-            "payment_method": "Payment Method",
-            "payment_status": "Payment Status",
-        }
+
 class SalesInvoiceForm(forms.ModelForm):
     class Meta:
         model = SalesInvoice

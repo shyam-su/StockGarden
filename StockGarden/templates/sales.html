@@ -40,7 +40,7 @@
                                 {% for sale in sales %}
                                 <tr>
                                     <td>{{ forloop.counter }}</td>
-                                    <td>{{ sale.user.username|default:"N/A"|slice:":30" }}</td>
+                                    <td>{{ sale.user.full_name|default:"N/A"|slice:":30" }}</td>
                                     <td>{{ sale.product.name|default:"N/A"|slice:":30" }}</td>
                                     <td>{{ sale.Imei|default:"N/A"|slice:":30" }}</td>
                                     <td>{{ sale.warranty|default:"N/A" }}</td>
