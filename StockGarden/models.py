@@ -99,6 +99,7 @@ class Purchase(models.Model):
         verbose_name = "Purchase"
         indexes = [models.Index(fields=['product_name',])]
         
+        
     def save(self, *args, **kwargs):
         self.total_price = self.quantity * self.price 
         self.remaining_amount=self.total_price-self.paid_amount

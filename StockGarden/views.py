@@ -947,28 +947,23 @@ def global_search(request):
 @login_required
 def SalesReportList(request):
     context = {}
-
     try:
-        sales = Sales.objects.annotate(total_amount=F('quantity') * F('price'))
-
+        sales = Sales.objects.all()
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
-
         if start_date and end_date:
             sales = sales.filter(created_at__date__range=[start_date, end_date])
-
         total_quantity = sales.aggregate(Sum('quantity'))['quantity__sum'] or 0
-
         context = { 
             'sales': sales,
             'total_quantity': total_quantity,
         }
-    
     except Exception as e:
         logger.error(f"Error occurred in SalesReportListView: {e}", exc_info=True)
         context['error'] = "An error occurred while generating the sales report."
 
     return render(request, 'sales_report.html', context)
+
 
 @login_required
 def StockReportList(request):
