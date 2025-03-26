@@ -1,19 +1,18 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
 <div class="container-fluid"> 
     <div class="row">
         <div class="col-12"> 
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Create Purchase</h5> 
+                    <h5 class="mb-0">Update Purchase</h5> 
                 </div>
                 <div class="card-body">
-                    <form method="post">
+                    <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
                         
-                        <!-- First Row: Vendor and Product -->
+                        <!-- First Row: Vendor and Brand -->
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -23,13 +22,45 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="id_product">Product</label>
-                                    {{ form.product }}
+                                    <label for="id_brand">Brand</label>
+                                    {{ form.brand }}
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Second Row: Description -->
+
+                        <!-- Second Row: Categories and Product Name -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_categories">Categories</label>
+                                    {{ form.categories }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_product_name">Product Name</label>
+                                    {{ form.product_name }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Third Row: Condition and IMEI -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_condition">Condition</label>
+                                    {{ form.condition }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_imei">IMEI</label>
+                                    {{ form.Imei }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fourth Row: Description -->
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="form-group">
@@ -38,23 +69,55 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Third Row: Quantity and Price -->
+
+                        <!-- Fifth Row: Quantity, Price, and Warranty -->
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="id_quantity">Quantity</label>
                                     {{ form.quantity }}
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="id_price">Price</label>
                                     {{ form.price }}
                                 </div>
                             </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="id_warranty">Warranty</label>
+                                    {{ form.warranty }}
+                                </div>
+                            </div>
                         </div>
-                        
+
+                        <!-- Sixth Row: Paid Amount and Remaining Amount -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_paid_amount">Paid Amount</label>
+                                    {{ form.paid_amount }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_remaining_amount">Remaining Amount</label>
+                                    {{ form.remaining_amount }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seventh Row: Image Upload -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="id_image">Upload Image</label>
+                                    {{ form.image }}
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Submit Button -->
                         <div class="row">
                             <div class="col-12 text-right">
@@ -67,5 +130,4 @@
         </div>
     </div>
 </div>
-
 {% endblock content %}

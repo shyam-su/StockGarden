@@ -50,7 +50,7 @@ urlpatterns = [
     path('salesinvoice/', SalesInvoiceList, name='salesinvoice'),
     path('salesinvoice/<int:pk>/update/', SalesInvoiceUpdate,name='salesinvoice_update'),
     
-    path('repairinvoice/', RepairInvoice, name='repairinvoice'),
+    path('repairinvoice/', RepairInvoiceList, name='repairinvoice'),
     path('repairinvoice/<int:pk>/update/', RepairInvoiceUpdate,name='repairinvoice_update'),
     
     path('return/', ReturnList, name='return'),

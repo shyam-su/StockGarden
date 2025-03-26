@@ -11,13 +11,13 @@
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
-                        
-                        <!-- First Row -->
+
+                        <!-- First Row: User and Product Name -->
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="id_name">Name</label>
-                                    {{ form.name }}
+                                    <label for="id_user">Customer Name</label>
+                                    {{ form.user }}
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -27,8 +27,8 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Second Row -->
+
+                        <!-- Second Row: Device Model and Issue Description -->
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -43,9 +43,53 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Third Row -->
+
+                        <!-- Third Row: Payment Method and Payment Status -->
                         <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_payment_method">Payment Method</label>
+                                    {{ form.payment_method }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_payment_status">Payment Status</label>
+                                    {{ form.payment_status }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fourth Row: Total Amount, Paid Amount, Remaining Amount -->
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="id_total_amount">Total Amount</label>
+                                    {{ form.total_amount }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="id_paid_amount">Paid Amount</label>
+                                    {{ form.paid_amount }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="id_remaining_amount">Remaining Amount</label>
+                                    {{ form.remaining_amount }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fifth Row: Status and Out Date -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_status">Status</label>
+                                    {{ form.status }}
+                                </div>
+                            </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="id_out_date">Out Date</label>
@@ -53,14 +97,8 @@
                                     <small class="form-text text-muted">Format: YYYY-MM-DD</small>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="id_status">Status</label>
-                                    {{ form.status }}
-                                </div>
-                            </div>
                         </div>
-                        
+
                         <!-- Submit Button -->
                         <div class="form-group text-right">
                             <button type="submit" class="btn btn-success">Update Repair</button>

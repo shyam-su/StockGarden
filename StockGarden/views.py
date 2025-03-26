@@ -716,55 +716,68 @@ def SalesInvoiceList(request):
     return render(request, 'sales_invoice.html', context)
     
 @login_required
-def SalesInvoiceUpdate(request,pk):
+def SalesInvoiceUpdate(request, pk):
     try:
-        salesinvoice=get_object_or_404(SalesInvoice,pk=pk)
+        # Fetch the single SalesInvoice object by primary key (pk)
+        salesinvoice = get_object_or_404(SalesInvoice, pk=pk)
+        
         if request.method == 'POST':
-            form=SalesInvoiceForm(request.POST or None,instance=salesinvoice)
+            form = SalesInvoiceForm(request.POST, instance=salesinvoice)
             if form.is_valid():
                 form.save()
-                messages.success(request,f'Sales Invoice updated successfully!')
+                messages.success(request, 'Sales Invoice updated successfully!')
                 return redirect('salesinvoice')
         else:
-            form =SalesInvoiceForm(instance=salesinvoice)
-            return render(request, 'sales_invoice_update.html', {'form': form, 'salesinvoices': salesinvoice})
+            form = SalesInvoiceForm(instance=salesinvoice)
+        
+        # Pass the form and the single salesinvoice object to the template
+        return render(request, 'sales_invoice_update.html', {'form': form, 'salesinvoice': salesinvoice})
     except Exception as e:
         logger.error(f"Error in Sales Invoice: {e}")
         messages.error(request, 'An error occurred while processing the Sales Invoice.')
         return render(request, '404.html', {"message": "An error occurred."})
 
-@login_required
-def RepairInvoice(request):
-    query = request.GET.get('search', '')
-    repair = RepairInvoice.objects.filter(
-        repair_number__icontains=query
-        ) if query else SalesInvoice.objects.all()
 
-        # Pagination
-    paginator = Paginator(repair, 10)  # 10 invoices per page
+@login_required
+def RepairInvoiceList(request):
+    query = request.GET.get('search', '')
+    repair_invoices = RepairInvoice.objects.filter(
+        invoice_number__icontains=query
+    ) if query else RepairInvoice.objects.all()
+
+    # Pagination
+    paginator = Paginator(repair_invoices, 10)  # 10 invoices per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    context = ({            
-            'invoices': page_obj,
-            'query': query
-        })
+
+    context = {
+        'invoices': page_obj,
+        'query': query,
+    }
+
     return render(request, 'repair_invoice.html', context)
+
 
     
     
 @login_required
-def RepairInvoiceUpdate(request,pk):
+def RepairInvoiceUpdate(request, pk):
     try:
-        repairinvoice=get_object_or_404(RepairInvoice,pk=pk)
+        repair_invoice = get_object_or_404(RepairInvoice, pk=pk)
+
         if request.method == 'POST':
-            form=RepairInvoiceForm(request.POST or None,instance=repairinvoice)
+            # Update the repair invoice using the form data
+            form = RepairInvoiceForm(request.POST, instance=repair_invoice)
             if form.is_valid():
                 form.save()
-                messages.success(request,f'Repair Invoice updated successfully!')
+                messages.success(request, 'Repair Invoice updated successfully!')
                 return redirect('repairinvoice')
         else:
-            form =RepairInvoiceForm(instance=repairinvoice)
-            return render(request, 'repair_invoice_update.html', {'form': form, 'repairinvoices': repairinvoice})
+            # Pre-fill the form with the existing data
+            form = RepairInvoiceForm(instance=repair_invoice)
+
+        return render(request, 'repair_invoice_update.html', {'form': form, 'repair_invoice': repair_invoice})
+
     except Exception as e:
         logger.error(f"Error in Repair Invoice: {e}")
         messages.error(request, 'An error occurred while processing the Repair Invoice.')
@@ -801,7 +814,7 @@ def ReturnList(request):
 def ReturnCreate(request,return_id=None):
     try:
         if return_id:
-            returns=get_object_or_404(Return,id=expense_id)
+            returns=get_object_or_404(Return,id=return_id)
             form=ReturnForm(request.POST or None,instance=returns)
             action='update'
         else:
@@ -831,7 +844,7 @@ def ReturnUpdate(request,pk):
                 messages.success(request,f'Return updated successfully!')
                 return redirect('return')
         else:
-            form =ExpenseForm(instance=expense)
+            form =ReturnForm(instance=returns)
             return render(request, 'return_update.html', {'form': form, 'returns': returns})
     except Exception as e:
         logger.error(f"Error in Return Update: {e}")

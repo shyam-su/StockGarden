@@ -203,7 +203,7 @@ class ProductForm(forms.ModelForm):
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter Description",
-                    "rows": 3,
+                    "rows": 1,
                     "id": "description",
                 }
             ),
@@ -526,13 +526,27 @@ class RepairForm(forms.ModelForm):
 class RepairDetailForm(forms.ModelForm):
     class Meta:
         model = RepairDetail
-        fields = ["repair_order", "repair_cost", "fixed_description", "repair_action"]
+        fields = ["repair_order","product_name","device_model","repair_cost","repair_detail_cost","issue_description","fixed_description", "repair_action"]
         widgets = {
             "repair_order": forms.Select(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter Repair Order",
                     "id": "repair_order",
+                }
+            ),
+            "product_name": forms.TextInput(
+                attrs={
+                    "class": "form-control", 
+                    "placeholder": "Enter Product Name",
+                    "id": "product_name"
+                }
+            ),
+            "device_model": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Device Model",
+                    "id": "device_model"
                 }
             ),
             "repair_cost": forms.NumberInput(
@@ -542,11 +556,27 @@ class RepairDetailForm(forms.ModelForm):
                     "id": "repair_cost",
                 }
             ),
+            "repair_detail_cost": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Repair Detail Cost",
+                    "id": "repair_detail_cost"
+                }
+            ),
+            "issue_description": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Issue Description",
+                    "rows": 1,
+                    "id": "issue_description"
+                }
+            ),
             "fixed_description": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter Fixed Description",
                     "id": "fixed_description",
+                    "rows": 2,
                 }
             ),
             "repair_action": forms.Select(
@@ -559,14 +589,17 @@ class RepairDetailForm(forms.ModelForm):
         }
         labels = {
             "repair_order": "Repair Order",
+            "product_name": "Product Name",
+            "device_model": "Device Model",
             "repair_cost": "Repair Cost",
+            "repair_detail_cost": "Repair Detail Cost",
+            "issue_description": "Issue Description",
             "fixed_description": "Issue Fixed Description",
             "repair_action": "Repair Action",
         }
 
     def __init__(self, *args, **kwargs):
         super(RepairDetailForm, self).__init__(*args, **kwargs)
-        # Filter out repair orders that are marked as completed
         self.fields["repair_order"].queryset = Repair.objects.exclude(status="completed")
 
 class ExpenseForm(forms.ModelForm):
@@ -594,6 +627,7 @@ class ExpenseForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Description",
                     "id": "description",
+                    "rows": 1,
                 }
             ),
             "payment_method": forms.Select(
@@ -623,58 +657,235 @@ class ExpenseForm(forms.ModelForm):
 class SalesInvoiceForm(forms.ModelForm):
     class Meta:
         model = SalesInvoice
-        fields = ['sales', 'customer_name', 'payment_method','discount_amount', 'total_amount', 'payment_status', 'due_date',]
+        fields = ['invoice_number','sales', 'product_name', 'warranty', 'customer_name', 'customer_number', 'customer_address',
+                  'payment_method', 'total_amount', 'discount_amount', 'paid_amount', 'remaining_amount',
+                  'payment_status', 'due_date','notes']
         widgets = {
-            "amount": forms.NumberInput(
+            "invoice_number": forms.NumberInput(
+                attrs={
+                    'class': 'form-control',
+                    'id':'invoice_number'
+                }
+            ),
+            "sales": forms.TextInput(
+                attrs={
+                    "class": "form-control", 
+                    "placeholder": "Select Sales",
+                    "id": "sales"
+                }
+            ),"product_name": forms.TextInput(
+                attrs={
+                    "class": "form-control", 
+                    "placeholder": "Enter Product Name",
+                    "id": "product_name"
+                }
+            ),
+            "warranty": forms.NumberInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Enter Warranty',
+                    'id':'warranty'
+                }
+            ),
+            "customer_name": forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Enter Customer Name',
+                    'id':'customer_name'
+                }
+            ),
+            "customer_number": forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Enter Customer Number',
+                    'id':'customer_number'
+                }
+            ),
+            "customer_address": forms.TextInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Amount",
-                    "id": "amount",
+                    "placeholder": "Enter Customer Address",
+                    "id": "customer_address",
+                }
+            ),
+            "payment_method": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Select Payment Method",
+                    "id": "payment_method",
+                }
+            ),
+            "total_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Total Amount",
+                    "id": "total_amount",
                     "step": "0.01",
                 }
             ),
-            "payment_date": forms.DateTimeInput(
+            "discount_amount": forms.NumberInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Select Payment Date",
-                    "id": "payment_date",
+                    "placeholder": "Enter Discount Amount",
+                    "id": "discount_amount",
+                    "step": "0.01",
+                }
+            ),
+            "paid_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Paid Amount",
+                    "id": "paid_amount",
+                    "step": "0.01",
+                }
+            ),
+            "remaining_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Remaining Amount",
+                    "id": "remaining_amount",
+                    "step": "0.01",
+                }
+            ), 
+            "payment_status": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Select Payment Status",
+                    "id": "payment_status",
+                }
+            ),
+            "due_date": forms.DateTimeInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Select Due Date",
+                    "id": "due_date",
                     "type": "datetime-local",
                 }
             ),
             "notes": forms.Textarea(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Add notes (e.g., 'Half paid, rest next week')",
+                    "placeholder": "Add payment notes (e.g., 'Will pay 500 later')",
                     "id": "notes",
-                    "rows": 3,
+                    "rows": 1,
                 }
             ),
         }
         labels = {
-            "amount": "Amount",
+            "invoice_number": "Invoice Number",
+            "sales": "Sales",
+            "product_name": "Product Name",
+            "warranty": "Warranty (in months)",
+            "customer_name": "Customer Name",
+            "customer_number": "Customer Number",
+            "customer_address": "Customer Address",
             "payment_method": "Payment Method",
-            "payment_date": "Payment Date",
+            "total_amount": "Total Amount",
+            "discount_amount": "Discount Amount",
+            "paid_amount": "Paid Amount",
+            "remaining_amount": "Remaining Amount",
+            "payment_status": "Payment Status",
+            "due_date": "Due Date",
             "notes": "Notes",
         }
         
 class RepairInvoiceForm(forms.ModelForm):
     class Meta:
         model = RepairInvoice
-        fields = ['repair', 'customer_name', 'payment_method','discount_amount', 'total_amount', 'payment_status', 'due_date',]
+        fields = ['invoice_number','repair','product_name','customer_name','customer_number','customer_address','payment_method','total_amount','discount_amount','paid_amount','remaining_amount','payment_status', 'due_date','notes']
         widgets = {
-            "amount": forms.NumberInput(
+            "invoice_number": forms.NumberInput(
+                attrs={
+                    'class': 'form-control',
+                    'id':'invoice_number'
+                }
+            ),
+            "repair": forms.TextInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Amount",
-                    "id": "amount",
+                    "placeholder": "Enter Repair",
+                    "id": "repair",
+                }
+            ),
+            "product_name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Product Name",
+                    "id": "product_name",
+                }
+            ),
+            "customer_name": forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Enter Customer Name',
+                    'id':'customer_name'
+                }
+            ),
+            "customer_number": forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Enter Customer Number',
+                    'id':'customer_number'
+                }
+            ),
+            "customer_address": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Customer Address",
+                    "id": "customer_address",
+                }
+            ),
+            "payment_method": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Select Payment Method",
+                    "id": "payment_method",
+                }
+            ),
+            "total_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Total Amount",
+                    "id": "total_amount",
                     "step": "0.01",
                 }
             ),
-            "payment_date": forms.DateTimeInput(
+            "discount_amount": forms.NumberInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Select Payment Date",
-                    "id": "payment_date",
+                    "placeholder": "Enter Discount Amount",
+                    "id": "discount_amount",
+                    "step": "0.01",
+                }
+            ),
+            "paid_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Paid Amount",
+                    "id": "paid_amount",
+                    "step": "0.01",
+                }
+            ),
+            "remaining_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter Remaining Amount",
+                    "id": "remaining_amount",
+                    "step": "0.01",
+                }
+            ), 
+            "payment_status": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Select Payment Status",
+                    "id": "payment_status",
+                }
+            ),
+            "due_date": forms.DateTimeInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Select Due Date",
+                    "id": "due_date",
                     "type": "datetime-local",
                 }
             ),
@@ -683,17 +894,27 @@ class RepairInvoiceForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Add notes (e.g., 'Half paid, rest next week')",
                     "id": "notes",
-                    "rows": 3,
+                    "rows": 1,
                 }
             ),
         }
         labels = {
-            "amount": "Amount",
+            "invoice_number": "Invoice Number",
+            "repair": "Repair",
+            "product_name": "Product Name",
+            "customer_name": "Customer Name",
+            "customer_number": "Customer Number",
+            "customer_address": "Customer Address",
             "payment_method": "Payment Method",
-            "payment_date": "Payment Date",
+            "total_amount": "Total Amount",
+            "discount_amount": "Discount Amount",
+            "paid_amount": "Paid Amount",
+            "remaining_amount": "Remaining Amount",
+            "payment_status": "Payment Status",
+            "due_date": "Due Date",
             "notes": "Notes",
         }
-
+            
 class ReturnForm(forms.ModelForm):
     class Meta:
         model = Return

@@ -1,35 +1,190 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<!-- Update Invoice Modals -->
-{% for invoice in invoices %}
-<div class="modal fade" id="updateInvoiceModal{{ invoice.id }}" tabindex="-1" aria-labelledby="updateInvoiceModalLabel{{ invoice.id }}" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="updateInvoiceModalLabel{{ invoice.id }}">Update Invoice #{{ invoice.id }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form method="post" action="{% url 'invoice' %}">
-                    {% csrf_token %}
-                    {% with update_form=update_forms|lookup:invoice.id %}
-                        {{ update_form.as_p }}
-                        {% if update_form.errors %}
-                            <div class="alert alert-danger">
-                                {{ update_form.errors }}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Edit Sales Invoice</h5>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
                             </div>
-                        {% endif %}
-                    {% endwith %}
-                    <input type="hidden" name="update_submit_{{ invoice.id }}" value="1">
-                    <div class="text-right">
-                        <button type="submit" class="btn btn-primary">Update Invoice</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    </div>
-                </form>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="POST" enctype="multipart/form-data" id="salesForm">
+                        {% csrf_token %}
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.sales.id_for_label }}">Sales</label>
+                                {{ form.sales }}
+                                {% if form.sales.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.sales.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.product_name.id_for_label }}">Product Name</label>
+                                {{ form.product_name }}
+                                {% if form.product_name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.product_name.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.warranty.id_for_label }}">Warranty (in months)</label>
+                                {{ form.warranty }}
+                                {% if form.warranty.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.warranty.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.customer_name.id_for_label }}">Customer Name</label>
+                                {{ form.customer_name }}
+                                {% if form.customer_name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.customer_name.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.customer_number.id_for_label }}">Customer Number</label>
+                                {{ form.customer_number }}
+                                {% if form.customer_number.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.customer_number.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.customer_address.id_for_label }}">Customer Address</label>
+                                {{ form.customer_address }}
+                                {% if form.customer_address.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.customer_address.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.payment_method.id_for_label }}">Payment Method</label>
+                                {{ form.payment_method }}
+                                {% if form.payment_method.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.payment_method.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.total_amount.id_for_label }}">Total Amount</label>
+                                {{ form.total_amount }}
+                                {% if form.total_amount.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.total_amount.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.discount_amount.id_for_label }}">Discount Amount</label>
+                                {{ form.discount_amount }}
+                                {% if form.discount_amount.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.discount_amount.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.paid_amount.id_for_label }}">Paid Amount</label>
+                                {{ form.paid_amount }}
+                                {% if form.paid_amount.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.paid_amount.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.remaining_amount.id_for_label }}">Remaining Amount</label>
+                                {{ form.remaining_amount }}
+                                {% if form.remaining_amount.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.remaining_amount.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.payment_status.id_for_label }}">Payment Status</label>
+                                {{ form.payment_status }}
+                                {% if form.payment_status.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.payment_status.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.due_date.id_for_label }}">Due Date</label>
+                                {{ form.due_date }}
+                                <small class="form-text text-muted">Format: YYYY-MM-DD HH:MM</small>
+                                {% if form.due_date.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.due_date.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <label for="{{ form.notes.id_for_label }}">Notes</label>
+                                {{ form.notes }}
+                                {% if form.notes.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.notes.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                                <a href="{% url 'sales' %}" class="btn btn-secondary">Cancel</a>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
-{% endfor %}
 {% endblock content %}

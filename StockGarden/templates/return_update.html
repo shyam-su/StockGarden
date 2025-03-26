@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid"> 
+    <div class="row">
+        <div class="col-12"> 
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Update Return</h5> 
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <!-- First Row: Invoice and Product -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_invoice">Invoice</label>
+                                    {{ form.invoice }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_product">Product</label>
+                                    {{ form.product }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Second Row: Quantity Returned -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_quantity_returned">Quantity Returned</label>
+                                    {{ form.quantity_returned }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_refund_amount">Refund Amount</label>
+                                    {{ form.refund_amount }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Third Row: Reason -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="id_reason">Reason</label>
+                                    {{ form.reason }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="row">
+                            <div class="col-12 text-right">
+                                <button type="submit" class="btn btn-primary">Update Return</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
