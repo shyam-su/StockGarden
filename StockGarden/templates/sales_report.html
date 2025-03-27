@@ -6,6 +6,21 @@
         .no-print {
             display: none !important;
         }
+        .chart-container {
+            height: 300px !important;
+        }
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    .no-data-message {
+        height: 300px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
     }
 </style>
 
@@ -17,7 +32,7 @@
                     <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>&nbsp;Sales Report</h5>
                 </div>
                 <div class="card-body">
-                    <!-- Date Range Filter Form -->
+                    <!-- Filter Form -->
                     <form method="GET" class="mb-3 no-print">
                         <div class="row">
                             <div class="col-md-3">
@@ -40,16 +55,48 @@
                         <button onclick="printReport()" class="btn btn-primary">🖨️ Print Report</button>
                     </div>
 
-                    <script>
-                        function printReport() {
-                            window.print();
-                        }
-                    </script>
-
-                    <!-- Sales Summary -->
+                    <!-- Summary -->
                     <div class="alert alert-info">
-                        <strong>Total Quantity Sold:</strong> {{ total_quantity }}
-                    </div><br>
+                        <strong>Total Quantity Sold:</strong> {{ total_quantity }} |
+                        <strong>Total Sales Value:</strong> Rs{{ total_sales|floatformat:2 }}
+                    </div>
+
+                    <!-- Charts Section -->
+                    <div class="row mb-4">
+                        <!-- Daily Sales Bar Chart -->
+                        <div class="col-md-8 mb-4">
+                            <div class="card shadow h-100">
+                                <div class="card-header py-3 bg-primary text-white">
+                                    <h6 class="m-0 font-weight-bold">Daily Sales Trend</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="dailySalesChart"></canvas>
+                                        <div id="dailySalesNoData" class="no-data-message" style="display: none;">
+                                            No sales data available for the selected period
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Payment Method Pie Chart -->
+                        <div class="col-md-4 mb-4">
+                            <div class="card shadow h-100">
+                                <div class="card-header py-3 bg-primary text-white">
+                                    <h6 class="m-0 font-weight-bold">Payment Methods</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container">
+                                        <canvas id="paymentMethodChart"></canvas>
+                                        <div id="paymentMethodNoData" class="no-data-message" style="display: none;">
+                                            No payment method data available
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Sales Table -->
                     <div class="table-responsive">
@@ -57,42 +104,141 @@
                             <thead class="table-primary">
                                 <tr>
                                     <th>ID</th>
-                                    <th>Party Name</th>
+                                    <th>Customer</th>
                                     <th>Product</th>
-                                    <th>Quantity</th>
+                                    <th>Qty</th>
                                     <th>Price</th>
                                     <th>Total</th>
-                                    <th>Contact No</th>
-                                    <th>Expiring Date</th>
-                                    <th>Sale Date</th>
+                                    <th>Payment Method</th>
+                                    <th>Date</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for sale in sales %}
                                     <tr>
                                         <td>{{ forloop.counter }}</td>
-                                        <td>{{ sale.name|default:"N/A" }}</td>
-                                        <td>{{ sale.product|default:"N/A" }}</td>
+                                        <td>{{ sale.user.full_name|default:"N/A" }}</td>
+                                        <td>{{ sale.product.name|default:"N/A" }}</td>
                                         <td>{{ sale.quantity }}</td>
-                                        <td>{{ sale.price }}</td>
-                                        <td>{{ sale.total_amount }}</td>
-                                        <td>{{ sale.contact_no|default:"N/A" }}</td>
-                                        <td>{{ sale.expiring_date|date:"M d, Y" }}</td>
-                                        <td>{{ sale.created_at|date:"M d, Y H:i" }}</td>
+                                        <td>Rs.{{ sale.price|floatformat:2 }}</td>
+                                        <td>Rs.{{ sale.total_amount|floatformat:2 }}</td>
+                                        <td>{{ sale.get_payment_method_display }}</td>
+                                        <td>{{ sale.created_at|date:"M d, Y" }}</td>
                                     </tr>
                                 {% empty %}
                                     <tr>
-                                        <td colspan="9" class="text-center">No sales data available.</td>
+                                        <td colspan="8" class="text-center">No sales data available.</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-                </div> <!-- End Card Body -->
-            </div> <!-- End Card -->
-        </div> <!-- End Col -->
-    </div> <!-- End Row -->
-</div> <!-- End Container -->
+<!-- Chart.js Script -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Parse data from Django
+    const dailySalesData = JSON.parse('{{ daily_sales|escapejs }}');
+    const paymentMethodsData = JSON.parse('{{ payment_methods|escapejs }}');
+    
+    // Format currency
+    const formatCurrency = (value) => {
+        return '₹' + parseFloat(value || 0).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    };
 
-{% endblock content %}
+    // Daily Sales Bar Chart
+    const dailySalesCtx = document.getElementById('dailySalesChart');
+    if (dailySalesData.length > 0) {
+        new Chart(dailySalesCtx, {
+            type: 'bar',
+            data: {
+                labels: dailySalesData.map(item => new Date(item.day).toLocaleDateString()),
+                datasets: [{
+                    label: 'Daily Sales',
+                    data: dailySalesData.map(item => item.daily_total),
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatCurrency(value);
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return formatCurrency(context.raw);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        document.getElementById('dailySalesNoData').style.display = 'flex';
+        dailySalesCtx.style.display = 'none';
+    }
+
+    // Payment Method Pie Chart
+    const paymentMethodCtx = document.getElementById('paymentMethodChart');
+    if (paymentMethodsData.length > 0) {
+        new Chart(paymentMethodCtx, {
+            type: 'pie',
+            data: {
+                labels: paymentMethodsData.map(item => item.method),
+                datasets: [{
+                    data: paymentMethodsData.map(item => item.total),
+                    backgroundColor: [
+                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e',
+                        '#e74a3b', '#858796', '#5a5c69'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((context.raw / total) * 100);
+                                return `${context.label}: ${formatCurrency(context.raw)} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        document.getElementById('paymentMethodNoData').style.display = 'flex';
+        paymentMethodCtx.style.display = 'none';
+    }
+
+    function printReport() {
+        window.print();
+    }
+});
+</script>
+{% endblock %}

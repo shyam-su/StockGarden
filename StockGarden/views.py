@@ -5,7 +5,7 @@ from .forms import *
 import logging
 from django.core.paginator import Paginator
 from django.contrib import messages  
-from django.db.models import Sum,Q,F
+from django.db.models import Sum,Q,F,Count
 from openpyxl import Workbook
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib import colors
@@ -15,7 +15,9 @@ from openpyxl.styles import Font, PatternFill
 from datetime import datetime
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
-
+import json
+from django.db.models.functions import TruncDay
+from decimal import Decimal
 
 
 # Create your views here
@@ -954,10 +956,40 @@ def SalesReportList(request):
         if start_date and end_date:
             sales = sales.filter(created_at__date__range=[start_date, end_date])
         total_quantity = sales.aggregate(Sum('quantity'))['quantity__sum'] or 0
-        context = { 
+        total_sales = sales.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+
+        # Daily sales data for bar chart
+        daily_sales = sales.annotate(
+            day=TruncDay('created_at')
+        ).values('day').annotate(
+            daily_total=Sum('total_amount')
+        ).order_by('day')
+        
+        # Payment method distribution for pie chart
+        payment_methods = sales.values('payment_method').annotate(
+            total=Sum('total_amount'),
+            count=Count('id')
+        ).order_by('-total')
+
+        context = {
             'sales': sales,
             'total_quantity': total_quantity,
+            'total_sales': total_sales,
+            'daily_sales': json.dumps([
+                {
+                    'day': item['day'].isoformat(),
+                    'daily_total': float(item['daily_total'])
+                } for item in daily_sales
+            ]),
+            'payment_methods': json.dumps([
+                {
+                    'method': item['payment_method'],
+                    'total': float(item['total']),
+                    'count': item['count']
+                } for item in payment_methods
+            ]),
         }
+    
     except Exception as e:
         logger.error(f"Error occurred in SalesReportListView: {e}", exc_info=True)
         context['error'] = "An error occurred while generating the sales report."
