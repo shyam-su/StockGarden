@@ -1358,3 +1358,12 @@ def get_product_price(request):
 
 
 
+def generate_sales_invoice(request, pk):
+    # Fetch the sales data using pk
+    sale = get_object_or_404(Sales, pk=pk)
+    
+    # Fetch the company details (assuming you have one company)
+    company = Company.objects.first()  # Assuming a single company, if there are multiple, adjust accordingly
+    
+    # Pass the sale and company object to the template
+    return render(request, 'salesinvoiceprint.html', {'sale': sale, 'company': company})

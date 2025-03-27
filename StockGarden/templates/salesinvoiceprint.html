@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Invoice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .invoice-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .invoice-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .invoice-header h1 {
+            margin: 0;
+        }
+        .company-details {
+            margin-bottom: 20px;
+        }
+        .invoice-details {
+            margin-top: 20px;
+        }
+        .invoice-details table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .invoice-details th, .invoice-details td {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .total-amount {
+            text-align: right;
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <!-- Company Details Section -->
+        <div class="company-details">
+            <h3>{{ company.name }}</h3>
+            <p><strong>Address:</strong> {{ company.address }}</p>
+            <p><strong>Email:</strong> <a href="mailto:{{ company.email }}">{{ company.email }}</a></p>
+            <p><strong>Phone:</strong> {{ company.phone_number }}</p>
+        </div>
+
+        <!-- Invoice Header Section -->
+        <div class="invoice-header">
+            <h1>Sales Invoice</h1>
+            <p><strong>Sale Date:</strong> {{ sale.created_at }}</p>
+            <p><strong>Invoice ID:</strong> #{{ sale.pk }}</p>
+        </div>
+
+        <!-- Invoice Details Section -->
+        <div class="invoice-details">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>IMEI</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Discount</th>
+                        <th>Total Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{ sale.product.name }}</td>
+                        <td>{{ sale.Imei }}</td>
+                        <td>{{ sale.quantity }}</td>
+                        <td>${{ sale.price }}</td>
+                        <td>{{ sale.discount }}%</td>
+                        <td>${{ sale.total_amount }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Total Amount Section -->
+        <div class="total-amount">
+            <p><strong>Total Amount Due: ${{ sale.total_amount }}</strong></p>
+            <p><strong>Amount Paid: ${{ sale.paid_amount }}</strong></p>
+            <p><strong>Remaining Amount: ${{ sale.remaining_amount }}</strong></p>
+        </div>
+
+        <!-- Payment Details Section -->
+        <div class="invoice-footer">
+            <p><strong>Payment Method:</strong> {{ sale.payment_method }}</p>
+            <p><strong>Payment Status:</strong> {{ sale.payment_status }}</p>
+            <p><strong>Due Date:</strong> {{ sale.due_date }}</p>
+        </div>
+    </div>
+</body>
+</html>
