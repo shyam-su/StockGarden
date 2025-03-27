@@ -1391,11 +1391,19 @@ def get_product_price(request):
 
 
 def generate_sales_invoice(request, pk):
-    # Fetch the sales data using pk
-    sale = get_object_or_404(Sales, pk=pk)
+    invoice = get_object_or_404(SalesInvoice, pk=pk)
+    company = Company.objects.first()
     
-    # Fetch the company details (assuming you have one company)
-    company = Company.objects.first()  # Assuming a single company, if there are multiple, adjust accordingly
+    return render(request, 'salesinvoiceprint.html', {
+        'invoice': invoice,
+        'company': company
+    })
     
-    # Pass the sale and company object to the template
-    return render(request, 'salesinvoiceprint.html', {'sale': sale, 'company': company})
+def generate_repair_invoice(request, pk):
+    invoice = get_object_or_404(RepairInvoice, pk=pk)
+    company = Company.objects.first()  
+    
+    return render(request, 'salesinvoiceprint.html', {
+        'invoice': invoice,
+        'company': company
+    })

@@ -40,12 +40,12 @@
                                     <td>{{ forloop.counter }}</td>
                                     <td>{{ invoice.invoice_number }}</td>
                                     <td>{{ invoice.customer_name|default:"N/A"|slice:":8" }}</td>
-                                    <td>{{ invoice.product_name|default:"N/A" }}</td>
+                                    <td>{{ invoice.product_name|default:"N/A"|slice:":8" }}</td>
                                     <td>{{ invoice.total_amount }}</td>
                                     <td>{{ invoice.paid_amount }}</td>
                                     <td>{{ invoice.remaining_amount }}</td>
                                     <td>{{ invoice.get_payment_status_display }}</td>
-                                    <td>{{ invoice.due_date|date:"M d, Y"|default:"N/A" }}</td>
+                                    <td>{{ invoice.due_date|date:"M d"|default:"N/A" }}</td>
                                     <td class="text-center">
                                         <a href="{% url 'salesinvoice_update' pk=invoice.id %}" class="btn btn-sm btn-success me-1">Update</a>
                                         <a href="{% url 'salesinvoiceprint' pk=invoice.id %}" class="btn btn-sm btn-danger">Print</a>

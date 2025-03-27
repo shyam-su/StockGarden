@@ -168,6 +168,9 @@ class Sales(models.Model):
         self.paid_amount = Decimal(self.paid_amount)
         self.discount = Decimal(self.discount or 0) 
         self.remaining_amount = self.total_amount - self.paid_amount - self.discount
+        if self.product.stock >= self.quantity:
+            self.product.stock -= self.quantity
+            self.product.save()
         super().save(*args, **kwargs)
             
     class Meta:
@@ -319,6 +322,15 @@ class RepairInvoice(models.Model):
                 self.invoice_number = f"RINV{last_invoice_number + 1:06d}" 
             else:
                 self.invoice_number = "RINV0000001"  
+        discount = self.discount_amount if self.discount_amount else 0
+        total_after_discount = (self.total_amount or 0) - discount
+        self.remaining_amount = total_after_discount - (self.paid_amount or 0)
+
+        # Ensure payment status updates correctly
+        if self.remaining_amount <= 0:
+            self.payment_status = 'paid'
+        else:
+            self.payment_status = 'pending'
         super(RepairInvoice, self).save(*args, **kwargs)
     
     class Meta:
