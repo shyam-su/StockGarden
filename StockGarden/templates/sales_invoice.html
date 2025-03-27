@@ -48,7 +48,7 @@
                                     <td>{{ invoice.due_date|date:"M d, Y"|default:"N/A" }}</td>
                                     <td class="text-center">
                                         <a href="{% url 'salesinvoice_update' pk=invoice.id %}" class="btn btn-sm btn-success me-1">Update</a>
-                                        <a href="" class="btn btn-sm btn-danger">Print</a>
+                                        <a href="{% url 'salesinvoiceprint' pk=invoice.id %}" class="btn btn-sm btn-danger">Print</a>
                                     </td>
                                 </tr>
                                 {% empty %}

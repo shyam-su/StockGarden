@@ -58,6 +58,8 @@ urlpatterns = [
     path('return/<int:pk>/update/', ReturnUpdate,name='return_update'),
     path('return/<int:pk>/delete/', ReturnDelete,name='return_delete'),
 
+    path('salesinvoiceprint/<int:pk>/', generate_sales_invoice, name='salesinvoiceprint'),
+
 
     
     path('user_report/', UserReportList, name='user_report'),
