@@ -75,6 +75,40 @@
                         }
                     </script>
 
+
+                                       <!-- Charts Section -->
+<div class="row mb-4 no-print">
+    <!-- Repair Status Distribution (Pie Chart) -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header py-3 bg-primary text-white">
+                <h6 class="m-0 font-weight-bold">Repair Status Distribution</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="position: relative; height: 350px; width: 100%">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Daily Repair Trend (Bar Chart) -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header py-3 bg-primary text-white">
+                <h6 class="m-0 font-weight-bold">Daily Repair Trend</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="position: relative; height: 350px; width: 100%">
+                    <canvas id="dailyRepairChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
                     <!-- Repair Table -->
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover">
@@ -96,7 +130,7 @@
                                     <td>{{ forloop.counter }}</td>
                                     <td>{{ repair.product_name|default:"N/A" }}</td>
                                     <td>{{ repair.device_model|default:"N/A" }}</td>
-                                    <td>{{ repair.name.full_name|default:"N/A" }}</td>
+                                    <td>{{ repair.user.full_name|default:"N/A" }}</td>
                                     <td>{{ repair.issue_description|default:"N/A" }}</td>
                                     <td>{{ repair.out_date|date:"M d, Y" }}</td>
                                     <td>
@@ -126,5 +160,122 @@
         </div> <!-- End Col -->
     </div> <!-- End Row -->
 </div> <!-- End Container -->
+
+
+
+<!-- Chart.js Script -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Status Distribution Pie Chart
+    const statusData = JSON.parse('{{ status_data|escapejs }}');
+    const statusCtx = document.getElementById('statusChart');
+    
+    if (statusCtx && statusData.length > 0) {
+        const statusLabels = statusData.map(item => {
+            const status = item.status;
+            if (status === 'in-progress') return 'In Progress';
+            if (status === 'completed') return 'Completed';
+            if (status === 'pending') return 'Pending Pickup';
+            return status;
+        });
+        
+        const statusCounts = statusData.map(item => item.count);
+        const backgroundColors = [
+            'rgba(255, 206, 86, 0.7)',  // yellow for in-progress
+            'rgba(75, 192, 192, 0.7)',  // green for completed
+            'rgba(255, 99, 132, 0.7)',  // red for pending
+            'rgba(153, 102, 255, 0.7)'  // purple for others
+        ];
+
+        new Chart(statusCtx, {
+            type: 'pie',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusCounts,
+                    backgroundColor: backgroundColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Daily Repair Trend Bar Chart
+    const dailyData = JSON.parse('{{ daily_data|escapejs }}');
+    const dailyCtx = document.getElementById('dailyRepairChart');
+    
+    if (dailyCtx && dailyData.length > 0) {
+        const dailyLabels = dailyData.map(item => new Date(item.day).toLocaleDateString());
+        const dailyCounts = dailyData.map(item => item.count);
+
+        new Chart(dailyCtx, {
+            type: 'bar',
+            data: {
+                labels: dailyLabels,
+                datasets: [{
+                    label: 'Repairs per Day',
+                    data: dailyCounts,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0,
+                            stepSize: 1
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.parsed.y} repairs`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+
+
 
 {% endblock content %}

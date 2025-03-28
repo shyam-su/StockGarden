@@ -1301,6 +1301,25 @@ def RepairReportList(request):
         if customer_id:
             repairs = repairs.filter(name_id=customer_id) 
 
+
+        # Prepare chart data
+        status_counts = repairs.values('status').annotate(
+            count=Count('id'),
+            percentage=Count('id') * 100.0 / repairs.count()
+        ).order_by('-count')
+
+        # Daily repair trend
+        daily_repairs = repairs.annotate(
+            day=TruncDay('created_at')
+        ).values('day').annotate(
+            count=Count('id')
+        ).order_by('day')
+
+        # Convert to list for JSON serialization
+        status_data = list(status_counts)
+        daily_data = list(daily_repairs)
+
+
         paginator = Paginator(repairs, 10)
         page_number = request.GET.get('page')
 
@@ -1317,6 +1336,8 @@ def RepairReportList(request):
             'customers': customers,
             'selected_status': status,
             'selected_customer': customer_id,
+            'status_data': json.dumps(status_data),
+            'daily_data': json.dumps(daily_data, default=str),
         }
 
         logger.info("Repair report generated successfully.")
