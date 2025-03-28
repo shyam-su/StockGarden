@@ -104,6 +104,12 @@ class Purchase(models.Model):
         self.total_price = self.quantity * self.price 
         self.remaining_amount=self.total_price-self.paid_amount
         super().save(*args, **kwargs)
+        if self.product_name:
+            product = Product.objects.filter(name=self.product_name).first()
+            if product:
+                product.stock = (product.stock or 0) + self.quantity
+                product.save()
+                
     def __str__(self):
         return self.vendor.full_name
         
