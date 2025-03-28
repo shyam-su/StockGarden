@@ -18,6 +18,11 @@ from django.contrib.auth.decorators import login_required
 import json
 from django.db.models.functions import TruncDay
 from decimal import Decimal
+from django.db.models.functions import TruncMonth
+from django.db.models import Sum
+from datetime import datetime, timedelta
+import calendar
+from django.utils import timezone
 
 
 # Create your views here
@@ -26,42 +31,117 @@ logger = logging.getLogger(__name__)
 @login_required
 def home(request):
     try:
-        total_sales = Sales.objects.aggregate(Sum('total'))['total__sum'] or 0 
-        total_repair_cost = RepairDetail.objects.aggregate(total_repair_cost=Sum('repair_cost'))['total_repair_cost'] or 0
-        total_amount = total_sales + total_repair_cost
-        total_products = Product.objects.count()  
-        pending_repairs = Repair.objects.filter(status='in-progress').count()  
-        low_stock_count = Product.objects.filter(stock__lt=3).count() 
+        time_period = request.GET.get('period', 'week')
 
+        # Card Data Calculations (Overall totals)
+        total_sales = Sales.objects.aggregate(total=Sum('total_amount'))['total'] or 0
+        total_repair = RepairDetail.objects.aggregate(total=Sum('repair_cost'))['total'] or 0
+        total_expenses = Expense.objects.aggregate(total=Sum('amount'))['total'] or 0
+        total_earning = (total_sales + total_repair) - total_expenses
+        low_stock_count = Product.objects.filter(stock__lt=5).count()
+        
+        # Metrics for cards
+        metrics = {
+            'total_earning': total_earning,
+            'total_products': Product.objects.count(),
+            'total_categories': Category.objects.count(),
+            'total_brands': Brand.objects.count(),
+            'pending_repairs': Repair.objects.filter(status='in-progress').count(),
+            'low_stock': low_stock_count,
+            'completed_repairs': Repair.objects.filter(status='completed').count(),
+            'product_categories': Category.objects.count(),
+            'product_brands': Brand.objects.count(),
+        }
+        
+        # Chart Data - Filter by selected period
+        months = []
+        earnings_data = []
+        expenses_data = []
+        sales_data = []
+        repair_data = []
+        
+        end_date = timezone.now()
+        
+        if time_period == 'week':
+            start_date = end_date - timedelta(days=7)
+            date_format = '%d %b'
+            delta = timedelta(days=1)
+        elif time_period == 'month':
+            start_date = end_date - timedelta(days=30)
+            date_format = '%d %b'
+            delta = timedelta(days=1)
+        elif time_period == '3months':
+            start_date = end_date - timedelta(days=90)
+            date_format = '%b %d'
+            delta = timedelta(days=7)
+        else:  # 6months
+            start_date = end_date - timedelta(days=180)
+            date_format = '%b %Y'
+            delta = timedelta(days=30)
+        
+        current_date = start_date
+        while current_date <= end_date:
+            if time_period in ['week', 'month']:
+                date_label = current_date.strftime(date_format)
+                next_date = current_date + timedelta(days=1)
+            elif time_period == '3months':
+                date_label = f"Week {current_date.isocalendar()[1]}"
+                next_date = current_date + timedelta(weeks=1)
+            else:  # 6months
+                date_label = current_date.strftime('%b')
+                next_date = (current_date.replace(day=1) + timedelta(days=32)).replace(day=1)
+            
+            sales = Sales.objects.filter(
+                created_at__gte=current_date,
+                created_at__lt=next_date
+            ).aggregate(total=Sum('total_amount'))['total'] or 0
+            
+            repairs = RepairDetail.objects.filter(
+                created_at__gte=current_date,
+                created_at__lt=next_date
+            ).aggregate(total=Sum('repair_cost'))['total'] or 0
+            
+            expenses = Expense.objects.filter(
+                created_at__gte=current_date,
+                created_at__lt=next_date
+            ).aggregate(total=Sum('amount'))['total'] or 0
+            
+            earnings = (sales + repairs) - expenses
+            
+            months.append(date_label)
+            earnings_data.append(earnings)
+            expenses_data.append(expenses)
+            sales_data.append(sales)
+            repair_data.append(repairs)
+            
+            current_date = next_date
+        
+        # Calculate period-specific totals for pie chart
+        period_total_sales = sum(sales_data)
+        period_total_repair = sum(repair_data)
+        
         context = {
-            'total_amount': total_amount,
-            'total_product': total_products,
-            'pending_repairs': pending_repairs,
-            'low_stock_count': low_stock_count 
+            **metrics,
+            'months': months,
+            'sales_data': sales_data,
+            'repair_data': repair_data,
+            'total_sales': total_sales,  # Overall total
+            'total_repair': total_repair,  # Overall total
+            'total_expenses': total_expenses,  # Overall total
+            'period_total_sales': period_total_sales,  # Period-specific
+            'period_total_repair': period_total_repair,  # Period-specific
+            'sales_percentage': (period_total_sales / (period_total_sales + period_total_repair) * 100) if (period_total_sales + period_total_repair) > 0 else 0,
+            'repair_percentage': (period_total_repair / (period_total_sales + period_total_repair) * 100) if (period_total_sales + period_total_repair) > 0 else 0,
+            'selected_period': time_period,
+            'earnings_data': earnings_data,
+            'expenses_data': expenses_data,
         }
         return render(request, 'home.html', context)
+        
     except Exception as e:
-        logger.error(f"Error in home view: {e}")
-        messages.error(request, 'An error occurred while loading the dashboard.')
-    return render(request, '404.html', {"message": "An error occurred while loading the dashboard."})
-
-@login_required
-def get_chart_data(request):
-    try:
-        total_sales = Sales.objects.aggregate(total=Sum('total')).get('total', 0) or 0
-        total_repair_cost = RepairDetail.objects.aggregate(total=Sum('repair_cost')).get('total', 0) or 0
-        total_earnings = total_sales + total_repair_cost
-            
-        chart_data = {
-            "sales": total_sales,
-            "repair": total_repair_cost,
-            "earnings": total_earnings
-        }
-        return JsonResponse(chart_data)
-    except Exception as e:
-        logger.error(f"Error in home view: {e}")
-        messages.error(request, 'An error occurred while loading the chart.')
-        return JsonResponse({"error": str(e)}, status=500)
+        logger.error(f"Dashboard error: {e}")
+        return render(request, '404.html', {'message': 'Failed to load dashboard data'})
+    
 
 
 @login_required

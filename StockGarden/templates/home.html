@@ -1,261 +1,361 @@
 {% extends 'base.html' %}
 {% block content %}
-    
-            <!-- Begin Page Content -->
-            <div class="container-fluid">
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Dashboard Overview</h1>
+        <div class="text-xs font-weight-bold text-gray-500">
+            Last Updated: {% now "d M Y H:i" %}
+        </div>
+    </div>
 
-                <!-- Page Heading -->
-                <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                    <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
-                    <!-- <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i -->
-                            <!-- class="fas fa-download fa-sm text-white-50"></i> Generate Report</a> -->
-                </div>
-
-                <!-- Content Row -->
-                <div class="row">
-
-                    <!-- Earnings (Monthly) Card Example -->
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-primary shadow h-100 py-2">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                            Earnings
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                            {% if total_amount %}
-                                                रु {{ total_amount }}
-                                            {% else %}
-                                                रु 0
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-money-bill fa-2x text-gray-300"></i>
-                                    </div>
-                                </div>
+    <!-- Cards Row -->
+    <div class="row">
+        <!-- NET EARNINGS CARD -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Net Earnings</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                रु {{ total_earning|floatformat:2 }}
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Products Card Example -->
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-success shadow h-100 py-2">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                            Products </div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                                {% if total_product %}
-                                                     {{ total_product }}
-                                                {% else %}
-                                                     0
-                                                {% endif %}
-                                            </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-folder fa-2x text-gray-300"></i>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="col-auto">
+                            <i class="fas fa-wallet fa-2x text-gray-300"></i>
                         </div>
                     </div>
-
-                    <!-- Low Stock Card Example -->
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-info shadow h-100 py-2">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Low Stock
-                                        </div>
-                                        <div class="row no-gutters align-items-center">
-                                            <div class="col-auto">
-                                                <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">{{ low_stock_count }}%</div>
-                                            </div>
-                                            <div class="col">
-                                                <div class="progress progress-sm mr-2">
-                                                    <div class="progress-bar bg-info" role="progressbar"style="width: {{ low_stock_count }}%" aria-valuenow="{{ low_stock_count }}" aria-valuemin="0"aria-valuemax="100"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-battery-quarter fa-2x text-gray-300"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Pending Repair Card Example -->
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card border-left-warning shadow h-100 py-2">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                            Pending Repair </div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                                {% if pending_repairs %}
-                                                    {{ pending_repairs }}
-                                                {% else %}
-                                                    0
-                                                {% endif %}
-                                            </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-screwdriver-wrench fa-2x text-gray-300"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>   
+                    <div class="mt-2 text-xs text-muted">
+                        Sales: रु {{ total_sales|floatformat:2 }} | Repairs: रु {{ total_repair|floatformat:2 }}
                     </div>
                 </div>
-
-                <!-- Content Row -->
-
-                <div class="row">
-                    <!-- Area Chart -->
-                    <div class="col-xl-8 col-lg-7">
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                <h6 class="m-0 font-weight-bold text-primary">Earnings Overview</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-area">
-                                    <canvas id="myAreaChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-            
-                    <!-- Pie Chart -->
-                    <div class="col-xl-4 col-lg-5">
-                        <div class="card shadow mb-4">
-                            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                <h6 class="m-0 font-weight-bold text-primary">Revenue Sources</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-pie pt-4 pb-2">
-                                    <canvas id="myPieChart"></canvas>
-                                </div>
-                                <div class="mt-4 text-center small">
-                                    <span class="mr-2">
-                                        <i class="fas fa-circle text-primary"></i> Repair
-                                    </span>
-                                    <span class="mr-2">
-                                        <i class="fas fa-circle text-info"></i> Product Sales
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <script>
-                document.addEventListener("DOMContentLoaded", function () {
-                    fetch("{% url 'chart_data' %}") // Ensure this matches your Django `urlpatterns`
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.error) {
-                                console.error("Error fetching chart data:", data.error);
-                                return;
-                            }
-                
-                            let sales = data.sales || 0;
-                            let repair = data.repair || 0;
-                            let earnings = data.earnings || 0;
-
-                            console.log("Sales:", sales, "Repair:", repair); // Debugging Output
-
-                
-                            
-
-                            // Area Chart showing only Total Earnings
-                            var ctxArea = document.getElementById("myAreaChart").getContext("2d");
-                            new Chart(ctxArea, {
-                                type: 'line',
-                                data: {
-                                    labels: ["Jan", "Feb", "Mar", "Apr", "May"],
-                                    datasets: [{
-                                        label: "Total Sales",
-                                        data: [sales, sales, sales, sales, sales],
-                                        backgroundColor: "rgba(78, 115, 223, 0.5)",
-                                        borderColor: "rgba(78, 115, 223, 1)",
-                                        borderWidth: 2
-                                    },
-                                    {
-                                        label: "Repair Costs",
-                                        data: [repair, repair, repair, repair, repair],
-                                        backgroundColor: "rgba(255, 165, 0, 0.5)", 
-                                        borderColor: "rgba(255, 165, 0, 1)",
-                                        borderWidth: 2
-                                    },
-                                    {
-                                        label: "Total Earnings",
-                                        data: [earnings, earnings, earnings, earnings, earnings],
-                                        backgroundColor: "rgba(28, 200, 138, 0.5)",
-                                        borderColor: "rgba(234, 236, 244, 1)",
-                                        borderWidth: 2
-                                    }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    scales: {
-                                        y: {
-                                            beginAtZero: true,
-                                            ticks: {
-                                                callback: function(value) {
-                                                    return '$' + value;
-                                                }
-                                            }
-                                        }
-                                    },
-                                    plugins: {
-                                        tooltip: {
-                                            callbacks: {
-                                                label: function(context) {
-                                                    return context.dataset.label + ': $' + context.raw;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            });
-
-                
-                            // Pie Chart
-                            var ctxPie = document.getElementById("myPieChart").getContext("2d");
-                            new Chart(ctxPie, {
-                                type: 'doughnut',
-                                data: {
-                                    labels: ["Repairs", "Product Sales"],
-                                    datasets: [{
-                                        data: [repair, sales], // Use valid data
-                                        backgroundColor: ["#4e73df", "#1cc88a"],
-                                        hoverBackgroundColor: ["#2e59d9", "#17a673"],
-                                        hoverBorderColor: "rgba(234, 236, 244, 1)"
-                                    }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: false
-                                }
-                            });
-                
-                        })
-                        .catch(error => console.error("Error fetching data:", error));
-                });
-                </script>
-                
-                
-
-
             </div>
-            <!-- /.container-fluid -->
+        </div>
 
-{% endblock content %}
+        <!-- PRODUCTS CARD -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Products Inventory</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ total_products }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-box-open fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-xs text-muted">
+                        Categories: {{ total_categories }} | Brands: {{ total_brands }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PENDING REPAIRS CARD -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                In-Progess Repairs</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ pending_repairs }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-tools fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-xs text-muted">
+                        Completed: {{ completed_repairs }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STOCK STATUS CARD -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Stock Alerts</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ low_stock }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-xs text-muted">
+                        Items with less 5 in stock
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time Period Dropdown Filter -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-body py-2">
+                    <div class="form-group mb-0">
+                        <label for="periodFilter" class="mr-2">Time Period:</label>
+                        <select class="form-control form-control-sm d-inline-block w-auto" 
+                                id="periodFilter" 
+                                aria-label="Select time period">
+                            <option value="week" {% if selected_period == 'week' %}selected{% endif %}>Last Week</option>
+                            <option value="month" {% if selected_period == 'month' %}selected{% endif %}>Last Month</option>
+                            <option value="3months" {% if selected_period == '3months' %}selected{% endif %}>Last 3 Months</option>
+                            <option value="6months" {% if selected_period == '6months' %}selected{% endif %}>Last 6 Months</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row">
+        <!-- EARNINGS vs EXPENSES BAR CHART (50% width) -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4 h-100">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Earnings vs Expenses</h6>
+                </div>
+                <div class="card-body" style="padding: 10px;">
+                    <div class="chart-container" style="position: relative; height: 400px; width: 100%;">
+                        <canvas id="earningsExpensesChart" style="width: 100% !important; height: 200px !important;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REVENUE BREAKDOWN PIE CHART (50% width) -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4 h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenue Composition</h6>
+                </div>
+                <div class="card-body" style="padding: 10px;">
+                    <div class="chart-container" style="position: relative; height: 400px; width: 100%;">
+                        <canvas id="revenueChart" style="width: 100% !important; height: 200px !important;"></canvas>
+                    </div>
+                    <div class="mt-2 text-center small">
+                        <span class="mr-2">
+                            <i class="fas fa-circle text-primary"></i> Sales ({{ sales_percentage|floatformat:0 }}%)
+                        </span>
+                        <span class="mr-2">
+                            <i class="fas fa-circle text-success"></i> Repairs ({{ repair_percentage|floatformat:0 }}%)
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JSON Data Containers -->
+{{ months|json_script:"months-data" }}
+{{ earnings_data|json_script:"earnings-data" }}
+{{ expenses_data|json_script:"expenses-data" }}
+{{ sales_data|json_script:"sales-data" }}
+{{ repair_data|json_script:"repair-data" }}
+{{ period_total_sales|json_script:"period-total-sales" }}
+{{ period_total_repair|json_script:"period-total-repair" }}
+
+<!-- Charting Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let earningsExpensesChart;
+    let revenueChart;
     
+    document.addEventListener("DOMContentLoaded", function() {
+        // Get initial data from Django template
+        const months = JSON.parse(document.getElementById('months-data').textContent);
+        const earningsData = ensureArray(JSON.parse(document.getElementById('earnings-data').textContent));
+        const expensesData = ensureArray(JSON.parse(document.getElementById('expenses-data').textContent));
+        const salesData = ensureArray(JSON.parse(document.getElementById('sales-data').textContent));
+        const repairData = ensureArray(JSON.parse(document.getElementById('repair-data').textContent));
+        const periodTotalSales = Number(JSON.parse(document.getElementById('period-total-sales').textContent));
+        const periodTotalRepair = Number(JSON.parse(document.getElementById('period-total-repair').textContent));
+        
+        // Initialize charts with period-specific data
+        initCharts(months, earningsData, expensesData, periodTotalSales, periodTotalRepair);
+        
+        // Set up period filter event listener
+        const periodFilter = document.getElementById('periodFilter');
+        if (periodFilter) {
+            periodFilter.addEventListener('change', function() {
+                updateCharts(this.value);
+            });
+        }
+    });
+    
+    function ensureArray(data) {
+        if (Array.isArray(data)) {
+            return data.map(Number);
+        }
+        return [Number(data)];
+    }
+    
+    function initCharts(months, earningsData, expensesData, totalSales, totalRepair) {
+        // Earnings vs Expenses Bar Chart
+        const earningsExpensesCtx = document.getElementById("earningsExpensesChart").getContext('2d');
+        earningsExpensesChart = new Chart(earningsExpensesCtx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: "Earnings",
+                        backgroundColor: "#4e73df",
+                        data: earningsData,
+                        barThickness: 15,
+                        maxBarThickness: 20
+                    },
+                    {
+                        label: "Expenses",
+                        backgroundColor: "#e74a3b",
+                        data: expensesData,
+                        barThickness: 15,
+                        maxBarThickness: 20
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': रु ' + context.raw.toLocaleString('en-IN');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'रु ' + value.toLocaleString('en-IN');
+                            },
+                            maxTicksLimit: 5
+                        },
+                        grid: {
+                            color: "rgba(0, 0, 0, 0.05)",
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            autoSkip: true,
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+    
+        // Revenue Pie Chart
+        const revenueCtx = document.getElementById("revenueChart").getContext('2d');
+        revenueChart = new Chart(revenueCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ["Sales", "Repairs"],
+                datasets: [{
+                    data: [totalSales, totalRepair],
+                    backgroundColor: ['#4e73df', '#1cc88a'],
+                    hoverBackgroundColor: ['#2e59d9', '#17a673'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 10,
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += 'रु ' + context.raw.toLocaleString('en-IN');
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function updateCharts(period) {
+        fetch(`/?period=${period}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();  // Get HTML response
+            })
+            .then(html => {
+                // Parse the HTML to extract JSON data
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                const months = JSON.parse(doc.getElementById('months-data').textContent);
+                const earningsData = ensureArray(JSON.parse(doc.getElementById('earnings-data').textContent));
+                const expensesData = ensureArray(JSON.parse(doc.getElementById('expenses-data').textContent));
+                const salesData = ensureArray(JSON.parse(doc.getElementById('sales-data').textContent));
+                const repairData = ensureArray(JSON.parse(doc.getElementById('repair-data').textContent));
+                const totalSales = Number(JSON.parse(doc.getElementById('period-total-sales').textContent));
+                const totalRepair = Number(JSON.parse(doc.getElementById('period-total-repair').textContent));
+                
+                // Update bar chart
+                earningsExpensesChart.data.labels = months;
+                earningsExpensesChart.data.datasets[0].data = earningsData;
+                earningsExpensesChart.data.datasets[1].data = expensesData;
+                earningsExpensesChart.update();
+                
+                // Update pie chart
+                revenueChart.data.datasets[0].data = [totalSales, totalRepair];
+                revenueChart.update();
+            })
+            .catch(error => {
+                console.error('Error updating charts:', error);
+            });
+    }
+</script>
+{% endblock %}

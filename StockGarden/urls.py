@@ -78,8 +78,6 @@ urlpatterns = [
     path('repair_report/', RepairReportList, name='repair_report'),
 
     path('repair_detail_report/', RepairDetailReportList, name='repair_detail_report'),
-    path('chart-data/', get_chart_data, name='chart_data'),
-
 
     path("get-product-price/", get_product_price, name="get_product_price"),
 ]
