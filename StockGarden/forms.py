@@ -318,8 +318,6 @@ class SalesForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Price",
                     "id": "price",
-                    "readonly": "readonly"
-                    
                 }
             ),
             "discount": forms.TextInput(

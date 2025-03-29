@@ -268,15 +268,17 @@ class SalesInvoice(models.Model):
     invoice_number = models.CharField(max_length=10, unique=True, editable=False)
     sales = models.ForeignKey(Sales, on_delete=models.SET_NULL,related_name="salesinvoice", null=True, blank=True)  
     product_name = models.CharField(max_length=255)
+    quantity=models.IntegerField(null=True, blank=True)
     warranty = models.IntegerField(null=True, blank=True)
     customer_name = models.CharField(max_length=255)
     customer_number = models.IntegerField(null=True, blank=True)
     customer_address = models.TextField(null=True, blank=True)
     payment_method = models.CharField(max_length=20, choices=PaymentMethodChoices.choices, default=PaymentMethodChoices.CASH,db_index=True)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    subtotal=models.IntegerField( null=True, blank=True)
+    discount_amount = models.IntegerField( null=True, blank=True)
+    total_amount = models.IntegerField( null=True, blank=True)
+    paid_amount = models.IntegerField(default=0.00)
+    remaining_amount = models.IntegerField(default=0.00)
     payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='pending',db_index=True)
     due_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
@@ -290,7 +292,31 @@ class SalesInvoice(models.Model):
                 last_invoice_number = int(last_invoice.invoice_number.replace("SINV", ""))
                 self.invoice_number = f"SINV{last_invoice_number + 1:06d}"  
             else:
-                self.invoice_number = "SINV0000001"  
+                self.invoice_number = "SINV0000001" 
+        if self.sales:
+            product_price = int(round(self.sales.product.price))
+            self.product_name = self.sales.product.name
+            self.subtotal = (self.quantity or 0) * product_price
+            
+            discount = self.discount_amount or 0
+            if discount > self.subtotal:
+                discount = self.subtotal
+                self.discount_amount = discount
+            
+            self.total_amount = self.subtotal - discount
+            self.remaining_amount = self.total_amount - (self.paid_amount or 0)
+
+            if self.remaining_amount <= 0:
+                self.payment_status = 'paid'
+                self.remaining_amount = 0  
+            elif self.paid_amount > 0:
+                self.payment_status = 'partial'
+            else:
+                self.payment_status = 'pending'
+
+        if self.paid_amount > (self.total_amount or 0):
+            self.paid_amount = self.total_amount
+            self.remaining_amount = 0  
         super(SalesInvoice, self).save(*args, **kwargs)
     
     
@@ -328,13 +354,26 @@ class RepairInvoice(models.Model):
                 self.invoice_number = f"RINV{last_invoice_number + 1:06d}" 
             else:
                 self.invoice_number = "RINV0000001"  
-        discount = self.discount_amount if self.discount_amount else 0
-        total_after_discount = (self.total_amount or 0) - discount
+        discount = self.discount_amount or 0
+        subtotal = self.total_amount or 0
+        
+        # Ensure discount is not greater than the subtotal
+        if discount > subtotal:
+            discount = subtotal
+            self.discount_amount = discount  # Update the discount to match the subtotal
+
+        # Calculate total after discount
+        total_after_discount = subtotal - discount
+        
+        # Update remaining amount based on paid_amount and total_after_discount
         self.remaining_amount = total_after_discount - (self.paid_amount or 0)
 
-        # Ensure payment status updates correctly
+        # Ensure payment status updates correctly based on remaining_amount
         if self.remaining_amount <= 0:
             self.payment_status = 'paid'
+            self.remaining_amount = 0  # Ensure remaining amount is set to 0 if fully paid
+        elif self.paid_amount > 0:
+            self.payment_status = 'partial'
         else:
             self.payment_status = 'pending'
         super(RepairInvoice, self).save(*args, **kwargs)

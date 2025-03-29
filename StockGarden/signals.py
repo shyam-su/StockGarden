@@ -30,7 +30,8 @@ def create_or_update_sales_invoice(sender, instance, created, **kwargs):
             "customer_number": instance.user.phone if instance.user.phone else None,
             "customer_address": instance.user.address if instance.user.address else None,
             "payment_method": instance.payment_method,
-            "total_amount": instance.price * instance.quantity,
+            "quantity": instance.quantity,
+            "subtotal": instance.total_amount - instance.discount,  # Ensure correct subtotal
             "discount_amount": instance.discount,
             "paid_amount": instance.paid_amount,
             "remaining_amount": instance.remaining_amount,

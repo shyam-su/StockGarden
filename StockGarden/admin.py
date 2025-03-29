@@ -62,7 +62,7 @@ class ExpenseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     
 @admin.register(SalesInvoice)
 class SalesInvoiceAdmin(ImportExportModelAdmin, admin.ModelAdmin):  
-    list_display=('invoice_number','sales','customer_name','product_name','customer_number','customer_address','payment_method','discount_amount','total_amount','payment_status','due_date','created_at')
+    list_display=('invoice_number','sales','customer_name','product_name','customer_number','customer_address','payment_method','discount_amount','subtotal','total_amount','payment_status','due_date','created_at')
     list_filter=('invoice_number','customer_name',)
     
 @admin.register(RepairInvoice)

@@ -147,7 +147,7 @@ def home(request):
 @login_required
 def BrandList(request):
     try:
-        query = request.GET.get('q', '')
+        query = request.GET.get('query', '')
         brands = Brand.objects.all().order_by('-id')
         if query:
             brands = brands.filter(name__icontains=query)
@@ -240,7 +240,7 @@ def BrandDelete(request, pk):
 @login_required
 def CategoryList(request):
     try:
-        query = request.GET.get('q', '').strip()
+        query = request.GET.get('query', '').strip()
         category =Category.objects.all().order_by('-id')
 
         if query:
@@ -320,28 +320,31 @@ def CategoryDelete(request,pk):
 
 @login_required
 def PurchaseList(request):
-    try:
-        query = request.GET.get('q', '')
-        purches=Purchase.objects.all()
+    query = request.GET.get('q', '').strip()
+    purchases = Purchase.objects.all()
 
+    try:
         if query:
-            purches = purches.filter(
-                Q(vendor__company_name__icontains=query) |  
-                Q(product__name__icontains=query) |       
-                Q(description__icontains=query)      
+            purchases = purchases.filter(
+               Q(invoice__customer__name__icontains=query) |  # If 'customer' is a ForeignKey in Invoice
+                Q(invoice__invoice_number__icontains=query) |
+                Q(product__product_name__icontains=query)
             )
 
-        pagination =Paginator(purches,10)
-        page_number=request.GET.get('page')
-        page_obj=pagination.get_page(page_number)
-        context={
-            'purches':page_obj,
+        paginator = Paginator(purchases, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context = {
+            'purchases': page_obj,
+            'query': query
         }
-        return render(request, 'purchases.html',context)
+        return render(request, 'purchases.html', context)
+
     except Exception as e:
         logger.error(f"Error in PurchaseListView: {e}")
         messages.error(request, 'An error occurred while loading the purchase list.')
-        return render(request, '404.html', {"message": "An error occurred."})
+        return render(request, 'purchases.html', {'purchases': [], 'query': query})
 
 @login_required
 def PurchaseCreate(request,pruchase_id=None):
@@ -472,9 +475,9 @@ def SalesList(request):
 
         if query:
             sales = sales.filter(
-                Q(name__full_name__icontains=query) |
-                Q(product__name__icontains=query) | 
-                Q(contact_no__icontains=query) 
+               Q(user__full_name__icontains=query) | 
+                Q(product__name__icontains=query) 
+                 
             )
 
         paginator = Paginator(sales, 10) 
@@ -1494,17 +1497,19 @@ def get_product_price(request):
 def generate_sales_invoice(request, pk):
     invoice = get_object_or_404(SalesInvoice, pk=pk)
     company = Company.objects.first()
-    
-    return render(request, 'salesinvoiceprint.html', {
+    context={
         'invoice': invoice,
         'company': company
-    })
-    
+        }
+    return render(request, 'salesinvoiceprint.html',context)
+
+
 def generate_repair_invoice(request, pk):
     invoice = get_object_or_404(RepairInvoice, pk=pk)
     company = Company.objects.first()  
     
-    return render(request, 'salesinvoiceprint.html', {
+    context={
         'invoice': invoice,
         'company': company
-    })
+        }
+    return render(request, 'repairinvoiceprint.html',context)

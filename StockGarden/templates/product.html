@@ -11,7 +11,7 @@
                 <div class="card-body">
                     <form method="get" action="{% url 'product' %}" class="mb-3 d-flex justify-content-end">
                         <div class="input-group w-auto">
-                            <input type="text" name="query" class="form-control" placeholder="Search products..." value="{{ query }}">
+                            <input type="text" name="q" class="form-control" placeholder="Search products..." value="{{ query }}">
                             <button type="submit" class="btn btn-primary ml-1">Search</button>
                         </div>
                     </form>
