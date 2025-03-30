@@ -149,7 +149,7 @@ class Product(models.Model):
     
 
 class Sales(models.Model):
-    user = models.ForeignKey(User, on_delete=models.SET_NULL,null=True)  
+    user = models.ForeignKey(User, on_delete=models.SET_NULL,null=True,blank=True)  
     product = models.ForeignKey(Product, on_delete=models.SET_NULL,null=True) 
     Imei = models.CharField(max_length=100,unique=True, blank=True, null=True,db_index=True)
     warranty = models.IntegerField(null=True, blank=True)

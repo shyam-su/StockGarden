@@ -26,7 +26,7 @@ def create_or_update_sales_invoice(sender, instance, created, **kwargs):
         defaults={
             "product_name": instance.product.name,
             "warranty": instance.warranty,
-            "customer_name": instance.user.full_name,
+            "customer_name": instance.user.full_name if instance.user.full_name else None,
             "customer_number": instance.user.phone if instance.user.phone else None,
             "customer_address": instance.user.address if instance.user.address else None,
             "payment_method": instance.payment_method,

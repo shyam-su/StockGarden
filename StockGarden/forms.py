@@ -258,6 +258,15 @@ class ProductForm(forms.ModelForm):
 
 
 class SalesForm(forms.ModelForm):
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        required=False,  # Making user selection optional
+        widget=forms.Select(attrs={
+            "class": "form-control",
+            "placeholder": "Enter Customer Name",
+            "id": "user",
+        })
+    )
     class Meta:
         model = Sales
         fields = [

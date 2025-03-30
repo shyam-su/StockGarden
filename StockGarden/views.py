@@ -1106,14 +1106,14 @@ def StockReportList(request):
         ).filter(total_sales__gte=total_sales_threshold)
 
     sales_data = Sales.objects.filter(product__in=products).values('product').annotate(total_sales=Sum('quantity'))
-    purchases_data = Purchase.objects.filter(product__in=products).values('product').annotate(total_purchased=Sum('quantity'))
-
+    purchases_data = Purchase.objects.filter(product_name__in=products.values_list('name', flat=True))\
+    .values('product_name').annotate(total_purchased=Sum('quantity'))
     sales_dict = {sale['product']: sale['total_sales'] for sale in sales_data}
-    purchases_dict = {purchase['product']: purchase['total_purchased'] for purchase in purchases_data}
+    purchases_dict = {purchase['product_name']: purchase['total_purchased'] for purchase in purchases_data}
 
     for product in products:
         product.total_sales = sales_dict.get(product.id, 0)
-        product.total_purchased = purchases_dict.get(product.id, 0)
+        product.total_purchased = purchases_dict.get(product.name, 0)
 
     context = {
         'products': products,
