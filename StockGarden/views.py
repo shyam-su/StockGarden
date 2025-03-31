@@ -504,7 +504,10 @@ def SalesCreate(request,sales_id=None):
             action ='Create'
         if request.method == 'POST':
             if form.is_valid():
-                form.save()
+                sales_instance = form.save(commit=False)
+                if not sales_instance.user: 
+                    sales_instance.user = None 
+                sales_instance.save()
                 messages.success(request, f" Sales {action.lower()}d successfully!")
                 return redirect('sales')
         return render(request, 'sales_create.html',{'form':form,'action':action})
