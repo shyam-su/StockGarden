@@ -326,10 +326,10 @@ def PurchaseList(request):
     try:
         if query:
             purchases = purchases.filter(
-               Q(invoice__customer__name__icontains=query) |  # If 'customer' is a ForeignKey in Invoice
-                Q(invoice__invoice_number__icontains=query) |
-                Q(product__product_name__icontains=query)
-            )
+                Q(vendor__full_name__icontains=query) |  # Vendor search
+                Q(product_name__icontains=query) |       # Product search
+                Q(condition__icontains=query)            # Condition search
+            ).order_by('-created_at')
 
         paginator = Paginator(purchases, 10)
         page_number = request.GET.get('page')
@@ -561,9 +561,9 @@ def RepairList(request):
 
         if query:
             repair = repair.filter(
-                Q(product_name__icontains=query) | 
-                Q(device_model__icontains=query) |
-                Q(name__full_name__icontains=query) 
+                Q(user__full_name__icontains=query) |  # Customer name
+                Q(device_model__icontains=query) |     # Device model
+                Q(payment_status__icontains=query) 
             )
 
         pagination=Paginator(repair,10)
@@ -1004,28 +1004,98 @@ def UserReportList(request):
 @login_required
 def global_search(request):
     query = request.GET.get('q')
-    context = {}
+    context = {'query': query}
 
     try:
         if query:
-            products = Product.objects.filter(Q(name__icontains=query) | Q(description__icontains=query))
-            sales = Sales.objects.filter(Q(name__full_name__icontains=query) | Q(product__name__icontains=query))
-            purchases = Purchase.objects.filter(Q(vendor__company_name__icontains=query) | Q(product__name__icontains=query))
-            repairs = Repair.objects.filter(Q(product_name__icontains=query) | Q(device_model__icontains=query) | Q(name__full_name__icontains=query))
-            brands = Brand.objects.filter(Q(name__icontains=query))
-            categories = Category.objects.filter(Q(name__icontains=query))
-            users = User.objects.filter(Q(full_name__icontains=query))
+             # Products search
+            products = Product.objects.filter(
+                Q(name__icontains=query) |
+                Q(description__icontains=query) |
+                Q(brand__name__icontains=query) |
+                Q(categories__name__icontains=query)
+            ).distinct()
 
-            context = {
+
+            sales = Sales.objects.filter(
+                Q(user__full_name__icontains=query) |
+                Q(product__name__icontains=query) |
+                Q(payment_status__icontains=query) |
+                Q(Imei__icontains=query)
+            ).distinct()
+
+
+            purchases = Purchase.objects.filter(
+                Q(vendor__full_name__icontains=query) |
+                Q(product_name__icontains=query) |
+                Q(brand__name__icontains=query) |
+                Q(Imei__icontains=query)
+            ).distinct()
+
+
+            repairs = Repair.objects.filter(
+                Q(user__full_name__icontains=query) |
+                Q(device_model__icontains=query) |
+                Q(payment_status__icontains=query) |
+                Q(product_name__icontains=query)
+            ).distinct()
+
+            brands = Brand.objects.filter(
+                Q(name__icontains=query)
+            ).distinct()
+
+
+            categories = Category.objects.filter(
+                Q(name__icontains=query)
+            ).distinct()
+
+
+            users = User.objects.filter(
+                Q(full_name__icontains=query) |
+                Q(email__icontains=query) |
+                Q(phone__icontains=query)
+            ).distinct()
+        
+            expenses = Expense.objects.filter(
+                Q(category__name__icontains=query) |
+                Q(description__icontains=query) |
+                Q(payment_status__icontains=query)
+            ).distinct()
+
+            sales_invoices = SalesInvoice.objects.filter(
+                Q(customer_name__icontains=query) |
+                Q(invoice_number__icontains=query) |
+                Q(product_name__icontains=query)
+            ).distinct()
+
+            repair_invoices = RepairInvoice.objects.filter(
+                Q(customer_name__icontains=query) |
+                Q(invoice_number__icontains=query) |
+                Q(product_name__icontains=query)
+            ).distinct()
+
+
+            # Companies search
+            companies = Company.objects.filter(
+                Q(name__icontains=query) |
+                Q(email__icontains=query) |
+                Q(phone_number__icontains=query)
+            ).distinct().order_by('-created_at')
+
+
+            context.update({
                 'products': products,
                 'sales': sales,
                 'purchases': purchases,
                 'repairs': repairs,
                 'brands': brands,
                 'categories': categories,
+                'companies':companies,
                 'users': users,
-                'query': query,
-            }
+                'expenses': expenses,
+                'sales_invoices': sales_invoices,
+                'repair_invoices': repair_invoices,
+            })
     except Exception as e:
         logger.error(f"Error occurred in global_search: {e}", exc_info=True)
         context['error'] = "An error occurred while processing your search. Please try again."

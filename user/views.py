@@ -42,7 +42,8 @@ def UserListView(request):
                 Q(email__icontains=search_query) |
                 Q(phone__icontains=search_query) |
                 Q(address__icontains=search_query) |
-                Q(role__icontains=search_query)
+                Q(role__icontains=search_query) |
+                Q(company_name__icontains=search_query)
             )
 
 

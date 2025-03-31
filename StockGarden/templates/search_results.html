@@ -1,4 +1,3 @@
-<!-- search_results.html -->
 {% extends 'base.html' %}
 
 {% block content %}
@@ -10,55 +9,76 @@
                     <h5 class="mb-0">Search Results</h5>
                     <p class="mb-0">Search term: {{ query }}</p>
                 </div>
-                <div class="card-body">
-                    {% if sales %}
-                        <h3>Sales</h3>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
-                                <thead class="table-primary text-center">
-                                    <tr>
-                                        <th style="text-align: left;">ID</th>
-                                        <th style="text-align: left;">Name</th>
-                                        <th style="text-align: left;">Product</th>
-                                        <th style="text-align: left;">Quantity</th>
-                                        <th style="text-align: left;">Price</th>
-                                        <th style="text-align: left;">Total</th>
-                                        <th style="text-align: left;">Contact No</th>
-                                        <th style="text-align: left;">Expiring Date</th>
-                                        <th style="text-align: left;">Date</th>
-                                        <th style="text-align: center;">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tableBody">
-                                    {% for sale in sales %}
-                                        <tr>
-                                            <td style="text-align: left;">{{ forloop.counter }}</td>
-                                            <td style="text-align: left;">{{ sale.name.full_name }}</td>
-                                            <td style="text-align: left;">{{ sale.product.name|slice:":12" }}</td>
-                                            <td style="text-align: left;">{{ sale.quantity }}</td>
-                                            <td style="text-align: left;">{{ sale.price }}</td>
-                                            <td style="text-align: left;">{{ sale.total }}</td>
-                                            <td style="text-align: left;">{{ sale.contact_no }}</td>
-                                            <td style="text-align: left;">{{ sale.expiring_date }}</td>
-                                            <td style="text-align: left;">{{ sale.created_at }}</td>
-                                            <td class="text-center">
-                                                <a href="{% url 'sales_update' pk=sale.id %}" class="btn btn-sm btn-success my-1">Update</a>
-                                                <a href="{% url 'sales_delete' pk=sale.id %}" class="btn btn-sm btn-danger">Delete</a>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <p class="text-center">No sales found for "{{ query }}".</p>
-                    {% endif %}
-                </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Sales Results -->
+{% if sales %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Sales</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="table-primary text-center">
+                                <tr>
+                                    <th style="text-align: left;">ID</th>
+                                    <th style="text-align: left;">Name</th>
+                                    <th style="text-align: left;">Product</th>
+                                    <th style="text-align: left;">Quantity</th>
+                                    <th style="text-align: left;">Price</th>
+                                    <th style="text-align: left;">Total</th>
+                                    <th style="text-align: left;">Contact No</th>
+                                    <th style="text-align: left;">Expiring Date</th>
+                                    <th style="text-align: left;">Date</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                {% for sale in sales %}
+                                    <tr>
+                                        <td style="text-align: left;">{{ forloop.counter }}</td>
+                                        <td style="text-align: left;">{{ sale.user.full_name }}</td>
+                                        <td style="text-align: left;">{{ sale.product.name|slice:":12" }}</td>
+                                        <td style="text-align: left;">{{ sale.quantity }}</td>
+                                        <td style="text-align: left;">{{ sale.price }}</td>
+                                        <td style="text-align: left;">{{ sale.total_amount }}</td>
+                                        <td style="text-align: left;">{{ sale.user.phone|default:"-" }}</td>
+                                        <td style="text-align: left;">{{ sale.expiring_date|date:"Y-m-d"|default:"-" }}</td>
+                                        <td style="text-align: left;">{{ sale.created_at|date:"Y-m-d" }}</td>
+                                        <td class="text-center">
+                                            <a href="{% url 'sales_update' pk=sale.id %}" class="btn btn-sm btn-success my-1">Update</a>
+                                            <a href="{% url 'sales_delete' pk=sale.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-body">
+                    <p class="text-center">No sales found for "{{ query }}".</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Products Results -->
 <div class="container-fluid">
@@ -70,7 +90,6 @@
                 </div>
                 <div class="card-body">
                     {% if products %}
-  
                         <div class="table-responsive">
                             <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
                                 <thead class="table-primary text-center">
@@ -90,11 +109,11 @@
                                         <tr>
                                             <td style="text-align: left;">{{ product.id }}</td>
                                             <td style="text-align: left;">{{ product.name }}</td>
-                                            <td style="text-align: left;">{{ product.description }}</td>
+                                            <td style="text-align: left;">{{ product.description|truncatechars:30 }}</td>
                                             <td style="text-align: left;">{{ product.price }}</td>
                                             <td style="text-align: left;">{{ product.stock }}</td>
-                                            <td style="text-align: left;">{{ product.brand.name }}</td>
-                                            <td style="text-align: left;">{{ product.categories.name }}</td>
+                                            <td style="text-align: left;">{{ product.brand.name|default:"-" }}</td>
+                                            <td style="text-align: left;">{{ product.categories.name|default:"-" }}</td>
                                             <td class="text-center">
                                                 <a href="{% url 'product_update' pk=product.id %}" class="btn btn-sm btn-success me-1">Update</a>
                                                 <a href="{% url 'product_delete' pk=product.id %}" class="btn btn-sm btn-danger">Delete</a>
@@ -113,52 +132,107 @@
     </div>
 </div>
 
-
-<!-- Vendors Results -->
-{% if vendors %}
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="card shadow mb-4">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Vendors</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
-                                <thead class="table-primary text-center">
+<!-- Purchases Results -->
+{% if purchases %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Purchases</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="table-primary text-center">
+                                <tr>
+                                    <th style="text-align: left;">ID</th>
+                                    <th style="text-align: left;">Vendor</th>
+                                    <th style="text-align: left;">Product</th>
+                                    <th style="text-align: left;">Quantity</th>
+                                    <th style="text-align: left;">Price</th>
+                                    <th style="text-align: left;">Total</th>
+                                    <th style="text-align: left;">Date</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                {% for purchase in purchases %}
                                     <tr>
-                                        <th style="text-align: left;">ID</th>
-                                        <th style="text-align: left;">Company Name</th>
-                                        <th style="text-align: left;">Contact</th>
-                                        <th style="text-align: left;">Email</th>
-                                        <th style="text-align: center;">Actions</th>
+                                        <td style="text-align: left;">{{ forloop.counter }}</td>
+                                        <td style="text-align: left;">{{ purchase.vendor.full_name }}</td>
+                                        <td style="text-align: left;">{{ purchase.product_name }}</td>
+                                        <td style="text-align: left;">{{ purchase.quantity }}</td>
+                                        <td style="text-align: left;">{{ purchase.price }}</td>
+                                        <td style="text-align: left;">{{ purchase.total_price }}</td>
+                                        <td style="text-align: left;">{{ purchase.created_at|date:"Y-m-d" }}</td>
+                                        <td class="text-center">
+                                            <a href="{% url 'purchase_update' pk=purchase.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                            <a href="{% url 'purchase_delete' pk=purchase.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody id="tableBody">
-                                    {% for vendor in vendors %}
-                                        <tr>
-                                            <td style="text-align: left;">{{ vendor.id }}</td>
-                                            <td style="text-align: left;">{{ vendor.company_name }}</td>
-                                            <td style="text-align: left;">{{ vendor.contact_no }}</td>
-                                            <td style="text-align: left;">{{ vendor.email }}</td>
-                                            <td class="text-center">
-                                                <a href="{% url 'vendor_update' pk=vendor.id %}" class="btn btn-sm btn-success me-1">Update</a>
-                                                <a href="{% url 'vendor_delete' pk=vendor.id %}" class="btn btn-sm btn-danger">Delete</a>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 {% endif %}
 
+<!-- Repairs Results -->
+{% if repairs %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Repairs</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="table-primary text-center">
+                                <tr>
+                                    <th style="text-align: left;">ID</th>
+                                    <th style="text-align: left;">Customer</th>
+                                    <th style="text-align: left;">Device Model</th>
+                                    <th style="text-align: left;">Status</th>
+                                    <th style="text-align: left;">Payment Status</th>
+                                    <th style="text-align: left;">Out Date</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                {% for repair in repairs %}
+                                    <tr>
+                                        <td style="text-align: left;">{{ repair.id }}</td>
+                                        <td style="text-align: left;">{{ repair.user.full_name }}</td>
+                                        <td style="text-align: left;">{{ repair.device_model }}</td>
+                                        <td style="text-align: left;">{{ repair.get_status_display }}</td>
+                                        <td style="text-align: left;">{{ repair.get_payment_status_display }}</td>
+                                        <td style="text-align: left;">{{ repair.out_date|date:"Y-m-d"|default:"-" }}</td>
+                                        <td class="text-center">
+                                            <a href="{% url 'repair_update' pk=repair.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                            <a href="{% url 'repair_delete' pk=repair.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Continue with other models following the same pattern -->
 <!-- Brands Results -->
+{% if brands %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -167,40 +241,38 @@
                     <h5 class="mb-0">Brands</h5>
                 </div>
                 <div class="card-body">
-                    {% if brands %}
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
-                                <thead class="table-primary text-center">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="table-primary text-center">
+                                <tr>
+                                    <th style="text-align: left;">ID</th>
+                                    <th style="text-align: left;">Brand Name</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                {% for brand in brands %}
                                     <tr>
-                                        <th style="text-align: left;">ID</th>
-                                        <th style="text-align: left;">Brand Name</th>
-                                        <th style="text-align: center;">Actions</th>
+                                        <td style="text-align: left;">{{ brand.id }}</td>
+                                        <td style="text-align: left;">{{ brand.name }}</td>
+                                        <td class="text-center">
+                                            <a href="{% url 'brand_update' pk=brand.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                            <a href="{% url 'brand_delete' pk=brand.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody id="tableBody">
-                                    {% for brand in brands %}
-                                        <tr>
-                                            <td style="text-align: left;">{{ brand.id }}</td>
-                                            <td style="text-align: left;">{{ brand.name }}</td>
-                                            <td class="text-center">
-                                                <a href="{% url 'brand_update' pk=brand.id %}" class="btn btn-sm btn-success me-1">Update</a>
-                                                <a href="{% url 'brand_delete' pk=brand.id %}" class="btn btn-sm btn-danger">Delete</a>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <p class="text-center">No brands found.</p>
-                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- Categories Results -->
+{% if categories %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -209,41 +281,38 @@
                     <h5 class="mb-0">Categories</h5>
                 </div>
                 <div class="card-body">
-                    {% if categories %}
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
-                                <thead class="table-primary text-center">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="table-primary text-center">
+                                <tr>
+                                    <th style="text-align: left;">ID</th>
+                                    <th style="text-align: left;">Category Name</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                {% for category in categories %}
                                     <tr>
-                                        <th style="text-align: left;">ID</th>
-                                        <th style="text-align: left;">Category Name</th>
-                                        <th style="text-align: center;">Actions</th>
+                                        <td style="text-align: left;">{{ category.id }}</td>
+                                        <td style="text-align: left;">{{ category.name }}</td>
+                                        <td class="text-center">
+                                            <a href="{% url 'category_update' pk=category.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                            <a href="{% url 'category_delete' pk=category.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody id="tableBody">
-                                    {% for category in categories %}
-                                        <tr>
-                                            <td style="text-align: left;">{{ category.id }}</td>
-                                            <td style="text-align: left;">{{ category.name }}</td>
-                                            <td class="text-center">
-                                                <a href="{% url 'category_update' pk=category.id %}" class="btn btn-sm btn-success me-1">Update</a>
-                                                <a href="{% url 'category_delete' pk=category.id %}" class="btn btn-sm btn-danger">Delete</a>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <p class="text-center">No categories found.</p>
-                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
+{% endif %}
 
 <!-- Users Results -->
+{% if users %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -252,39 +321,236 @@
                     <h5 class="mb-0">Users</h5>
                 </div>
                 <div class="card-body">
-                    {% if users %}
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
-                                <thead class="table-primary text-center">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="table-primary text-center">
+                                <tr>
+                                    <th style="text-align: left;">ID</th>
+                                    <th style="text-align: left;">Full Name</th>
+                                    <th style="text-align: left;">Email</th>
+                                    <th style="text-align: left;">Phone</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                {% for user in users %}
                                     <tr>
-                                        <th style="text-align: left;">ID</th>
-                                        <th style="text-align: left;">Username</th>
-                                        <th style="text-align: left;">Email</th>
-                                        <th style="text-align: center;">Actions</th>
+                                        <td style="text-align: left;">{{ user.id }}</td>
+                                        <td style="text-align: left;">{{ user.full_name }}</td>
+                                        <td style="text-align: left;">{{ user.email }}</td>
+                                        <td style="text-align: left;">{{ user.phone|default:"-" }}</td>
+                                        <td class="text-center">
+                                            <a href="{% url 'user_update' pk=user.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                            <a href="{% url 'user_delete' pk=user.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody id="tableBody">
-                                    {% for user in users %}
-                                        <tr>
-                                            <td style="text-align: left;">{{ user.id }}</td>
-                                            <td style="text-align: left;">{{ user.full_name }}</td>
-                                            <td style="text-align: left;">{{ user.email }}</td>
-                                            <td class="text-center">
-                                                <a href="{% url 'user_update' pk=user.id %}" class="btn btn-sm btn-success me-1">Update</a>
-                                                <a href="{% url 'user_delete' pk=user.id %}" class="btn btn-sm btn-danger">Delete</a>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <p class="text-center">No users found.</p>
-                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endif %}
+
+<!-- Expenses Results -->
+{% if expenses %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Expenses</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="table-primary text-center">
+                                <tr>
+                                    <th style="text-align: left;">ID</th>
+                                    <th style="text-align: left;">Category</th>
+                                    <th style="text-align: left;">Amount</th>
+                                    <th style="text-align: left;">Description</th>
+                                    <th style="text-align: left;">Payment Method</th>
+                                    <th style="text-align: left;">Status</th>
+                                    <th style="text-align: left;">Date</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                {% for expense in expenses %}
+                                    <tr>
+                                        <td style="text-align: left;">{{ expense.id }}</td>
+                                        <td style="text-align: left;">{{ expense.category.name|default:"-" }}</td>
+                                        <td style="text-align: left;">{{ expense.amount }}</td>
+                                        <td style="text-align: left;">{{ expense.description|truncatechars:30|default:"-" }}</td>
+                                        <td style="text-align: left;">{{ expense.get_payment_method_display }}</td>
+                                        <td style="text-align: left;">{{ expense.get_payment_status_display }}</td>
+                                        <td style="text-align: left;">{{ expense.created_at|date:"Y-m-d" }}</td>
+                                        <td class="text-center">
+                                            <a href="{% url 'expense_update' pk=expense.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                            <a href="{% url 'expense_delete' pk=expense.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Companies Results -->
+{% if companies %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Companies</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="table-primary text-center">
+                                <tr>
+                                    <th style="text-align: left;">ID</th>
+                                    <th style="text-align: left;">Name</th>
+                                    <th style="text-align: left;">Email</th>
+                                    <th style="text-align: left;">Phone</th>
+                                    <th style="text-align: left;">Address</th>
+                                    <th style="text-align: left;">Date</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                {% for company in companies %}
+                                    <tr>
+                                        <td style="text-align: left;">{{ company.id }}</td>
+                                        <td style="text-align: left;">{{ company.name }}</td>
+                                        <td style="text-align: left;">{{ company.email }}</td>
+                                        <td style="text-align: left;">{{ company.phone_number }}</td>
+                                        <td style="text-align: left;">{{ company.address|truncatechars:30 }}</td>
+                                        <td style="text-align: left;">{{ company.created_at|date:"Y-m-d" }}</td>
+                                        <td class="text-center">
+                                            <a href="{% url 'company_update' pk=company.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                            <a href="{% url 'company_delete' pk=company.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Sales Invoices Results -->
+{% if sales_invoices %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Sales Invoices</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="table-primary text-center">
+                                <tr>
+                                    <th style="text-align: left;">ID</th>
+                                    <th style="text-align: left;">Invoice #</th>
+                                    <th style="text-align: left;">Customer</th>
+                                    <th style="text-align: left;">Product</th>
+                                    <th style="text-align: left;">Total</th>
+                                    <th style="text-align: left;">Status</th>
+                                    <th style="text-align: left;">Date</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                {% for invoice in sales_invoices %}
+                                    <tr>
+                                        <td style="text-align: left;">{{ invoice.id }}</td>
+                                        <td style="text-align: left;">{{ invoice.invoice_number }}</td>
+                                        <td style="text-align: left;">{{ invoice.customer_name|default:"-" }}</td>
+                                        <td style="text-align: left;">{{ invoice.product_name|truncatechars:20 }}</td>
+                                        <td style="text-align: left;">{{ invoice.total_amount }}</td>
+                                        <td style="text-align: left;">{{ invoice.get_payment_status_display }}</td>
+                                        <td style="text-align: left;">{{ invoice.created_at|date:"Y-m-d" }}</td>
+                                        <td class="text-center">
+                                            <a href="#" class="btn btn-sm btn-success me-1">Update</a>
+                                            <a href="#" class="btn btn-sm btn-danger">Delete</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Repair Invoices Results -->
+{% if repair_invoices %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Repair Invoices</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="table-primary text-center">
+                                <tr>
+                                    <th style="text-align: left;">ID</th>
+                                    <th style="text-align: left;">Invoice #</th>
+                                    <th style="text-align: left;">Customer</th>
+                                    <th style="text-align: left;">Product</th>
+                                    <th style="text-align: left;">Total</th>
+                                    <th style="text-align: left;">Status</th>
+                                    <th style="text-align: left;">Date</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                {% for invoice in repair_invoices %}
+                                    <tr>
+                                        <td style="text-align: left;">{{ invoice.id }}</td>
+                                        <td style="text-align: left;">{{ invoice.invoice_number }}</td>
+                                        <td style="text-align: left;">{{ invoice.customer_name }}</td>
+                                        <td style="text-align: left;">{{ invoice.product_name|truncatechars:20 }}</td>
+                                        <td style="text-align: left;">{{ invoice.total_amount }}</td>
+                                        <td style="text-align: left;">{{ invoice.get_payment_status_display }}</td>
+                                        <td style="text-align: left;">{{ invoice.created_at|date:"Y-m-d" }}</td>
+                                        <td class="text-center">
+                                            <a href="#" class="btn btn-sm btn-success me-1">Update</a>
+                                            <a href="#" class="btn btn-sm btn-danger">Delete</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 {% endblock %}
