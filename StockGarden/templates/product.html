@@ -9,10 +9,33 @@
                     <h5 class="mb-0">Products</h5>
                 </div>
                 <div class="card-body">
-                    <form method="get" action="{% url 'product' %}" class="mb-3 d-flex justify-content-end">
-                        <div class="input-group w-auto">
-                            <input type="text" name="q" class="form-control" placeholder="Search products..." value="{{ query }}">
-                            <button type="submit" class="btn btn-primary ml-1">Search</button>
+                    <form method="get" class="mb-3">
+                        <div class="row gx-3 align-items-center">
+                            <!-- Search Field -->
+                            <div class="col">
+                                <input type="text" name="q" class="form-control" placeholder="Search products..." value="{{ query }}">
+                            </div>
+                            
+                            <!-- From Date -->
+                            <div class="col-auto">
+                                <div class="input-group">
+                                    <span class="input-group-text">From</span>
+                                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                                </div>
+                            </div>
+                            
+                            <!-- To Date -->
+                            <div class="col-auto">
+                                <div class="input-group">
+                                    <span class="input-group-text">To</span>
+                                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                                </div>
+                            </div>
+                            
+                            <!-- Filter Button -->
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary w-100">Filter</button>
+                            </div>
                         </div>
                     </form>
                     
@@ -55,14 +78,19 @@
                     </div>
                 </div>
                 
+                <!-- Pagination with preserved filters -->
                 <nav class="mt-4">
                     <ul class="pagination justify-content-center">
                         {% if products.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page=1" aria-label="First">&laquo;&laquo;</a>
+                            <a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ products.previous_page_number }}" aria-label="Previous">&laquo;</a>
+                            <a class="page-link" href="?page={{ products.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
                         </li>
                         {% endif %}
 
@@ -70,16 +98,20 @@
                             {% if products.number == num %}
                             <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
                             {% else %}
-                            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">{{ num }}</a></li>
                             {% endif %}
                         {% endfor %}
 
                         {% if products.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ products.next_page_number }}" aria-label="Next">&raquo;</a>
+                            <a class="page-link" href="?page={{ products.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ products.paginator.num_pages }}" aria-label="Last">&raquo;&raquo;</a>
+                            <a class="page-link" href="?page={{ products.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
                         </li>
                         {% endif %}
                     </ul>

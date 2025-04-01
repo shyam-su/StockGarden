@@ -321,6 +321,8 @@ def CategoryDelete(request,pk):
 @login_required
 def PurchaseList(request):
     query = request.GET.get('q', '').strip()
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
     purchases = Purchase.objects.all()
 
     try:
@@ -331,13 +333,28 @@ def PurchaseList(request):
                 Q(condition__icontains=query)            # Condition search
             ).order_by('-created_at')
 
+         # Date range filtering
+        if date_from:
+            naive_date = datetime.strptime(date_from, '%Y-%m-%d')
+            aware_date = timezone.make_aware(naive_date)
+            purchases = purchases.filter(created_at__gte=date_from)
+        if date_to:
+            naive_date = datetime.strptime(date_to, '%Y-%m-%d')
+            aware_date = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+            purchases = purchases.filter(created_at__lt=aware_date)
+
+        purchases = purchases.order_by('-created_at')
+
+
         paginator = Paginator(purchases, 10)
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
 
         context = {
             'purchases': page_obj,
-            'query': query
+            'query': query,
+            'date_from': date_from,
+            'date_to': date_to
         }
         return render(request, 'purchases.html', context)
 
@@ -405,23 +422,37 @@ def PurchaseDelete(request,pk):
 def ProductList(request):
     try:
         query = request.GET.get('q', '')
-        product =Product.objects.all().order_by('-created_at')
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        products =Product.objects.all().order_by('-created_at')
 
         if query:
-            product = product.filter(
+            products = products.filter(
                 Q(name__icontains=query) |
                 Q(description__icontains=query) |
                 Q(brand__name__icontains=query) |
                 Q(categories__name__icontains=query)
             )
 
-        paginator =Paginator(product,10)
+        if date_from:
+            naive_date = datetime.strptime(date_from, '%Y-%m-%d')
+            aware_date = timezone.make_aware(naive_date)
+            products = products.filter(created_at__gte=aware_date)
+        
+        if date_to:
+            naive_date = datetime.strptime(date_to, '%Y-%m-%d')
+            aware_date = timezone.make_aware(naive_date) + timedelta(days=1)
+            products = products.filter(created_at__lt=aware_date)
+
+        paginator =Paginator(products,10)
         page_number =request.GET.get('page')
         page_obj =paginator.get_page(page_number)
         
         context ={
             "products":page_obj,
             "query": query,
+            "date_from": date_from,
+            "date_to": date_to
         }
         return render(request, 'product.html',context)
 
@@ -471,14 +502,31 @@ def ProductDelete(request,pk):
 def SalesList(request):
     try:
         query = request.GET.get('q', '')
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        payment_status = request.GET.get('payment_status', '')
+
         sales = Sales.objects.all().order_by('-id')
 
         if query:
             sales = sales.filter(
-               Q(user__full_name__icontains=query) | 
+                Q(user__full_name__icontains=query) | 
                 Q(product__name__icontains=query) 
                  
             )
+
+        if date_from:
+            naive_date = datetime.strptime(date_from, '%Y-%m-%d')
+            aware_date = timezone.make_aware(naive_date)
+            sales = sales.filter(created_at__gte=aware_date)
+        
+        if date_to:
+            naive_date = datetime.strptime(date_to, '%Y-%m-%d')
+            aware_date = timezone.make_aware(naive_date) + timedelta(days=1)
+            sales = sales.filter(created_at__lt=aware_date)
+
+        if payment_status:
+            sales = sales.filter(payment_status=payment_status)
 
         paginator = Paginator(sales, 10) 
         page_number = request.GET.get('page')
@@ -486,6 +534,10 @@ def SalesList(request):
         context={
             "sales":page_obj,
             "query": query,
+            "date_from": date_from,
+            "date_to": date_to,
+            "payment_status": payment_status,
+            "status_choices": PaymentStatusChoices.choices
         }
         return render(request, 'sales.html',context)
     except Exception as e:
