@@ -561,7 +561,8 @@ def SalesCreate(request,sales_id=None):
                     sales_instance.user = None 
                 sales_instance.save()
                 messages.success(request, f" Sales {action.lower()}d successfully!")
-                return redirect('sales')
+                return SalesList(request)
+            
         return render(request, 'sales_create.html',{'form':form,'action':action})
     except Exception as e:
         logger.error(f"Error in SalesCreateView: {e}")
