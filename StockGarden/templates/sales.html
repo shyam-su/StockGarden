@@ -83,10 +83,10 @@
                                     <td>{{ sale.due_date|date:"M d, Y"|default:"-" }}</td>
                                     <td class="text-center">
                                         <a href="{% url 'sales_update' pk=sale.id %}" class="btn btn-sm btn-success me-1">
-                                            <i class="fas fa-edit"></i>
+                                            Update
                                         </a>
                                         <a href="{% url 'sales_delete' pk=sale.id %}" class="btn btn-sm btn-danger">
-                                            <i class="fas fa-trash"></i>
+                                            Delete
                                         </a>
                                     </td>
                                 </tr>

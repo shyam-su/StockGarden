@@ -609,21 +609,50 @@ def SalesDelete(request,pk):
 def RepairList(request):
     try:
         query = request.GET.get('q', '')
-        repair=Repair.objects.all().order_by('id')
+        start_date = request.GET.get('start_date', '')
+        end_date = request.GET.get('end_date', '')
+        status_filter = request.GET.get('status', '')
+        payment_status_filter = request.GET.get('payment_status', '')
+
+        repairs=Repair.objects.all().order_by('id')
 
         if query:
-            repair = repair.filter(
+            repairs = repairs.filter(
                 Q(user__full_name__icontains=query) |  # Customer name
                 Q(device_model__icontains=query) |     # Device model
                 Q(payment_status__icontains=query) 
             )
 
-        pagination=Paginator(repair,10)
+
+        # Apply date range filter if dates are provided
+        if start_date:
+            repairs = repairs.filter(created_at__gte=start_date)
+        if end_date:
+            # Add 1 day to include the entire end date
+            from datetime import datetime, timedelta
+            end_date_obj = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            repairs = repairs.filter(created_at__lte=end_date_obj)
+
+        # Apply status filter if selected
+        if status_filter:
+            repairs = repairs.filter(status=status_filter)
+
+        if payment_status_filter:  # Apply payment status filter
+            repairs = repairs.filter(payment_status=payment_status_filter)
+
+
+        pagination=Paginator(repairs,10)
         page_number=request.GET.get('page')
         page_obj=pagination.get_page(page_number)
         context={
             'repair':page_obj,
             'query': query,
+            'status_choices': Repair.STATUS_CHOICES,
+            'status_filter': status_filter,
+            'payment_status_choices': PaymentStatusChoices.choices,
+            'payment_status_filter': payment_status_filter, 
+            'start_date': start_date,                
+            'end_date': end_date,
         }
         return render(request, 'repair.html',context)
     except Exception as e:
