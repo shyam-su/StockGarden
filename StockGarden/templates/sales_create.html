@@ -12,7 +12,7 @@
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
-
+                        <input type="hidden" name="form_token" value="{{ form_token }}">
                         <!-- Display Non-Field Errors (General Form Errors) -->
                         {% if form.non_field_errors %}
                             <div class="alert alert-danger">

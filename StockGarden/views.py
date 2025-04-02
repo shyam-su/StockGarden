@@ -543,10 +543,16 @@ def SalesList(request):
     except Exception as e:
         logger.error(f"Error in SalesListView: {e}")
         return render(request, '404.html', {"message": "An error occurred."})
-    
+
+import uuid
+
 @login_required
 def SalesCreate(request,sales_id=None):
     try:
+        # Generate a unique token for this form submission if not already present
+        if 'form_token' not in request.session:
+            request.session['form_token'] = str(uuid.uuid4())
+
         if sales_id:
             sales = get_object_or_404(Sales,id = sales_id)
             form = SalesForm(request.POST or None,instance=sales)
@@ -556,14 +562,31 @@ def SalesCreate(request,sales_id=None):
             action ='Create'
         if request.method == 'POST':
             if form.is_valid():
+            # Check if this form submission has already been processed
+                submitted_token = request.POST.get('form_token', '')
+                if submitted_token != request.session.get('form_token'):
+                    messages.error(request, "This form has already been submitted.")
+                    return SalesList(request)  # Show sales list without saving again
+                
                 sales_instance = form.save(commit=False)
                 if not sales_instance.user: 
                     sales_instance.user = None 
                 sales_instance.save()
                 messages.success(request, f" Sales {action.lower()}d successfully!")
+
+                # Clear the token after successful save to prevent reuse
+                del request.session['form_token']
+
                 return SalesList(request)
             
-        return render(request, 'sales_create.html',{'form':form,'action':action})
+            # Add the token to the form context
+        context = {
+            'form': form,
+            'action': action,
+            'form_token': request.session['form_token']
+        }
+
+        return render(request, 'sales_create.html',context)
     except Exception as e:
         logger.error(f"Error in SalesCreateView: {e}")
         messages.error(request, 'An error occurred while processing the sales.')
