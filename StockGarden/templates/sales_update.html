@@ -139,34 +139,12 @@
                                 {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.remaining_amount.id_for_label }}">Remaining Amount</label>
-                                {{ form.remaining_amount }}
-                                {% if form.remaining_amount.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.remaining_amount.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
                                 <label for="{{ form.due_date.id_for_label }}">Due Date</label>
                                 {{ form.due_date }}
                                 <small class="form-text text-muted">Format: YYYY-MM-DD HH:MM</small>
                                 {% if form.due_date.errors %}
                                     <div class="invalid-feedback d-block">
                                         {{ form.due_date.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.expiring_date.id_for_label }}">Expiring Date</label>
-                                {{ form.expiring_date }}
-                                <small class="form-text text-muted">Format: YYYY-MM-DD</small>
-                                {% if form.expiring_date.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.expiring_date.errors }}
                                     </div>
                                 {% endif %}
                             </div>

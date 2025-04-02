@@ -40,7 +40,7 @@ class ProductAdmin(ImportExportModelAdmin, admin.ModelAdmin):
 
 @admin.register(Sales)
 class SalesAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display=('user','product','quantity','price','discount','warranty','payment_method','total_amount','paid_amount','remaining_amount','due_date','notes','expiring_date','updated_at','created_at',)
+    list_display=('user','product','quantity','price','discount','warranty','payment_method','total_amount','paid_amount','remaining_amount','due_date','notes','updated_at','created_at',)
     search_fields = ('user',)
      
 @admin.register(Repair)

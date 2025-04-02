@@ -1,5 +1,9 @@
 from django import forms
 from .models import *
+from django.core.exceptions import ValidationError
+from django.utils import timezone 
+
+
 
 
 class BrandForm(forms.ModelForm):
@@ -281,10 +285,8 @@ class SalesForm(forms.ModelForm):
             'payment_status',
             'total_amount',
             'paid_amount',
-            'remaining_amount',
             'due_date',
             'notes',
-            "expiring_date",
         ]
         widgets = {
             "user": forms.Select(
@@ -313,6 +315,7 @@ class SalesForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Warranty",
                     "id": "warranty",
+                     "min": "0",
                 }
             ),
             "quantity": forms.NumberInput(
@@ -320,6 +323,7 @@ class SalesForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Quantity",
                     "id": "quantity",
+                    "min": "1",
                 }
             ),
             "price": forms.NumberInput(
@@ -329,7 +333,7 @@ class SalesForm(forms.ModelForm):
                     "id": "price",
                 }
             ),
-            "discount": forms.TextInput(
+            "discount": forms.NumberInput(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter Discount",
@@ -366,14 +370,6 @@ class SalesForm(forms.ModelForm):
                     "step": "0.01",
                 }
             ),
-            "remaining_amount": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Remaining Amount",
-                    "id": "remaining_amount",
-                    "step": "0.01",
-                }
-            ),
             "due_date": forms.DateTimeInput(
                 attrs={
                     "class": "form-control",
@@ -390,13 +386,6 @@ class SalesForm(forms.ModelForm):
                     "rows": 3,
                 }
             ),
-            "expiring_date": forms.DateInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Expiring Date",
-                    "id": "expiring_date",
-                }
-            ),  
         }
         labels = {
             "name": "Customer Name",
@@ -410,11 +399,45 @@ class SalesForm(forms.ModelForm):
             "payment_status": "Payment Status",
             "total_amount": "Total Amount",
             "paid_amount": "Paid Amount",
-            "remaining_amount": "Remaining Amount",
             "due_date": "Due Date",
             "notes": "Notes",
-            "expiring_date": "Expiring Date",
         }
+    # Custom validation for IMEI (must be a 15-digit number)
+    def clean_Imei(self):
+        imei = self.cleaned_data.get("Imei")
+        if imei and (len(str(imei)) != 15 or not str(imei).isdigit()):
+            raise ValidationError("IMEI must be a 15-digit numeric value.")
+        return imei
+
+    # Custom validation for quantity (should be at least 1)
+    def clean_quantity(self):
+        quantity = self.cleaned_data.get("quantity")
+        if quantity and quantity < 1:
+            raise ValidationError("Quantity must be at least 1.")
+        return quantity
+
+    # Custom validation for price (must be positive)
+    def clean_price(self):
+        price = self.cleaned_data.get("price")
+        if price and price <= 0:
+            raise ValidationError("Price must be greater than zero.")
+        return price
+
+    # Ensure paid amount is not greater than total amount
+    def clean_paid_amount(self):
+        paid_amount = self.cleaned_data.get("paid_amount")
+        total_amount = self.cleaned_data.get("total_amount")
+        if paid_amount and total_amount and paid_amount > total_amount:
+            raise ValidationError("Paid amount cannot be greater than total amount.")
+        return paid_amount
+
+    # Validate due date (must be in the future)
+    def clean_due_date(self):
+        due_date = self.cleaned_data.get("due_date")
+        if due_date and due_date < timezone.now():
+            raise ValidationError("Due date cannot be in the past.")
+        return due_date
+
 
 class RepairForm(forms.ModelForm):
     class Meta:

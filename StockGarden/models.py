@@ -163,12 +163,11 @@ class Sales(models.Model):
     remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
     due_date = models.DateTimeField(null=True, blank=True) 
     notes = models.TextField(null=True, blank=True) 
-    expiring_date = models.DateTimeField(null=True, blank=True)
     created_at=models.DateTimeField(auto_now_add=True,verbose_name="Sale Date")
     updated_at=models.DateTimeField(auto_now=True)
     
     def save(self, *args, **kwargs):
-        self.price = self.product.price  
+        self.price = self.price if self.price is not None else self.product.price
         self.warranty = self.product.warranty  
         self.total_amount = Decimal(self.quantity) * Decimal(self.price)
         self.paid_amount = Decimal(self.paid_amount)
