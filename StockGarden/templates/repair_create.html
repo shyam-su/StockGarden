@@ -12,7 +12,7 @@
                     <form method="post">
                         {% csrf_token %}
 
-                        <!-- First Row -->
+                        <!-- Customer and Product Details -->
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -28,7 +28,7 @@
                             </div>
                         </div>
 
-                        <!-- Second Row -->
+                        <!-- Device and Issue Details -->
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -44,31 +44,21 @@
                             </div>
                         </div>
 
-                        <!-- Third Row -->
+                        <!-- Payment Details -->
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="id_payment_method">Payment Method</label>
                                     {{ form.payment_method }}
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="id_payment_status">Payment Status</label>
-                                    {{ form.payment_status }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Fourth Row -->
-                        <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="id_total_amount">Total Amount</label>
                                     {{ form.total_amount }}
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="id_paid_amount">Paid Amount</label>
                                     {{ form.paid_amount }}
@@ -76,24 +66,14 @@
                             </div>
                         </div>
 
-                        <!-- Fifth Row -->
+                        <!-- Repair Status and Date -->
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="id_remaining_amount">Remaining Amount</label>
-                                    {{ form.remaining_amount }}
-                                </div>
-                            </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="id_status">Status</label>
                                     {{ form.status }}
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Sixth Row -->
-                        <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="id_out_date">Out Date</label>

@@ -60,8 +60,7 @@ class PurchaseForm(forms.ModelForm):
             "quantity",
             "price",
             "paid_amount",
-            "remaining_amount",
-        ]
+            "payment_method",]
         widgets = {
              "vendor": forms.Select(
                 attrs={
@@ -144,11 +143,11 @@ class PurchaseForm(forms.ModelForm):
                     "step": "0.01",
                 }
             ),
-            "remaining_amount": forms.NumberInput(
+             "payment_method": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Remaining Amount",
-                    "id": "remaining_amount",
+                    "placeholder": "Select Payment Method",
+                    "id": "payment_method",
                 }
             ),
         }
@@ -164,8 +163,9 @@ class PurchaseForm(forms.ModelForm):
             "image": "Image",
             "price": "Price",
             "quantity": "Stock Quantity",
-            "remaining_amount": "Remaining Amount",
             "paid_amount": "Paid Amount",
+            "payment_method": "Payment Method",
+
         }
 
     def __init__(self, *args, **kwargs):
@@ -303,7 +303,7 @@ class SalesForm(forms.ModelForm):
                     "id": "product",
                 }
             ),
-            "Imei": forms.NumberInput(
+            "Imei": forms.TextInput(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter Imei",
@@ -345,13 +345,6 @@ class SalesForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Select Payment Method",
                     "id": "payment_method",
-                }
-            ),
-            "payment_status": forms.Select(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Select Payment Status",
-                    "id": "stpayment_statusatus",
                 }
             ),
             "total_amount": forms.NumberInput(
@@ -396,7 +389,6 @@ class SalesForm(forms.ModelForm):
             "price": "Price",
             "discount": "Discount",
             "payment_method": "Payment Method",
-            "payment_status": "Payment Status",
             "total_amount": "Total Amount",
             "paid_amount": "Paid Amount",
             "due_date": "Due Date",
@@ -448,10 +440,8 @@ class RepairForm(forms.ModelForm):
             "device_model",
             "issue_description",
             "payment_method",
-            "payment_status",
             "total_amount",
             "paid_amount",
-            "remaining_amount",
             "status",
             "out_date",
         ]
@@ -492,13 +482,6 @@ class RepairForm(forms.ModelForm):
                     "id": "payment_method",
                 }
             ),
-            "payment_status": forms.Select(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Select Payment Status",
-                    "id": "stpayment_statusatus",
-                }
-            ),
             "total_amount": forms.NumberInput(
                 attrs={
                     "class": "form-control",
@@ -512,14 +495,6 @@ class RepairForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Paid Amount",
                     "id": "paid_amount",
-                    "step": "0.01",
-                }
-            ),
-            "remaining_amount": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Remaining Amount",
-                    "id": "remaining_amount",
                     "step": "0.01",
                 }
             ),
@@ -544,10 +519,8 @@ class RepairForm(forms.ModelForm):
             "device_model": "Device Model",
             "issue_description": "Description",
             "payment_method": "Payment Method",
-            "payment_status": "Payment Status",
             "total_amount": "Total Amount",
             "paid_amount": "Paid Amount",
-            "remaining_amount": "Remaining Amount",
             "status": "Status",
             "out_date": "Out Date",
         }
@@ -635,7 +608,7 @@ class RepairDetailForm(forms.ModelForm):
 class ExpenseForm(forms.ModelForm):
     class Meta:
         model = Expense
-        fields = ['category', 'amount', 'description', 'payment_method', 'payment_status']
+        fields = ['category', 'amount', 'description', 'payment_method']
         widgets = {
             "category": forms.Select(
                 attrs={
@@ -667,20 +640,12 @@ class ExpenseForm(forms.ModelForm):
                     "id": "payment_method",
                 }
             ),
-            "payment_status": forms.Select(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Select Payment Status",
-                    "id": "payment_status",
-                }
-            ),
         }
         labels = {
             "category": "Category",
             "amount": "Amount",
             "description": "Description",
             "payment_method": "Payment Method",
-            "payment_status": "Payment Status",
         }
 
 

@@ -6,8 +6,8 @@ class User(models.Model):
         ('Vendor', 'Vendor'),
     ]
     full_name = models.CharField(max_length=191)
-    address = models.TextField(max_length=191, blank=True, null=True)
-    phone = models.CharField(max_length=30, blank=True, null=True,unique=True,db_index=True)
+    address = models.CharField(max_length=191, blank=True, null=True)
+    phone = models.IntegerField( blank=True, null=True,unique=True,db_index=True)
     email = models.EmailField(max_length=50,unique=True, blank=True)
     company_name = models.CharField(max_length=191, unique=True, blank=True, null=True)
     role = models.CharField( max_length=12,choices=ROLE_CHOICES, default='Customer')

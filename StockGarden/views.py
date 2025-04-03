@@ -407,7 +407,7 @@ def PurchaseDelete(request,pk):
     try:
         purchase= get_object_or_404(Purchase,pk=pk)
         if request.method == 'POST':
-            purchase_name=purchase.product.name
+            purchase_name=purchase.product_name
             purchase.delete()
             messages.success(request,f'Purchase {purchase_name} deleted successfully!')
             return redirect('purchase')
@@ -617,7 +617,7 @@ def SalesDelete(request,pk):
     try:
         sales =get_object_or_404(Sales,pk=pk)
         if request.method == 'POST':
-            sales_name = sales.name
+            sales_name = sales.product.name
             sales.delete()
             messages.success(request,f'Sales {sales_name} deleted successfully!')
             return redirect('sales')
@@ -1046,15 +1046,18 @@ def ReturnUpdate(request,pk):
 
 
 @login_required
-def ReturnDelete(request,pk):
+def ReturnDelete(request, pk):
     try:
-        returns= get_object_or_404(Return,pk=pk)
+        returns = get_object_or_404(Return, pk=pk) 
+        invoice_number = returns.invoice.invoice_number
+
         if request.method == 'POST':
-            returns=returns.invoice.invoice_number
-            returns.delete()
-            messages.success(request,f'Return {returns} deleted successfully!')
+            returns.delete() 
+            messages.success(request, f'Return {invoice_number} deleted successfully!')
             return redirect('return')
-        return render(request, 'return_delete.html',{'returns':returns})
+
+        return render(request, 'return_delete.html', {'returns': returns})
+
     except Exception as e:
         logger.error(f"Error in Return Delete: {e}")
         messages.error(request, 'An error occurred while processing the Return Delete.')

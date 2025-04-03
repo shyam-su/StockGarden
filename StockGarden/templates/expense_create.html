@@ -45,7 +45,7 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-12 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label for="description">Description</label>
                                 {{ form.description }}
                                 {% if form.description.errors %}
@@ -54,24 +54,12 @@
                                     </div>
                                 {% endif %}
                             </div>
-                        </div>
-
-                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="payment_method">Payment Method</label>
                                 {{ form.payment_method }}
                                 {% if form.payment_method.errors %}
                                     <div class="invalid-feedback d-block">
                                         {{ form.payment_method.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="payment_status">Payment Status</label>
-                                {{ form.payment_status }}
-                                {% if form.payment_status.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.payment_status.errors }}
                                     </div>
                                 {% endif %}
                             </div>

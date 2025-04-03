@@ -28,7 +28,7 @@ class ExpenseCategoryAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     
 @admin.register(Purchase)
 class PurchaseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display=('vendor','brand','categories','product_name','warranty','description','Imei','image','price','quantity','total_price','paid_amount','remaining_amount','created_at',)
+    list_display=('vendor','brand','categories','product_name','warranty','description','Imei','image','price','quantity','total_price','paid_amount','payment_method','payment_status','remaining_amount','created_at',)
     search_fields = ('vendor',)
     
 @admin.register(Product)

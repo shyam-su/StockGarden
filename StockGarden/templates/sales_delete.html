@@ -8,7 +8,7 @@
                 <div class="alert alert-success text-center" role="alert">
                     <i class="fas fa-check-circle text-success fa-2x"></i>
                     <h5 class="mt-3"><strong>Success!</strong></h5>
-                    <p>The Sales '<strong>{{ sales.name }}</strong>' has been successfully deleted.</p>
+                    <p>The Sales '<strong>{{ sales.product.name }}</strong>' has been successfully deleted.</p>
                     <a href="{% url 'sales' %}" class="btn btn-primary mt-3">
                         <i class="fas fa-arrow-left"></i> Back to Sales List
                     </a>
@@ -21,7 +21,7 @@
                     <div class="card-body">
                         <p class="mb-4">
                             Are you sure you want to delete the Sales 
-                            <strong class="text-danger">{{ sales.name }}</strong>?
+                            <strong class="text-danger">{{ sales.product.name }}</strong>?
                         </p>
                         <form method="POST" class="d-flex justify-content-between">
                             {% csrf_token %}

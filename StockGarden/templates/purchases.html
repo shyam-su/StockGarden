@@ -54,6 +54,7 @@
                                     <th style="text-align: left;">Price</th>
                                     <th style="text-align: left;">Total</th>
                                     <th style="text-align: left;">Paid</th>
+                                    <th style="text-align: left;">Status</th>
                                     <th style="text-align: left;">Remaining</th>
                                     <th style="text-align: left;">Date</th>
                                     <th style="text-align: center;">Actions</th>
@@ -70,6 +71,7 @@
                                     <td style="text-align: left;">{{ purc.price }}</td>
                                     <td style="text-align: left;">{{ purc.total_price }}</td>
                                     <td style="text-align: left;">{{ purc.paid_amount }}</td>
+                                    <td style="text-align: left;">{{ purc.payment_status|slice:":9" }}</td>
                                     <td style="text-align: left;">{{ purc.remaining_amount }}</td>
                                     <td style="text-align: left;">{{ purc.created_at|date:"m, d" }}</td>
                                     <td class="text-center">

@@ -8,11 +8,11 @@ class UserForm(forms.ModelForm):
         widgets = {
             'full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter Full Name','id':'full_name'}),
             'address': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter Address','id':'address'}),
-            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter Phone','id':'phone'}),
-            'email': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter Email','id':'email'}),
+            'phone': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter Phone','id':'phone'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Enter Email','id':'email'}),
             'company_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter Company Name','id':'company_name'}),
             'role': forms.Select(attrs={'class': 'form-control', 'placeholder': 'Enter Role','id':'role'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'is_active'}),  # Use CheckboxInput for BooleanField
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'is_active'}),  
         }
         labels = {
             'full_name': 'Full Name',

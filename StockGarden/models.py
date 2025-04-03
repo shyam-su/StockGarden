@@ -92,6 +92,8 @@ class Purchase(models.Model):
     price = models.IntegerField()
     total_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00) 
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    payment_method = models.CharField(max_length=20,choices=PaymentMethodChoices.choices,default=PaymentMethodChoices.CASH,db_index=True)
+    payment_status=models.CharField(max_length=191,choices=PaymentStatusChoices, default='Pending',db_index=True,null=True,blank=True)
     remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
     created_at=models.DateTimeField(auto_now_add=True)
     
@@ -102,14 +104,20 @@ class Purchase(models.Model):
         
     def save(self, *args, **kwargs):
         self.total_price = self.quantity * self.price 
-        self.remaining_amount=self.total_price-self.paid_amount
+        self.remaining_amount = self.total_price - self.paid_amount
+        if self.remaining_amount <= 0:
+            self.payment_status = PaymentStatusChoices.FULL_PAYMENT
+        elif self.paid_amount > 0:
+            self.payment_status = PaymentStatusChoices.PARTIAL_PAYMENT
+        else:
+            self.payment_status = PaymentStatusChoices.PENDING
         super().save(*args, **kwargs)
         if self.product_name:
             product = Product.objects.filter(name=self.product_name).first()
             if product:
                 product.stock = (product.stock or 0) + self.quantity
                 product.save()
-                
+
     def __str__(self):
         return self.vendor.full_name
         
@@ -157,7 +165,7 @@ class Sales(models.Model):
     price = models.IntegerField(blank=True, null=True)
     discount=models.IntegerField(null=True, blank=True, default=0)
     payment_method = models.CharField(max_length=20,choices=PaymentMethodChoices.choices,default=PaymentMethodChoices.CASH,db_index=True)
-    payment_status=models.CharField(max_length=191,choices=PaymentStatusChoices, default='Pending',db_index=True)
+    payment_status=models.CharField(max_length=191,choices=PaymentStatusChoices, default='Pending',db_index=True,null=True,blank=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     paid_amount = models.IntegerField(default=0.00,null=False, blank=False)
     remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
@@ -173,6 +181,12 @@ class Sales(models.Model):
         self.paid_amount = Decimal(self.paid_amount)
         self.discount = Decimal(self.discount or 0) 
         self.remaining_amount = self.total_amount - self.paid_amount - self.discount
+        if self.remaining_amount <= 0:
+            self.payment_status = PaymentStatusChoices.FULL_PAYMENT
+        elif self.paid_amount > 0:
+            self.payment_status = PaymentStatusChoices.PARTIAL_PAYMENT
+        else:
+            self.payment_status = PaymentStatusChoices.PENDING
         if self.product.stock >= self.quantity:
             self.product.stock -= self.quantity
             self.product.save()
@@ -198,7 +212,7 @@ class Repair(models.Model):
     device_model = models.CharField(max_length=100)
     issue_description = models.TextField() 
     payment_method = models.CharField(max_length=20,choices=PaymentMethodChoices.choices,default=PaymentMethodChoices.CASH,db_index=True)
-    payment_status=models.CharField(max_length=191,choices=PaymentStatusChoices, default='Pending',db_index=True)
+    payment_status=models.CharField(max_length=191,choices=PaymentStatusChoices, default='Pending',db_index=True,null=True,blank=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
@@ -250,7 +264,7 @@ class Expense(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     description = models.TextField(blank=True, null=True)
     payment_method = models.CharField(max_length=20, choices=PaymentMethodChoices, default='cash',db_index=True)
-    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='pending',db_index=True)
+    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='pending',db_index=True,null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
 
@@ -264,7 +278,7 @@ class Expense(models.Model):
 
  
 class SalesInvoice(models.Model):
-    invoice_number = models.CharField(max_length=10, unique=True, editable=False)
+    invoice_number = models.CharField(max_length=50, unique=True, editable=False)
     sales = models.ForeignKey(Sales, on_delete=models.SET_NULL,related_name="salesinvoice", null=True, blank=True)  
     product_name = models.CharField(max_length=255)
     quantity=models.IntegerField(null=True, blank=True)
@@ -278,7 +292,7 @@ class SalesInvoice(models.Model):
     total_amount = models.IntegerField( null=True, blank=True)
     paid_amount = models.IntegerField(default=0.00,null=True, blank=True)
     remaining_amount = models.IntegerField(default=0.00)
-    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='pending',db_index=True)
+    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='pending',db_index=True,null=True,blank=True)
     due_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -328,7 +342,7 @@ class SalesInvoice(models.Model):
 
 
 class RepairInvoice(models.Model):
-    invoice_number = models.CharField(max_length=10, unique=True, editable=False)
+    invoice_number = models.CharField(max_length=50, unique=True, editable=False)
     repair = models.ForeignKey(Repair, on_delete=models.SET_NULL,related_name="repairinvoice", null=True, blank=True)  
     product_name = models.CharField(max_length=255)
     customer_name = models.CharField(max_length=255)
@@ -339,7 +353,7 @@ class RepairInvoice(models.Model):
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='pending',db_index=True)
+    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='pending',db_index=True,null=True,blank=True)
     due_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -367,10 +381,9 @@ class RepairInvoice(models.Model):
         # Update remaining amount based on paid_amount and total_after_discount
         self.remaining_amount = total_after_discount - (self.paid_amount or 0)
 
-        # Ensure payment status updates correctly based on remaining_amount
         if self.remaining_amount <= 0:
             self.payment_status = 'paid'
-            self.remaining_amount = 0  # Ensure remaining amount is set to 0 if fully paid
+            self.remaining_amount = 0  
         elif self.paid_amount > 0:
             self.payment_status = 'partial'
         else:
