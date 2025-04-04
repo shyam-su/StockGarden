@@ -5,7 +5,7 @@ from .forms import *
 import logging
 from django.core.paginator import Paginator
 from django.contrib import messages  
-from django.db.models import Sum,Q,F,Count
+from django.db.models import Sum,Q,Count
 from openpyxl import Workbook
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib import colors
@@ -17,11 +17,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 import json
 from django.db.models.functions import TruncDay
-from decimal import Decimal
-from django.db.models.functions import TruncMonth
 from django.db.models import Sum
 from datetime import datetime, timedelta
-import calendar
 from django.utils import timezone
 
 
@@ -116,7 +113,6 @@ def home(request):
             
             current_date = next_date
         
-        # Calculate period-specific totals for pie chart
         period_total_sales = sum(sales_data)
         period_total_repair = sum(repair_data)
         
@@ -125,11 +121,11 @@ def home(request):
             'months': months,
             'sales_data': sales_data,
             'repair_data': repair_data,
-            'total_sales': total_sales,  # Overall total
-            'total_repair': total_repair,  # Overall total
-            'total_expenses': total_expenses,  # Overall total
-            'period_total_sales': period_total_sales,  # Period-specific
-            'period_total_repair': period_total_repair,  # Period-specific
+            'total_sales': total_sales,  
+            'total_repair': total_repair, 
+            'total_expenses': total_expenses,  
+            'period_total_sales': period_total_sales,  
+            'period_total_repair': period_total_repair, 
             'sales_percentage': (period_total_sales / (period_total_sales + period_total_repair) * 100) if (period_total_sales + period_total_repair) > 0 else 0,
             'repair_percentage': (period_total_repair / (period_total_sales + period_total_repair) * 100) if (period_total_sales + period_total_repair) > 0 else 0,
             'selected_period': time_period,
@@ -328,12 +324,11 @@ def PurchaseList(request):
     try:
         if query:
             purchases = purchases.filter(
-                Q(vendor__full_name__icontains=query) |  # Vendor search
-                Q(product_name__icontains=query) |       # Product search
-                Q(condition__icontains=query)            # Condition search
+                Q(vendor__full_name__icontains=query) |  
+                Q(product_name__icontains=query) |       
+                Q(condition__icontains=query)           
             ).order_by('-created_at')
 
-         # Date range filtering
         if date_from:
             naive_date = datetime.strptime(date_from, '%Y-%m-%d')
             aware_date = timezone.make_aware(naive_date)
@@ -342,10 +337,7 @@ def PurchaseList(request):
             naive_date = datetime.strptime(date_to, '%Y-%m-%d')
             aware_date = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
             purchases = purchases.filter(created_at__lt=aware_date)
-
         purchases = purchases.order_by('-created_at')
-
-
         paginator = Paginator(purchases, 10)
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
@@ -383,6 +375,7 @@ def PurchaseCreate(request,pruchase_id=None):
         logger.error(f"Error in PurchaseCreateView: {e}")
         messages.error(request, 'An error occurred while processing the purchase.')
         return render(request, '404.html', {"message": "An error occurred."})
+
 
 @login_required
 def PurchaseUpdate(request,pk):
@@ -549,10 +542,6 @@ import uuid
 @login_required
 def SalesCreate(request,sales_id=None):
     try:
-        # Generate a unique token for this form submission if not already present
-        if 'form_token' not in request.session:
-            request.session['form_token'] = str(uuid.uuid4())
-
         if sales_id:
             sales = get_object_or_404(Sales,id = sales_id)
             form = SalesForm(request.POST or None,instance=sales)
@@ -562,35 +551,15 @@ def SalesCreate(request,sales_id=None):
             action ='Create'
         if request.method == 'POST':
             if form.is_valid():
-            # Check if this form submission has already been processed
-                submitted_token = request.POST.get('form_token', '')
-                if submitted_token != request.session.get('form_token'):
-                    messages.error(request, "This form has already been submitted.")
-                    return SalesList(request)  # Show sales list without saving again
-                
-                sales_instance = form.save(commit=False)
-                if not sales_instance.user: 
-                    sales_instance.user = None 
-                sales_instance.save()
+                form.save()
                 messages.success(request, f" Sales {action.lower()}d successfully!")
-
-                # Clear the token after successful save to prevent reuse
-                del request.session['form_token']
-
-                return SalesList(request)
-            
-            # Add the token to the form context
-        context = {
-            'form': form,
-            'action': action,
-            'form_token': request.session['form_token']
-        }
-
-        return render(request, 'sales_create.html',context)
+                return redirect('sales')
+        return render(request, 'sales_create.html',{'form':form,'action':action})
     except Exception as e:
         logger.error(f"Error in SalesCreateView: {e}")
         messages.error(request, 'An error occurred while processing the sales.')
         return render(request, '404.html', {"message": "An error occurred."})
+    
     
 @login_required
 def SalesUpdate(request, pk):
@@ -628,7 +597,6 @@ def SalesDelete(request,pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 
-
 @login_required
 def RepairList(request):
     try:
@@ -642,28 +610,19 @@ def RepairList(request):
 
         if query:
             repairs = repairs.filter(
-                Q(user__full_name__icontains=query) |  # Customer name
-                Q(device_model__icontains=query) |     # Device model
+                Q(user__full_name__icontains=query) | 
+                Q(device_model__icontains=query) |    
                 Q(payment_status__icontains=query) 
             )
-
-
-        # Apply date range filter if dates are provided
         if start_date:
             repairs = repairs.filter(created_at__gte=start_date)
         if end_date:
-            # Add 1 day to include the entire end date
-            from datetime import datetime, timedelta
             end_date_obj = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
             repairs = repairs.filter(created_at__lte=end_date_obj)
-
-        # Apply status filter if selected
         if status_filter:
             repairs = repairs.filter(status=status_filter)
-
-        if payment_status_filter:  # Apply payment status filter
+        if payment_status_filter: 
             repairs = repairs.filter(payment_status=payment_status_filter)
-
 
         pagination=Paginator(repairs,10)
         page_number=request.GET.get('page')
@@ -749,9 +708,9 @@ def RepairDetailList(request):
 
         if query:
             repairdetail = repairdetail.filter(
-                Q(repair_order__product_name__icontains=query) |  # You can search by repair_order product_name
-                Q(fixed_description__icontains=query) |  # Search by fixed_description
-                Q(repair_action__icontains=query)  # Search by repair_action
+                Q(repair_order__product_name__icontains=query) | 
+                Q(fixed_description__icontains=query) |  
+                Q(repair_action__icontains=query) 
             )
         pagination = Paginator(repairdetail, 10)
         page_number = request.GET.get('page') 
@@ -764,27 +723,6 @@ def RepairDetailList(request):
     except Exception as e:
         logger.error(f"Error in RepairListView: {e}")
         messages.error(request, 'An error occurred while loading the repair detail list.')
-        return render(request, '404.html', {"message": "An error occurred."})
-
-@login_required    
-def RepairDetailCreate(request,repairde_id=None):
-    try:
-        if repairde_id:
-            repairdetail=get_object_or_404(RepairDetail,id=repairde_id)
-            form=RepairDetail(request.POST or None,instance=repairdetail)
-            action='Update'
-        else:
-            form = RepairDetailForm(request.POST or None)
-            action = 'Create'
-            if request.method == 'POST':
-                if form.is_valid():
-                    form.save()
-                    messages.success(request,f'Repair Detail {action.lower()}d successfully!')
-                    return redirect('repair_detail')
-            return render(request, 'repair_detail_create.html',{'form':form,'action':action})
-    except Exception as e:
-        logger.error(f"Error in RepairDetailCreateView: {e}")
-        messages.error(request, 'An error occurred while processing the repair detail.')
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
@@ -824,16 +762,18 @@ def RepairDetailDelete(request, pk):
     
 @login_required
 def ExpenseList(request):
-    query = request.GET.get('search', '')
-    expenses = Expense.objects.filter(
-        description__icontains=query
-    ) if query else Expense.objects.all()
+    try:
+        query = request.GET.get('search', '')
+        expenses = Expense.objects.filter(description__icontains=query) if query else Expense.objects.all()
+        paginator = Paginator(expenses, 10) 
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
 
-    # Pagination
-    paginator = Paginator(expenses, 10)  # 10 expenses per page
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    return render(request, 'expense.html',{'expenses': page_obj, 'query': query})
+        return render(request, 'expense.html', {'expenses': page_obj, 'query': query})
+    except Exception as e:
+        logger.error(f"Error occurred while fetching expenses: {e}", exc_info=True)
+        return render(request, 'error.html', {'message': 'An error occurred while fetching expenses.'})
+
 
 @login_required
 def ExpenseCreate(request,expense_id=None):
@@ -898,8 +838,7 @@ def SalesInvoiceList(request):
         invoice_number__icontains=query
         ) if query else SalesInvoice.objects.all()
 
-        # Pagination
-    paginator = Paginator(invoices, 10)  # 10 invoices per page
+    paginator = Paginator(invoices, 10) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     context = ({            
@@ -911,9 +850,7 @@ def SalesInvoiceList(request):
 @login_required
 def SalesInvoiceUpdate(request, pk):
     try:
-        # Fetch the single SalesInvoice object by primary key (pk)
         salesinvoice = get_object_or_404(SalesInvoice, pk=pk)
-        
         if request.method == 'POST':
             form = SalesInvoiceForm(request.POST, instance=salesinvoice)
             if form.is_valid():
@@ -922,14 +859,11 @@ def SalesInvoiceUpdate(request, pk):
                 return redirect('salesinvoice')
         else:
             form = SalesInvoiceForm(instance=salesinvoice)
-        
-        # Pass the form and the single salesinvoice object to the template
         return render(request, 'sales_invoice_update.html', {'form': form, 'salesinvoice': salesinvoice})
     except Exception as e:
         logger.error(f"Error in Sales Invoice: {e}")
         messages.error(request, 'An error occurred while processing the Sales Invoice.')
         return render(request, '404.html', {"message": "An error occurred."})
-
 
 @login_required
 def RepairInvoiceList(request):
@@ -938,51 +872,37 @@ def RepairInvoiceList(request):
         invoice_number__icontains=query
     ) if query else RepairInvoice.objects.all()
 
-    # Pagination
-    paginator = Paginator(repair_invoices, 10)  # 10 invoices per page
+    paginator = Paginator(repair_invoices, 10) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-
     context = {
         'invoices': page_obj,
         'query': query,
     }
-
     return render(request, 'repair_invoice.html', context)
 
-
-    
-    
 @login_required
 def RepairInvoiceUpdate(request, pk):
     try:
         repair_invoice = get_object_or_404(RepairInvoice, pk=pk)
 
         if request.method == 'POST':
-            # Update the repair invoice using the form data
             form = RepairInvoiceForm(request.POST, instance=repair_invoice)
             if form.is_valid():
                 form.save()
                 messages.success(request, 'Repair Invoice updated successfully!')
                 return redirect('repairinvoice')
         else:
-            # Pre-fill the form with the existing data
             form = RepairInvoiceForm(instance=repair_invoice)
-
         return render(request, 'repair_invoice_update.html', {'form': form, 'repair_invoice': repair_invoice})
-
     except Exception as e:
         logger.error(f"Error in Repair Invoice: {e}")
         messages.error(request, 'An error occurred while processing the Repair Invoice.')
         return render(request, '404.html', {"message": "An error occurred."})
 
-
 @login_required
 def ReturnList(request):
-    # Get search query from request
     query = request.GET.get('search', '')
-
-    # Filter returns based on search query
     if query:
         returns = Return.objects.filter(
             Q(invoice__invoice_number__icontains=query) | 
@@ -992,16 +912,14 @@ def ReturnList(request):
     else:
         returns = Return.objects.all()
 
-    # Paginate the returns
-    paginator = Paginator(returns, 10)  # Show 10 returns per page
+    paginator = Paginator(returns, 10) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-
-    # Render the return list template
     return render(request, 'return.html', {
         'returns': page_obj,
         'query': query
     })
+
 
 @login_required
 def ReturnCreate(request,return_id=None):
@@ -1076,8 +994,6 @@ def UserReportList(request):
         vendor_count = users.filter(role='Vendor').count()
         active_users = users.filter(is_active=True).count()
         inactive_users = users.filter(is_active=False).count()
-
-        # Prepare chart data
         role_chart_data = {
             'labels': ['Customers', 'Vendors'],
             'data': [customer_count, vendor_count] if customer_count or vendor_count else [0, 0]
@@ -1116,15 +1032,12 @@ def global_search(request):
 
     try:
         if query:
-             # Products search
             products = Product.objects.filter(
                 Q(name__icontains=query) |
                 Q(description__icontains=query) |
                 Q(brand__name__icontains=query) |
                 Q(categories__name__icontains=query)
             ).distinct()
-
-
             sales = Sales.objects.filter(
                 Q(user__full_name__icontains=query) |
                 Q(product__name__icontains=query) |
@@ -1222,14 +1135,12 @@ def SalesReportList(request):
         total_quantity = sales.aggregate(Sum('quantity'))['quantity__sum'] or 0
         total_sales = sales.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
 
-        # Daily sales data for bar chart
         daily_sales = sales.annotate(
             day=TruncDay('created_at')
         ).values('day').annotate(
             daily_total=Sum('total_amount')
         ).order_by('day')
         
-        # Payment method distribution for pie chart
         payment_methods = sales.values('payment_method').annotate(
             total=Sum('total_amount'),
             count=Count('id')
@@ -1263,14 +1174,12 @@ def SalesReportList(request):
 
 @login_required
 def StockReportList(request):
-    # Get query parameters for filtering
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
     product_name = request.GET.get('product_name')
     low_stock_threshold = request.GET.get('low_stock_threshold')
     total_sales_threshold = request.GET.get('total_sales_threshold')
 
-    # Filter the products based on the provided parameters
     products = Product.objects.all()
 
     if start_date:
@@ -1557,32 +1466,23 @@ def RepairReportList(request):
     try:
         status = request.GET.get('status', '')  
         customer_id = request.GET.get('customer', '')  
-
         repairs = Repair.objects.all().order_by('-created_at')  
-
         if status:
             repairs = repairs.filter(status=status)
         if customer_id:
             repairs = repairs.filter(name_id=customer_id) 
-
-
-        # Prepare chart data
         status_counts = repairs.values('status').annotate(
             count=Count('id'),
             percentage=Count('id') * 100.0 / repairs.count()
         ).order_by('-count')
-
-        # Daily repair trend
         daily_repairs = repairs.annotate(
             day=TruncDay('created_at')
         ).values('day').annotate(
             count=Count('id')
         ).order_by('day')
 
-        # Convert to list for JSON serialization
         status_data = list(status_counts)
         daily_data = list(daily_repairs)
-
 
         paginator = Paginator(repairs, 10)
         page_number = request.GET.get('page')
@@ -1591,7 +1491,7 @@ def RepairReportList(request):
             repairs_page = paginator.get_page(page_number)
         except Exception as e:
             logger.warning(f"Pagination error: {e}")
-            repairs_page = paginator.get_page(1)  # Default to first page if error occurs
+            repairs_page = paginator.get_page(1)  
 
         customers = User.objects.filter(role="Customer").order_by('full_name')
 
@@ -1603,9 +1503,7 @@ def RepairReportList(request):
             'status_data': json.dumps(status_data),
             'daily_data': json.dumps(daily_data, default=str),
         }
-
         logger.info("Repair report generated successfully.")
-
     except Exception as e:
         logger.error(f"Error in RepairReportListView: {e}", exc_info=True)
         context = {"error": "An error occurred while generating the repair report."}

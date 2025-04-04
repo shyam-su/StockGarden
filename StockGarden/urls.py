@@ -38,7 +38,6 @@ urlpatterns = [
     path('repair/<int:pk>/delete/', RepairDelete,name='repair_delete'),
     
     path('repair_detail/', RepairDetailList, name='repair_detail'),
-    path('repair_detail/create/', RepairDetailCreate,name='repair_detail_create'),
     path('repair_detail/<int:pk>/update/', RepairDetailUpdate,name='repair_detail_update'),
     path('repair_detail/<int:pk>/delete/', RepairDetailDelete,name='repair_detail_delete'),
     
