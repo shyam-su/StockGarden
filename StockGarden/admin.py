@@ -11,7 +11,7 @@ admin.site.index_title='Stock Garden Inventory Management System'
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
-    list_display=('name','email','address','phone_number','logo',)
+    list_display=('name','email','address','phone_number','reg_no','logo',)
     
 @admin.register(Brand)
 class BrandAdmin(ImportExportModelAdmin, admin.ModelAdmin):

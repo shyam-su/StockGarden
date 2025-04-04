@@ -75,6 +75,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'StockGarden.context_processors.company_info',
             ],
         },
     },
@@ -96,10 +97,10 @@ DATABASES = {
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'stockgardendb',
-#         'USER': 'root',
-#         'PASSWORD': '',
-#         'HOST': 'localhost',
+#         'NAME': 'barunmo1_StockGarden',
+#         'USER': 'barunmo1_barunmobile',
+#         'PASSWORD': 'BarunMobile',
+#         'HOST': '192.250.235.75',
 #         'PORT': '3306',
 #         'OPTIONS': {
 #             'init_command': "SET sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'",

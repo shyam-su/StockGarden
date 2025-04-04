@@ -19,10 +19,11 @@ class PaymentStatusChoices(models.TextChoices):
     OVERDUE = 'Overdue', 'Overdue'
 
 class Company(models.Model):
-    name = models.CharField(max_length=191,)
+    name = models.CharField(max_length=191,unique=True,verbose_name="Company Name")
     address = models.CharField(max_length=191)
     email = models.EmailField(max_length=191,db_index=True)
     phone_number = models.CharField(max_length=20,db_index=True)
+    reg_no = models.CharField(max_length=20,unique=True,db_index=True)
     logo = models.ImageField(upload_to='company/logos/', blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
        
@@ -264,7 +265,7 @@ class Expense(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     description = models.TextField(blank=True, null=True)
     payment_method = models.CharField(max_length=20, choices=PaymentMethodChoices, default='cash',db_index=True)
-    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='pending',db_index=True,null=True,blank=True)
+    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='Pending',db_index=True,null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
 
@@ -292,44 +293,48 @@ class SalesInvoice(models.Model):
     total_amount = models.IntegerField( null=True, blank=True)
     paid_amount = models.IntegerField(default=0.00,null=True, blank=True)
     remaining_amount = models.IntegerField(default=0.00)
-    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='pending',db_index=True,null=True,blank=True)
+    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='Pending',db_index=True,null=True,blank=True)
     due_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def save(self, *args, **kwargs):
-        if not self.pk: 
-            last_invoice = SalesInvoice.objects.all().order_by('-invoice_number').first()
-            if last_invoice:
-                last_invoice_number = int(last_invoice.invoice_number.replace("SINV", ""))
-                self.invoice_number = f"SINV{last_invoice_number + 1:06d}"  
+        if not self.pk:
+            # Ensure invoice number is correctly generated
+            last_invoice = SalesInvoice.objects.order_by('-invoice_number').first()
+            if last_invoice and last_invoice.invoice_number.startswith("SINV"):
+                try:
+                    last_invoice_number = int(last_invoice.invoice_number.replace("SINV", ""))
+                    self.invoice_number = f"SINV{last_invoice_number + 1:06d}"
+                except ValueError:
+                    self.invoice_number = "SINV000001"
             else:
-                self.invoice_number = "SINV0000001" 
-        if self.sales:
-            product_price = int(round(self.sales.product.price))
+                self.invoice_number = "SINV000001"
+
+        if self.sales and self.sales.product:
+            product_price = round(self.sales.product.price)
             self.product_name = self.sales.product.name
             self.subtotal = (self.quantity or 0) * product_price
-            
-            discount = self.discount_amount or 0
-            if discount > self.subtotal:
-                discount = self.subtotal
-                self.discount_amount = discount
-            
-            self.total_amount = self.subtotal - discount
+
+            self.discount_amount = min(self.discount_amount or 0, self.subtotal)  # Prevent discount > subtotal
+            self.total_amount = self.subtotal - self.discount_amount
             self.remaining_amount = self.total_amount - (self.paid_amount or 0)
 
+            # Ensure payment status is correct
             if self.remaining_amount <= 0:
-                self.payment_status = 'paid'
-                self.remaining_amount = 0  
+                self.payment_status = 'Paid'
+                self.remaining_amount = 0
             elif self.paid_amount > 0:
-                self.payment_status = 'partial'
+                self.payment_status = 'Partial'
             else:
-                self.payment_status = 'pending'
+                self.payment_status = 'Pending'
 
-        if self.paid_amount > (self.total_amount or 0):
+        # Ensure paid_amount does not exceed total_amount
+        if self.paid_amount > self.total_amount:
             self.paid_amount = self.total_amount
-            self.remaining_amount = 0  
+            self.remaining_amount = 0
+
         super(SalesInvoice, self).save(*args, **kwargs)
     
     
@@ -353,7 +358,7 @@ class RepairInvoice(models.Model):
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='pending',db_index=True,null=True,blank=True)
+    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='Pending',db_index=True,null=True,blank=True)
     due_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -387,7 +392,7 @@ class RepairInvoice(models.Model):
         elif self.paid_amount > 0:
             self.payment_status = 'partial'
         else:
-            self.payment_status = 'pending'
+            self.payment_status = 'Pending'
         super(RepairInvoice, self).save(*args, **kwargs)
     
     class Meta:

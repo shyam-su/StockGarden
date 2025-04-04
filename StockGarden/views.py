@@ -731,7 +731,7 @@ def RepairDelete(request,pk):
     try:
         repair=get_object_or_404(Repair,pk=pk)
         if request.method == 'POST':
-            repair_name=repair.name
+            repair_name=repair.product_name
             repair.delete()
             messages.success(request,f'Repair {repair_name} deleted successfully!')
             return redirect('repair')
@@ -811,7 +811,7 @@ def RepairDetailDelete(request, pk):
         repairdetail = get_object_or_404(RepairDetail, pk=pk)
 
         if request.method == 'POST':
-            repairdetail_name = repairdetail.repair_order.product_name
+            repairdetail_name = repairdetail.product_name
             repairdetail.delete()
             messages.success(request, f"Repair Detail '{repairdetail_name}' deleted successfully!")
             return redirect('repair_detail')  

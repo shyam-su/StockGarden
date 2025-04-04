@@ -130,28 +130,15 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.payment_status.id_for_label }}">Payment Status</label>
-                                {{ form.payment_status }}
-                                {% if form.payment_status.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.payment_status.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
                                 <label for="{{ form.due_date.id_for_label }}">Due Date</label>
                                 {{ form.due_date }}
-                                <small class="form-text text-muted">Format: YYYY-MM-DD HH:MM</small>
                                 {% if form.due_date.errors %}
                                     <div class="invalid-feedback d-block">
                                         {{ form.due_date.errors }}
                                     </div>
                                 {% endif %}
                             </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-12 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label for="{{ form.notes.id_for_label }}">Notes</label>
                                 {{ form.notes }}
                                 {% if form.notes.errors %}
