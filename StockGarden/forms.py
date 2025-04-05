@@ -290,7 +290,6 @@ class SalesForm(forms.ModelForm):
             "price",
             "discount",
             "payment_method",
-            "total_amount",
             "paid_amount",
             "due_date",
             "notes",
@@ -354,14 +353,6 @@ class SalesForm(forms.ModelForm):
                     "id": "payment_method",
                 }
             ),
-            "total_amount": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Total Amount",
-                    "id": "total_amount",
-                    "step": "0.01",
-                }
-            ),
             "paid_amount": forms.NumberInput(
                 attrs={
                     "class": "form-control",
@@ -396,7 +387,6 @@ class SalesForm(forms.ModelForm):
             "price": "Price",
             "discount": "Discount",
             "payment_method": "Payment Method",
-            "total_amount": "Total Amount",
             "paid_amount": "Paid Amount",
             "due_date": "Due Date",
             "notes": "Notes",
@@ -423,13 +413,7 @@ class SalesForm(forms.ModelForm):
             raise ValidationError("Price must be greater than zero.")
         return price
 
-    # Ensure paid amount is not greater than total amount
-    def clean_paid_amount(self):
-        paid_amount = self.cleaned_data.get("paid_amount")
-        total_amount = self.cleaned_data.get("total_amount")
-        if paid_amount and total_amount and paid_amount > total_amount:
-            raise ValidationError("Paid amount cannot be greater than total amount.")
-        return paid_amount
+
 
     # Validate due date (must be in the future)
     def clean_due_date(self):
@@ -681,10 +665,8 @@ class SalesInvoiceForm(forms.ModelForm):
             "customer_number",
             "customer_address",
             "payment_method",
-            "total_amount",
             "discount_amount",
             "paid_amount",
-            "remaining_amount",
             "due_date",
             "notes",
         ]
@@ -738,14 +720,6 @@ class SalesInvoiceForm(forms.ModelForm):
                     "id": "payment_method",
                 }
             ),
-            "total_amount": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Total Amount",
-                    "id": "total_amount",
-                    "step": "0.01",
-                }
-            ),
             "discount_amount": forms.NumberInput(
                 attrs={
                     "class": "form-control",
@@ -759,14 +733,6 @@ class SalesInvoiceForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Paid Amount",
                     "id": "paid_amount",
-                    "step": "0.01",
-                }
-            ),
-            "remaining_amount": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Remaining Amount",
-                    "id": "remaining_amount",
                     "step": "0.01",
                 }
             ),
@@ -795,10 +761,8 @@ class SalesInvoiceForm(forms.ModelForm):
             "customer_number": "Customer Number",
             "customer_address": "Customer Address",
             "payment_method": "Payment Method",
-            "total_amount": "Total Amount",
             "discount_amount": "Discount Amount",
             "paid_amount": "Paid Amount",
-            "remaining_amount": "Remaining Amount",
             "due_date": "Due Date",
             "notes": "Notes",
         }
@@ -814,10 +778,8 @@ class RepairInvoiceForm(forms.ModelForm):
             "customer_number",
             "customer_address",
             "payment_method",
-            "total_amount",
             "discount_amount",
             "paid_amount",
-            "remaining_amount",
             "due_date",
             "notes",
         ]
@@ -864,14 +826,6 @@ class RepairInvoiceForm(forms.ModelForm):
                     "id": "payment_method",
                 }
             ),
-            "total_amount": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Total Amount",
-                    "id": "total_amount",
-                    "step": "0.01",
-                }
-            ),
             "discount_amount": forms.NumberInput(
                 attrs={
                     "class": "form-control",
@@ -885,14 +839,6 @@ class RepairInvoiceForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Paid Amount",
                     "id": "paid_amount",
-                    "step": "0.01",
-                }
-            ),
-            "remaining_amount": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Remaining Amount",
-                    "id": "remaining_amount",
                     "step": "0.01",
                 }
             ),
@@ -921,10 +867,8 @@ class RepairInvoiceForm(forms.ModelForm):
             "customer_number": "Customer Number",
             "customer_address": "Customer Address",
             "payment_method": "Payment Method",
-            "total_amount": "Total Amount",
             "discount_amount": "Discount Amount",
             "paid_amount": "Paid Amount",
-            "remaining_amount": "Remaining Amount",
             "due_date": "Due Date",
             "notes": "Notes",
         }

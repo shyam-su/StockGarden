@@ -94,15 +94,8 @@
                             </div>
                         </div>
 
-                        <!-- Total Amount and Paid Amount -->
+                        <!-- Paid Amount -->
                         <div class="form-row">
-                            <div class="form-group col-md-6">
-                                <label for="{{ form.total_amount.id_for_label }}">Total Amount</label>
-                                {{ form.total_amount }}
-                                {% for error in form.total_amount.errors %}
-                                    <div class="text-danger"><small>{{ error }}</small></div>
-                                {% endfor %}
-                            </div>
                             <div class="form-group col-md-6">
                                 <label for="{{ form.paid_amount.id_for_label }}">Paid Amount</label>
                                 {{ form.paid_amount }}
@@ -110,10 +103,6 @@
                                     <div class="text-danger"><small>{{ error }}</small></div>
                                 {% endfor %}
                             </div>
-                        </div>
-
-                        <!-- Due Date and Notes -->
-                        <div class="form-row">
                             <div class="form-group col-md-6">
                                 <label for="{{ form.due_date.id_for_label }}">Due Date</label>
                                 {{ form.due_date }}
@@ -121,7 +110,11 @@
                                     <div class="text-danger"><small>{{ error }}</small></div>
                                 {% endfor %}
                             </div>
-                            <div class="form-group col-md-6">
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="form-row">
+                            <div class="form-group col-12">
                                 <label for="{{ form.notes.id_for_label }}">Notes</label>
                                 {{ form.notes }}
                                 {% for error in form.notes.errors %}

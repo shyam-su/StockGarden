@@ -20,7 +20,7 @@
                         {% endfor %}
                     {% endif %}
 
-                    <form method="POST" enctype="multipart/form-data" id="salesForm">
+                    <form method="POST" enctype="multipart/form-data" id="repairForm">
                         {% csrf_token %}
 
                         <div class="row">
@@ -39,6 +39,27 @@
                                 {% if form.product_name.errors %}
                                     <div class="invalid-feedback d-block">
                                         {{ form.product_name.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.payment_method.id_for_label }}">Payment Method</label>
+                                {{ form.payment_method }}
+                                {% if form.payment_method.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.payment_method.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.due_date.id_for_label }}">Due Date</label>
+                                {{ form.due_date }}
+                                {% if form.due_date.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.due_date.errors }}
                                     </div>
                                 {% endif %}
                             </div>
@@ -66,7 +87,7 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-12 mb-3">
                                 <label for="{{ form.customer_address.id_for_label }}">Customer Address</label>
                                 {{ form.customer_address }}
                                 {% if form.customer_address.errors %}
@@ -75,27 +96,9 @@
                                     </div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.payment_method.id_for_label }}">Payment Method</label>
-                                {{ form.payment_method }}
-                                {% if form.payment_method.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.payment_method.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.total_amount.id_for_label }}">Total Amount</label>
-                                {{ form.total_amount }}
-                                {% if form.total_amount.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.total_amount.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.discount_amount.id_for_label }}">Discount Amount</label>
                                 {{ form.discount_amount }}
@@ -105,9 +108,6 @@
                                     </div>
                                 {% endif %}
                             </div>
-                        </div>
-
-                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.paid_amount.id_for_label }}">Paid Amount</label>
                                 {{ form.paid_amount }}
@@ -117,28 +117,10 @@
                                     </div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.remaining_amount.id_for_label }}">Remaining Amount</label>
-                                {{ form.remaining_amount }}
-                                {% if form.remaining_amount.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.remaining_amount.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.due_date.id_for_label }}">Due Date</label>
-                                {{ form.due_date }}
-                                {% if form.due_date.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.due_date.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-12 mb-3">
                                 <label for="{{ form.notes.id_for_label }}">Notes</label>
                                 {{ form.notes }}
                                 {% if form.notes.errors %}

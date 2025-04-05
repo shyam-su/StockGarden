@@ -40,30 +40,26 @@
                                 {{ form.warranty }}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.customer_name.id_for_label }}">Customer Name</label>
-                                {{ form.customer_name }}
+                                <label for="{{ form.payment_method.id_for_label }}">Payment Method</label>
+                                {{ form.payment_method }}
                             </div>
                         </div>
 
                         <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.customer_name.id_for_label }}">Customer Name</label>
+                                {{ form.customer_name }}
+                            </div>
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.customer_number.id_for_label }}">Customer Number</label>
                                 {{ form.customer_number }}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.customer_address.id_for_label }}">Customer Address</label>
-                                {{ form.customer_address }}
-                            </div>
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.payment_method.id_for_label }}">Payment Method</label>
-                                {{ form.payment_method }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.total_amount.id_for_label }}">Total Amount</label>
-                                {{ form.total_amount }}
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.customer_address.id_for_label }}">Customer Address</label>
+                                {{ form.customer_address }}
                             </div>
                         </div>
 
@@ -80,16 +76,9 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.remaining_amount.id_for_label }}">Remaining Amount</label>
-                                {{ form.remaining_amount }}
-                            </div>
-                            <div class="col-md-6 mb-3">
                                 <label for="{{ form.due_date.id_for_label }}">Due Date</label>
                                 {{ form.due_date }}
                             </div>
-                        </div>
-
-                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.notes.id_for_label }}">Notes</label>
                                 {{ form.notes }}
@@ -102,7 +91,6 @@
                                 <a href="{% url 'sales' %}" class="btn btn-secondary">Cancel</a>
                             </div>
                         </div>
-
                     </form>
                 </div>
             </div>

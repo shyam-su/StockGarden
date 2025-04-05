@@ -107,16 +107,8 @@
                             </div>
                         </div>
 
+                        <!-- Modified section - removed total_amount and adjusted layout -->
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.total_amount.id_for_label }}">Total Amount</label>
-                                {{ form.total_amount }}
-                                {% if form.total_amount.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.total_amount.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.paid_amount.id_for_label }}">Paid Amount</label>
                                 {{ form.paid_amount }}
@@ -126,9 +118,6 @@
                                     </div>
                                 {% endif %}
                             </div>
-                        </div>
-
-                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.due_date.id_for_label }}">Due Date</label>
                                 {{ form.due_date }}
@@ -138,7 +127,10 @@
                                     </div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12 mb-3">
                                 <label for="{{ form.notes.id_for_label }}">Notes</label>
                                 {{ form.notes }}
                                 {% if form.notes.errors %}

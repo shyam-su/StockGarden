@@ -226,6 +226,12 @@ class Repair(models.Model):
         self.paid_amount = Decimal(self.paid_amount)
         self.discount_amount = Decimal(self.discount_amount or 0) 
         self.remaining_amount = self.total_amount - self.paid_amount - self.discount_amount
+        if self.remaining_amount <= 0:
+            self.payment_status = PaymentStatusChoices.FULL_PAYMENT
+        elif self.paid_amount > 0:
+            self.payment_status = PaymentStatusChoices.PARTIAL_PAYMENT
+        else:
+            self.payment_status = PaymentStatusChoices.PENDING
         super().save(*args, **kwargs)
     
     class Meta:
