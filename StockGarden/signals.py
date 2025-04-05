@@ -1,23 +1,54 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from .models import *
+from django.db import transaction
+
 
 @receiver(post_save, sender=Purchase)
 def create_or_update_product_from_purchase(sender, instance, created, **kwargs):
-    product, created = Product.objects.update_or_create(
-        vendor=instance.vendor,
-        name=instance.product_name,
-        defaults={
-            "description": instance.description,
-            "price": instance.price,
-            "warranty": instance.warranty,
-            "Imei": instance.Imei,
-            "image": instance.image,
-            "categories": instance.categories,
-            "stock": instance.quantity,
-            "brand": instance.brand,
-        },
-    )
+    if not instance.product_name: 
+        return
+
+    with transaction.atomic(): 
+        existing_product = Product.objects.filter(
+            vendor=instance.vendor,
+            name=instance.product_name
+        ).first()
+
+        if existing_product:
+            if created:
+                new_stock = (existing_product.stock or 0) + instance.quantity
+            else:
+                old_purchase = Purchase.objects.get(pk=instance.pk)
+                if old_purchase.quantity != instance.quantity:
+                    stock_diff = instance.quantity - old_purchase.quantity
+                    new_stock = (existing_product.stock or 0) + stock_diff
+                else:
+                    new_stock = existing_product.stock
+
+            Product.objects.filter(pk=existing_product.pk).update(
+                description=instance.description or existing_product.description,
+                price=instance.price or existing_product.price,
+                warranty=instance.warranty or existing_product.warranty,
+                Imei=instance.Imei or existing_product.Imei,
+                image=instance.image or existing_product.image,
+                categories=instance.categories or existing_product.categories,
+                brand=instance.brand or existing_product.brand,
+                stock=new_stock 
+            )
+        else:
+            Product.objects.create(
+                vendor=instance.vendor,
+                name=instance.product_name,
+                description=instance.description,
+                price=instance.price,
+                warranty=instance.warranty,
+                Imei=instance.Imei,
+                image=instance.image,
+                categories=instance.categories,
+                stock=instance.quantity,
+                brand=instance.brand,
+            )
 
 @receiver(post_save, sender=Sales)
 def create_or_update_sales_invoice(sender, instance, created, **kwargs):

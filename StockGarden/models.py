@@ -84,7 +84,7 @@ class Purchase(models.Model):
     brand = models.ForeignKey('Brand', on_delete=models.SET_NULL,null=True, related_name="purchases") 
     categories = models.ForeignKey(Category, on_delete=models.SET_NULL,null=True, related_name="purchased_categories")
     product_name = models.CharField(max_length=191, null=True, blank=True)
-    warranty = models.IntegerField(null=True, blank=True)
+    warranty = models.IntegerField(null=True, blank=True,)
     condition = models.CharField(max_length=20, choices=CONDITION_CHOICES, default='new')
     description = models.TextField(max_length=191, blank=True, null=True)
     Imei = models.CharField(max_length=100,unique=True, blank=True, null=True)
@@ -113,11 +113,7 @@ class Purchase(models.Model):
         else:
             self.payment_status = PaymentStatusChoices.PENDING
         super().save(*args, **kwargs)
-        if self.product_name:
-            product = Product.objects.filter(name=self.product_name).first()
-            if product:
-                product.stock = (product.stock or 0) + self.quantity
-                product.save()
+       
 
     def __str__(self):
         return self.vendor.full_name

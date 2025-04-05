@@ -392,12 +392,7 @@ class SalesForm(forms.ModelForm):
             "notes": "Notes",
         }
 
-    # Custom validation for IMEI (must be a 15-digit number)
-    def clean_Imei(self):
-        imei = self.cleaned_data.get("Imei")
-        if imei and (len(str(imei)) != 15 or not str(imei).isdigit()):
-            raise ValidationError("IMEI must be a 15-digit numeric value.")
-        return imei
+
 
     # Custom validation for quantity (should be at least 1)
     def clean_quantity(self):
