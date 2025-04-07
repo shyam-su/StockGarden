@@ -1,17 +1,6 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<style>
-    @media print {
-        .no-print, .sidebar, .navbar, .footer {
-            display: none !important;
-        }
-        .container {
-            width: 100% !important;
-        }
-    }
-</style>
-
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -20,15 +9,6 @@
                     <h5 class="mb-0"><i class="fas fa-tools"></i>&nbsp;Repair Report</h5>
                 </div>
                 <div class="card-body">
-
-                    <div class="company-print">
-                        <h2>COMPANY NAME</h2>
-                        <p>COMPANY ADDRESS</p>
-                        <p>COMPANY CONTACT NO: </p>
-                        <P>EMAIL</P> 
-                    </div>
-
-                    
                     <!-- Filter Form -->
                     <form method="GET" class="mb-3 no-print">
                         <div class="row">
@@ -64,19 +44,7 @@
                         </div>
                     </form>
 
-                    <!-- Print Button -->
-                    <div class="mb-3 no-print text-end">
-                        <button onclick="printReport()" class="btn btn-primary">🖨️ Print Report</button>
-                    </div>
-
-                    <script>
-                        function printReport() {
-                            window.print();
-                        }
-                    </script>
-
-
-                                       <!-- Charts Section -->
+ <!-- Charts Section -->
 <div class="row mb-4 no-print">
     <!-- Repair Status Distribution (Pie Chart) -->
     <div class="col-md-6 mb-4">

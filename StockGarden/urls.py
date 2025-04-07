@@ -60,25 +60,19 @@ urlpatterns = [
     path('salesinvoiceprint/<int:pk>/', generate_sales_invoice, name='salesinvoiceprint'),
     path('repairinvoiceprint/<int:pk>/', generate_repair_invoice, name='repairinvoiceprint'),
 
-
-    
     path('user_report/', UserReportList, name='user_report'),
     path('sales_report/', SalesReportList, name='sales_report'),
     path('repair_report/', RepairReportList, name='repair_report'),
+    path('repair_detail_report/', RepairDetailReportList, name='repair_detail_report'),
     path('stock_report/', StockReportList, name='stock_report'),
-    path('generate_pdf/', generate_pdf, name='generate_pdf'),
-    path('generate_excel/', generate_excel, name='generate_excel'),
 
-    
+    path('stock_excel/', stock_excel, name='stock_excel'),
+    path('sales_excel/', sales_excel, name='sales_excel'),
     path('search/', global_search, name='global_search'),
 
-    path('sales-report/', SalesReportList, name='sales_report'),
 
-    path('repair_report/', RepairReportList, name='repair_report'),
 
-    path('repair_detail_report/', RepairDetailReportList, name='repair_detail_report'),
 
-    path("get-product-price/", get_product_price, name="get_product_price"),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

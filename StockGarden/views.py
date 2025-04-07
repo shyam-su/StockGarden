@@ -360,10 +360,10 @@ def PurchaseCreate(request,pruchase_id=None):
     try:
         if pruchase_id:
             purchase=get_object_or_404(Purchase,id=pruchase_id)
-            form=PurchaseForm(request.POST or None,instance=purchase)
+            form=PurchaseForm(request.POST or None,request.FILES or None,instance=purchase)
             action='update'
         else:
-            form=PurchaseForm(request.POST or None)
+            form=PurchaseForm(request.POST or None,request.FILES or None)
             action='create'
         if request.method == 'POST':
             if form.is_valid():
@@ -585,8 +585,10 @@ def SalesUpdate(request, pk):
 def SalesDelete(request,pk):
     try:
         sales =get_object_or_404(Sales,pk=pk)
+        product_name = sales.product.name if sales.product else 'Unknown Product'
+
         if request.method == 'POST':
-            sales_name = sales.product.name
+            sales_name = product_name
             sales.delete()
             messages.success(request,f'Sales {sales_name} deleted successfully!')
             return redirect('sales')
@@ -1173,6 +1175,10 @@ def SalesReportList(request):
 
 
 @login_required
+def sales_excel(request):
+    pass
+
+@login_required
 def StockReportList(request):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
@@ -1217,204 +1223,62 @@ def StockReportList(request):
     return render(request, 'stock_report.html', context)
 
 
-def generate_pdf(request):
-    start_date = request.GET.get("start_date")
-    end_date = request.GET.get("end_date")
-    product_name = request.GET.get("product_name")
-    
-    products = Product.objects.all()
-    if product_name:
-        products = products.filter(name__icontains=product_name)
-    
-    sales = Sales.objects.all()
-    purchases = Purchase.objects.all()
-
-    if start_date and end_date:
-        try:
-            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-            if start_date <= end_date:
-                sales = sales.filter(created_at__date__range=[start_date, end_date])  
-                purchases = purchases.filter(created_at__date__range=[start_date, end_date])  
-        except ValueError:
-            pass
-
-    total_sells = sum(sale.quantity for sale in sales if sale.quantity is not None)
-    total_purchase = sum(purchase.quantity for purchase in purchases if purchase.quantity is not None)
-
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="sales_report.pdf"'
-
-    doc = SimpleDocTemplate(response, pagesize=landscape(letter))
-    styles = getSampleStyleSheet()
-    
-    title_style = ParagraphStyle(name="Title", fontSize=18, textColor=colors.darkblue, alignment=1, spaceAfter=15)
-    subtitle_style = ParagraphStyle(name="Subtitle", fontSize=14, textColor=colors.darkred, spaceAfter=10)
-    normal_style = ParagraphStyle(name="Normal", fontSize=12, spaceAfter=8)
-
-    elements = []
-
-    # Header
-    elements.append(Paragraph("Sales and Purchase Report", title_style))
-    elements.append(Spacer(1, 8))
-
-    # Date Range
-    date_range_text = f"Date Range: {start_date} to {end_date}" if start_date and end_date else "Date Range: All Time"
-    elements.append(Paragraph(date_range_text, subtitle_style))
-    elements.append(Spacer(1, 8))
-
-    # Product Filter
-    if product_name:
-        elements.append(Paragraph(f"Product: {product_name}", normal_style))
-        elements.append(Spacer(1, 8))
-
-    # Summary Section
-    summary_data = [
-        ["Total Sales", total_sells],
-        ["Total Purchases", total_purchase],
-    ]
-    summary_table = Table(summary_data, colWidths=[150, 200])
-    summary_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ]))
-    elements.append(summary_table)
-    elements.append(Spacer(1, 15))
-
-    # Sales Table
-    sales_data = [['Sale Date', 'Product', 'Quantity', 'Price']]
-    for sale in sales:
-        sales_data.append([
-            sale.created_at.strftime('%Y-%m-%d'),
-            sale.product.name,
-            sale.quantity,
-            f"${sale.price:.2f}",
-        ])
-
-    sales_table = Table(sales_data, colWidths=[100, 200, 100, 100])
-    sales_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.darkgreen),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ]))
-    elements.append(Paragraph("Sales Data", subtitle_style))
-    elements.append(sales_table)
-    elements.append(Spacer(1, 15))
-
-    # Purchase Table
-    purchase_data = [['Purchase Date', 'Product', 'Vendor', 'Quantity', 'Price', 'Total Value']]
-    for purchase in purchases:
-        purchase_data.append([
-            purchase.created_at.strftime('%Y-%m-%d'),
-            purchase.product.name if purchase.product else "N/A",
-            purchase.vendor.name,
-            purchase.quantity,
-            f"${purchase.price:.2f}",
-            f"${purchase.total_value:.2f}",
-        ])
-
-    purchase_table = Table(purchase_data, colWidths=[100, 200, 150, 100, 100, 100])
-    purchase_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.darkred),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ]))
-    elements.append(Paragraph("Purchase Data", subtitle_style))
-    elements.append(purchase_table)
-    elements.append(Spacer(1, 15))
-
-    # Footer (Page Numbers)
-    def add_footer(canvas, doc):
-        canvas.setFont("Helvetica", 9)
-        canvas.drawString(500, 20, f"Page {doc.page}")
-
-    # Build the PDF
-    doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
-
-    return response
-
 @login_required
-def generate_excel(request):
+def stock_excel(request):
     try:
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
         product_name = request.GET.get("product_name")
         
-        # Initialize queryset with select_related to optimize database queries
         products = Product.objects.select_related('categories').all()
         if product_name:
             products = products.filter(name__icontains=product_name)
         
-        # Optimize queries with select_related
         sales = Sales.objects.select_related('product')
-        purchases = Purchase.objects.select_related('product')
+        purchases = Purchase.objects.all() 
 
-        # Improved date validation and parsing
+        parsed_start_date = None
+        parsed_end_date = None
+
         if start_date and end_date:
-            # Validate date format
             date_format = "%Y-%m-%d"
             try:
-                # Parse dates and convert to date objects
                 parsed_start_date = datetime.strptime(start_date, date_format).date()
                 parsed_end_date = datetime.strptime(end_date, date_format).date()
                 
-                # Validate date range
                 if parsed_start_date > parsed_end_date:
                     messages.error(request, "Start date must be before or equal to end date")
                     return redirect('stock_report')
                 
-                # Apply date filters
                 sales = sales.filter(created_at__date__range=[parsed_start_date, parsed_end_date])
                 purchases = purchases.filter(created_at__date__range=[parsed_start_date, parsed_end_date])
                 
             except ValueError:
-                messages.error(request, "Invalid date format. Please use YYYY-MM-DD format (e.g., 2024-01-31)")
+                messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
                 return redirect('stock_report')
 
-        # Create Excel workbook
+        sales_totals = sales.values('product_id').annotate(total_sold=Sum('quantity'))
+        sales_dict = {item['product_id']: item['total_sold'] or 0 for item in sales_totals}
+
+        purchases_totals = purchases.values('product_name').annotate(total_purchased=Sum('quantity'))
+        purchases_dict = {item['product_name']: item['total_purchased'] or 0 for item in purchases_totals}
+
         wb = Workbook()
         ws = wb.active
         ws.title = "Stock Report"
 
-        # Add headers with styling
-        headers = ["ID", "Product Name", "Category", "Stock", "Sold", "Purchased", "Date"]
+        headers = ["ID", "Product Name", "Category", "Stock", "Sold", "Purchased", "Created Date"]
         ws.append(headers)
-        
-        # Style headers
         for cell in ws[1]:
             cell.font = Font(bold=True)
-            cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+            cell.fill = PatternFill(start_color="CCCCCC", fill_type="solid")
 
-        # Add product data
         for product in products:
             try:
-                # Calculate totals
-                total_sold = (
-                    sales.filter(product=product)
-                    .aggregate(total_sold=models.Sum('quantity'))
-                    ['total_sold'] or 0
-                )
+                total_sold = sales_dict.get(product.id, 0)
+                total_purchased = purchases_dict.get(product.name, 0) 
+                created_date = product.created_at.strftime("%Y-%m-%d") if product.created_at else "N/A"
 
-                total_purchased = (
-                    purchases.filter(product=product)
-                    .aggregate(total_purchased=models.Sum('quantity'))
-                    ['total_purchased'] or 0
-                )
-
-                # Add row data
                 ws.append([
                     product.id,
                     product.name,
@@ -1422,44 +1286,34 @@ def generate_excel(request):
                     product.stock,
                     total_sold,
                     total_purchased,
-                    # Assuming product has a created_at field (you can adjust it to the correct field name if needed)
-                    product.created_at.strftime("%Y-%m-%d") if product.created_at else "N/A"
+                    created_date
                 ])
-            except Exception as row_error:
-                logger.error(f"Error processing product {product.id}: {str(row_error)}")
+            except Exception as e:
+                logger.error(f"Error processing product {product.id}: {e}")
                 continue
 
-        # Auto-adjust column widths
-        for column in ws.columns:
+        for col in ws.columns:
             max_length = 0
-            column = list(column)
-            for cell in column:
+            col_letter = col[0].column_letter
+            for cell in col:
                 try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
+                    max_length = max(max_length, len(str(cell.value)))
                 except:
                     pass
-            adjusted_width = (max_length + 2)
-            ws.column_dimensions[column[0].column_letter].width = adjusted_width
+            ws.column_dimensions[col_letter].width = max_length + 2
 
-        # Generate response with current date in filename
-        current_date = datetime.now().strftime("%Y%m%d")
-        filename = f"stock_report_{current_date}.xlsx"
-        
+        filename = f"stock_report_{datetime.now().strftime('%Y%m%d')}.xlsx"
         response = HttpResponse(
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': f'attachment; filename="{filename}"'},
         )
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
         wb.save(response)
         return response
 
     except Exception as e:
-        logger.error(f"Error generating Excel report: {str(e)}")
-        messages.error(request, "An error occurred while generating the Excel report")
+        logger.error(f"Error generating report: {e}")
+        messages.error(request, "Failed to generate Excel report.")
         return redirect('stock_report')
-
-
 
 @login_required
 def RepairReportList(request):
@@ -1549,30 +1403,6 @@ def RepairDetailReportList(request):
     return render(request, 'repair_detail_report.html', context)
 
 @login_required
-@csrf_exempt
-def get_product_price(request):
-    try:
-        product_id = request.GET.get("product_id")
-
-        if not product_id:
-            logger.warning("Invalid request: Missing product_id")
-            return JsonResponse({"error": "Invalid request"}, status=400)
-
-        try:
-            product = Product.objects.get(id=product_id)
-            logger.info(f"Product found: {product.name} (ID: {product_id}) - Price: {product.price}")
-            return JsonResponse({"price": product.price})
-
-        except Product.DoesNotExist:
-            logger.error(f"Product with ID {product_id} not found")
-            return JsonResponse({"error": "Product not found"}, status=404)
-
-    except Exception as e:
-        logger.critical(f"Unexpected error in get_product_price: {e}", exc_info=True)
-        return JsonResponse({"error": "An internal error occurred"}, status=500)
-
-
-
 def generate_sales_invoice(request, pk):
     invoice = get_object_or_404(SalesInvoice, pk=pk)
     company = Company.objects.first()
@@ -1582,7 +1412,7 @@ def generate_sales_invoice(request, pk):
         }
     return render(request, 'salesinvoiceprint.html',context)
 
-
+@login_required
 def generate_repair_invoice(request, pk):
     invoice = get_object_or_404(RepairInvoice, pk=pk)
     company = Company.objects.first()  

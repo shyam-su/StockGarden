@@ -2,14 +2,6 @@
 
 {% block content %}
 <style>
-    @media print {
-        .no-print {
-            display: none !important;
-        }
-        .chart-container {
-            height: 300px !important;
-        }
-    }
     .chart-container {
         position: relative;
         height: 300px;
@@ -22,6 +14,14 @@
         justify-content: center;
         color: #6c757d;
     }
+    .filter-buttons {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    .excel-btn-container {
+        margin-left: auto;
+    }
 </style>
 
 <div class="container-fluid">
@@ -33,7 +33,7 @@
                 </div>
                 <div class="card-body">
                     <!-- Filter Form -->
-                    <form method="GET" class="mb-3 no-print">
+                    <form method="GET" class="mb-3">
                         <div class="row">
                             <div class="col-md-3">
                                 <label for="start_date">Start Date:</label>
@@ -43,17 +43,19 @@
                                 <label for="end_date">End Date:</label>
                                 <input type="date" id="end_date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
                             </div>
-                            <div class="col-md-3 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary">Filter</button>&nbsp;
-                                <a href="{% url 'sales_report' %}" class="btn btn-secondary ms-2">Reset</a>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <div class="filter-buttons">
+                                    <button type="submit" class="btn btn-primary">Filter</button>
+                                    <a href="{% url 'sales_report' %}" class="btn btn-secondary">Reset</a>
+                                </div>
+                                <div class="excel-btn-container">
+                                    <a href="{% url 'sales_excel' %}?start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}" class="btn btn-success">
+                                        <i class="fas fa-file-excel"></i> Export to Excel
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </form>
-
-                    <!-- Print Button -->
-                    <div class="mb-3 no-print text-end">
-                        <button onclick="printReport()" class="btn btn-primary">🖨️ Print Report</button>
-                    </div>
 
                     <!-- Summary -->
                     <div class="alert alert-info">
@@ -234,10 +236,6 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         document.getElementById('paymentMethodNoData').style.display = 'flex';
         paymentMethodCtx.style.display = 'none';
-    }
-
-    function printReport() {
-        window.print();
     }
 });
 </script>
