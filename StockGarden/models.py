@@ -184,9 +184,7 @@ class Sales(models.Model):
             self.payment_status = PaymentStatusChoices.PARTIAL_PAYMENT
         else:
             self.payment_status = PaymentStatusChoices.PENDING
-        if self.product.stock >= self.quantity:
-            self.product.stock -= self.quantity
-            self.product.save()
+
         super().save(*args, **kwargs)
             
     class Meta:
@@ -417,11 +415,8 @@ class Return(models.Model):
     def save(self, *args, **kwargs):
         if self.product and self.product.price is not None:
             self.total_amount = self.product.price * self.quantity_returned
-            self.refund_amount = self.total_amount  # Assuming full refund, adjust logic if needed
-            
-            # Increase stock level based on returned quantity
-            self.product.stock += self.quantity_returned  # Assuming 'stock' is the field representing inventory
-            self.product.save()  # Save the product with updated stock level
+            self.refund_amount = self.total_amount
+        super(Return, self).save(*args, **kwargs)
         
         super(Return, self).save(*args, **kwargs)
         

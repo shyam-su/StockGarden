@@ -586,7 +586,7 @@ def SalesDelete(request,pk):
     try:
         sales =get_object_or_404(Sales,pk=pk)
         if request.method == 'POST':
-            sales_name = sales.product.name
+            sales_name = sales.product.name if sales.product else "Unknown Product"
             sales.delete()
             messages.success(request,f'Sales {sales_name} deleted successfully!')
             return redirect('sales')

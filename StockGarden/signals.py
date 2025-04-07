@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
 from .models import *
 from django.db import transaction
@@ -49,6 +49,72 @@ def create_or_update_product_from_purchase(sender, instance, created, **kwargs):
                 stock=instance.quantity,
                 brand=instance.brand,
             )
+
+
+@receiver(pre_save, sender=Sales)
+def adjust_stock_on_sales_update(sender, instance, **kwargs):
+    """Adjust stock before saving a Sales instance (create or update)."""
+    with transaction.atomic():
+        if instance.pk:  # Updating an existing sale
+            old_sale = Sales.objects.get(pk=instance.pk)
+            if old_sale.quantity != instance.quantity:
+                stock_diff = old_sale.quantity - instance.quantity  # Positive if qty reduced, negative if increased
+                if instance.product.stock + stock_diff >= 0:
+                    instance.product.stock += stock_diff
+                    instance.product.save()
+                else:
+                    raise ValueError("Insufficient stock to update this sale.")
+        else:  # Creating a new sale
+            if instance.product.stock < instance.quantity:
+                raise ValueError("Insufficient stock for this sale.")
+            instance.product.stock -= instance.quantity
+            instance.product.save()
+
+@receiver(post_delete, sender=Sales)
+def restore_stock_on_sales_delete(sender, instance, **kwargs):
+    """Restore stock when a Sales instance is deleted."""
+    with transaction.atomic():
+        instance.product.stock += instance.quantity
+        instance.product.save()
+
+@receiver(pre_save, sender=Return)
+def adjust_stock_on_return_update(sender, instance, **kwargs):
+    if not instance.product or instance.quantity_returned is None:
+        return
+
+    with transaction.atomic():
+        product = Product.objects.select_for_update().get(pk=instance.product.pk)
+        
+        if instance.pk:  # Updating an existing return
+            try:
+                old_return = Return.objects.get(pk=instance.pk)
+                if old_return.quantity_returned != instance.quantity_returned:
+                    quantity_diff = instance.quantity_returned - old_return.quantity_returned
+                    if product.stock + quantity_diff < 0:
+                        raise ValueError("Stock cannot go negative after update.")
+                    product.stock += quantity_diff
+                    product.save()
+            except Return.DoesNotExist:
+                raise ValueError("Original return record not found")
+        else:  # Creating a new return
+            if product.stock + instance.quantity_returned < 0:  # Optional: Add validation
+                raise ValueError("Stock cannot go negative after new return.")
+            product.stock += instance.quantity_returned
+            product.save()
+            
+
+@receiver(post_delete, sender=Return)
+def remove_stock_on_return_delete(sender, instance, **kwargs):
+    """Remove stock when a Return instance is deleted."""
+    with transaction.atomic():
+        if instance.product.stock >= instance.quantity_returned:
+            instance.product.stock -= instance.quantity_returned
+            instance.product.save()
+        else:
+            raise ValueError("Cannot delete return: insufficient stock to subtract.")
+        
+
+
 
 @receiver(post_save, sender=Sales)
 def create_or_update_sales_invoice(sender, instance, created, **kwargs):
