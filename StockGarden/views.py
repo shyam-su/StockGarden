@@ -588,7 +588,7 @@ def SalesDelete(request,pk):
         product_name = sales.product.name if sales.product else 'Unknown Product'
 
         if request.method == 'POST':
-            sales_name = product_name
+            sales_name = sales.product.name if sales.product else "Unknown Product"
             sales.delete()
             messages.success(request,f'Sales {sales_name} deleted successfully!')
             return redirect('sales')
