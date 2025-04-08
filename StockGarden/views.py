@@ -1,25 +1,22 @@
+import logging
+import json
+import openpyxl
 from django.shortcuts import HttpResponse,render, get_object_or_404, redirect
-from django.http import JsonResponse
 from .models import *
 from .forms import *
-import logging
 from django.core.paginator import Paginator
 from django.contrib import messages  
 from django.db.models import Sum,Q,Count
 from openpyxl import Workbook
-from reportlab.lib.pagesizes import letter, landscape
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from openpyxl.styles import Font, PatternFill
 from datetime import datetime
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
-import json
+from django.utils.timezone import localtime
 from django.db.models.functions import TruncDay
-from django.db.models import Sum
 from datetime import datetime, timedelta
 from django.utils import timezone
+
+
 
 
 # Create your views here
@@ -582,21 +579,25 @@ def SalesUpdate(request, pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def SalesDelete(request,pk):
+def SalesDelete(request, pk):
     try:
-        sales =get_object_or_404(Sales,pk=pk)
+        sales = get_object_or_404(Sales, pk=pk)
         product_name = sales.product.name if sales.product else 'Unknown Product'
-
+        
         if request.method == 'POST':
-            sales_name = sales.product.name if sales.product else "Unknown Product"
+            # Check if the product is already deleted (None)
+            sales_name = product_name  # Use the safe product name
             sales.delete()
-            messages.success(request,f'Sales {sales_name} deleted successfully!')
+            messages.success(request, f'Sales {sales_name} deleted successfully!')
             return redirect('sales')
-        return render(request, 'sales_delete.html',{'sales':sales})
+
+        return render(request, 'sales_delete.html', {'sales': sales})
+
     except Exception as e:
         logger.error(f"Error in SalesDeleteView: {e}")
         messages.error(request, 'An error occurred while processing the sales.')
         return render(request, '404.html', {"message": "An error occurred."})
+
 
 
 @login_required
@@ -1176,7 +1177,50 @@ def SalesReportList(request):
 
 @login_required
 def sales_excel(request):
-    pass
+    sales = Sales.objects.all().select_related('product', 'user')
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Sales Report"
+
+    headers = [
+        "ID", "Product", "IMEI", "Customer", "Quantity", "Price", "Discount", "Total Amount",
+        "Paid", "Remaining", "Payment Method", "Payment Status", "Warranty",
+        "Due Date", "Notes", "Created At"
+    ]
+    ws.append(headers)
+
+    for col in ws.iter_cols(min_row=1, max_row=1):
+        for cell in col:
+            cell.font = Font(bold=True)
+
+    for sale in sales:
+        ws.append([
+            sale.id,
+            sale.product.name if sale.product else 'N/A',
+            sale.Imei or '',
+            sale.user.full_name if sale.user else 'N/A', 
+            sale.quantity,
+            sale.price or 0, 
+            sale.discount or 0, 
+            sale.total_amount or 0, 
+            sale.paid_amount or 0, 
+            sale.remaining_amount or 0,
+            sale.payment_method,
+            sale.payment_status,
+            sale.warranty or 0, 
+            sale.due_date.strftime('%Y-%m-%d') if sale.due_date else '',
+            sale.notes or '',
+            localtime(sale.created_at).strftime('%Y-%m-%d %H:%M') if sale.created_at else '',
+        ])
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename=SalesReport.xlsx'
+    
+    wb.save(response)
+    return response
 
 @login_required
 def StockReportList(request):
