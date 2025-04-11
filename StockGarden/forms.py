@@ -393,7 +393,17 @@ class SalesForm(forms.ModelForm):
         }
 
 
+    def clean(self):
+        cleaned_data = super().clean()
+        product = cleaned_data.get("product")
+        quantity = cleaned_data.get("quantity")
 
+        if product and quantity:
+            if quantity > product.stock:
+                raise ValidationError(f"Insufficient stock. Only {product.stock} items available.")
+
+        return cleaned_data
+    
     # Custom validation for quantity (should be at least 1)
     def clean_quantity(self):
         quantity = self.cleaned_data.get("quantity")

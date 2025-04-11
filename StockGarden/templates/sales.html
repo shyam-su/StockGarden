@@ -5,37 +5,36 @@
     <div class="row">
         <div class="col-12">
             <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Sales</h5>
+                <div class="card-header py-3 d-flex flex-column flex-md-row justify-content-between align-items-center">
+                    <h5 class="mb-2 mb-md-0">Sales</h5>
                     <a href="{% url 'sales_create' %}" class="btn btn-primary btn-sm">Add New</a>
                 </div>
                 <div class="card-body">
                     <form method="get" class="mb-3">
-                        <div class="d-flex flex-wrap align-items-center gap-2">
+                        <div class="row g-2 align-items-end">
                             <!-- Search Field -->
-                            <div class="flex-grow-1">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Search</label>
                                 <input type="text" name="q" class="form-control" placeholder="Search sales..." value="{{ query }}">
                             </div>
                             
-                            <!-- From Date -->
-                            <div class="col-auto">
-                                <div class="input-group">
-                                    <span class="input-group-text">From</span>
-                                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
-                                </div>
-                            </div>
-                            
-                            <!-- To Date -->
-                            <div class="col-auto">
-                                <div class="input-group">
-                                    <span class="input-group-text">To</span>
-                                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                            <!-- Date Range -->
+                            <div class="col-12 col-md-4">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label class="form-label">From</label>
+                                        <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">To</label>
+                                        <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                                    </div>
                                 </div>
                             </div>
                             
                             <!-- Status Filter -->
-                            <div class="input-group" style="width: 200px;">
-                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-money-bill-wave"></i></span>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Payment Status</label>
                                 <select name="payment_status" class="form-select">
                                     <option value="">All Statuses</option>
                                     {% for value, name in status_choices %}
@@ -47,8 +46,11 @@
                             </div>
                             
                             <!-- Filter Button -->
-                            <div class="col-auto">
-                                <button type="submit" class="btn btn-primary w-100">Filter</button>
+                            <div class="col-12 col-md-1 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary ">
+                                    <span class="d-none d-md-inline">Filter</span>
+                                    <span class="d-md-none"><i class="fas fa-filter"></i></span>
+                                </button>
                             </div>
                         </div>
                     </form>
@@ -79,20 +81,30 @@
                                     <td>{{ sale.total_amount|default:0.00 }}</td>
                                     <td>{{ sale.paid_amount|default:0.00 }}</td>
                                     <td>{{ sale.remaining_amount|default:0.00 }}</td>
-                                    <td>{{ sale.payment_status|default:"Pending" }}                                    </td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if sale.payment_status == 'paid' %}bg-success
+                                            {% elif sale.payment_status == 'partially_paid' %}bg-warning text-dark
+                                            {% else %}bg-danger
+                                            {% endif %}">
+                                            {{ sale.get_payment_status_display|default:"Pending" }}
+                                        </span>
+                                    </td>
                                     <td>{{ sale.due_date|date:"M d, Y"|default:"-" }}</td>
                                     <td class="text-center">
-                                        <a href="{% url 'sales_update' pk=sale.id %}" class="btn btn-sm btn-success me-1">
-                                            Update
-                                        </a>
-                                        <a href="{% url 'sales_delete' pk=sale.id %}" class="btn btn-sm btn-danger">
-                                            Delete
-                                        </a>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{% url 'sales_update' pk=sale.id %}" class="btn btn-success" title="Update">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'sales_delete' pk=sale.id %}" class="btn btn-danger" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="10" class="text-center">No sales found.</td>
+                                    <td colspan="10" class="text-center py-4">No sales found.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -101,43 +113,51 @@
                 </div>
                 
                 <!-- Pagination -->
-                <nav class="mt-4">
-                    <ul class="pagination justify-content-center">
-                        {% if sales.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if payment_status %}&payment_status={{ payment_status }}{% endif %}" aria-label="First">
-                                <span aria-hidden="true">&laquo;&laquo;</span>
-                            </a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ sales.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if payment_status %}&payment_status={{ payment_status }}{% endif %}" aria-label="Previous">
-                                <span aria-hidden="true">&laquo;</span>
-                            </a>
-                        </li>
-                        {% endif %}
-
-                        {% for num in sales.paginator.page_range %}
-                            <li class="page-item {% if sales.number == num %}active{% endif %}">
-                                <a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if payment_status %}&payment_status={{ payment_status }}{% endif %}">
-                                    {{ num }}
+                <div class="card-footer">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if sales.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if payment_status %}&payment_status={{ payment_status }}{% endif %}" aria-label="First">
+                                    <span aria-hidden="true">&laquo;&laquo;</span>
                                 </a>
                             </li>
-                        {% endfor %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ sales.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if payment_status %}&payment_status={{ payment_status }}{% endif %}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
 
-                        {% if sales.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ sales.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if payment_status %}&payment_status={{ payment_status }}{% endif %}" aria-label="Next">
-                                <span aria-hidden="true">&raquo;</span>
-                            </a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ sales.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if payment_status %}&payment_status={{ payment_status }}{% endif %}" aria-label="Last">
-                                <span aria-hidden="true">&raquo;&raquo;</span>
-                            </a>
-                        </li>
-                        {% endif %}
-                    </ul>
-                </nav>
+                            {% for num in sales.paginator.page_range %}
+                                {% if num > sales.number|add:'-3' and num < sales.number|add:'3' or num == 1 or num == sales.paginator.num_pages %}
+                                    <li class="page-item {% if sales.number == num %}active{% endif %}">
+                                        <a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if payment_status %}&payment_status={{ payment_status }}{% endif %}">
+                                            {{ num }}
+                                        </a>
+                                    </li>
+                                {% elif num == sales.number|add:'-3' or num == sales.number|add:'3' %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if sales.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ sales.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if payment_status %}&payment_status={{ payment_status }}{% endif %}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ sales.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if payment_status %}&payment_status={{ payment_status }}{% endif %}" aria-label="Last">
+                                    <span aria-hidden="true">&raquo;&raquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
             </div>
         </div>
     </div>

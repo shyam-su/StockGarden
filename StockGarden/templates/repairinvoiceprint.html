@@ -16,79 +16,97 @@
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             background-color: var(--secondary-color);
             color: var(--text-dark);
+            font-size: 14px;
         }
 
         .invoice-container {
             max-width: 900px;
             margin: auto;
             background: #fff;
-            padding: 30px;
+            padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             position: relative;
         }
 
         .print-btn {
-            position: absolute;
-            top: 20px;
+            position: fixed;
+            bottom: 20px;
             right: 20px;
             background-color: var(--primary-color);
             color: #fff;
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+            padding: 12px 15px;
+            border-radius: 50%;
             cursor: pointer;
             font-size: 14px;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .print-btn:hover {
             background-color: #0056b3;
         }
 
+        .print-btn::before {
+            content: "🖨️";
+            font-size: 16px;
+        }
+
         .company-header {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
             padding-bottom: 15px;
             border-bottom: 2px solid var(--primary-color);
+            gap: 15px;
         }
 
         .company-info h2 {
             color: var(--primary-color);
-            margin: 0;
-            font-size: 24px;
+            margin: 0 0 5px 0;
+            font-size: 20px;
         }
 
         .invoice-meta {
-            text-align: right;
+            text-align: left;
         }
 
         .invoice-title {
-            font-size: 28px;
+            font-size: 22px;
             font-weight: bold;
             color: var(--primary-color);
             margin-bottom: 5px;
         }
 
         .customer-info, .payment-info {
-            padding: 15px;
+            padding: 12px;
             background: var(--secondary-color);
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+        }
+
+        .invoice-details {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .invoice-details table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 15px;
+            min-width: 600px;
         }
 
         .invoice-details th, .invoice-details td {
-            padding: 12px;
+            padding: 10px;
             border-bottom: 1px solid var(--accent-color);
+            font-size: 13px;
         }
 
         .invoice-details th {
@@ -103,40 +121,89 @@
 
         .total-section {
             background: var(--secondary-color);
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
-            margin-top: 20px;
+            margin-top: 15px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .total-row {
-            font-size: 18px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 15px;
         }
 
         .grand-total {
-            font-size: 22px;
+            font-size: 18px;
             font-weight: bold;
             color: var(--primary-color);
+            padding-top: 8px;
+            border-top: 1px solid var(--accent-color);
         }
 
         .footer-note {
             text-align: center;
-            margin-top: 30px;
+            margin-top: 20px;
             color: var(--text-light);
-            font-size: 14px;
+            font-size: 12px;
+            line-height: 1.4;
         }
 
         @media print {
             .print-btn { display: none; }
             .invoice-container { box-shadow: none; padding: 0; }
-            body { padding: 0; }
+            body { padding: 0; background: #fff; }
+            .invoice-details table { min-width: 100%; }
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 20px;
+                font-size: 16px;
+            }
+            .company-header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .invoice-meta {
+                text-align: right;
+            }
+            .invoice-title {
+                font-size: 28px;
+            }
+            .company-info h2 {
+                font-size: 24px;
+            }
+            .invoice-details th, .invoice-details td {
+                padding: 12px;
+                font-size: 14px;
+            }
+            .total-section {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .print-btn {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                bottom: auto;
+                border-radius: 5px;
+                padding: 8px 16px;
+                width: auto;
+            }
+            .print-btn::before {
+                content: "Print Invoice";
+                font-size: 14px;
+            }
         }
     </style>
 </head>
 <body>
-    <button class="print-btn" onclick="window.print()">Print Invoice</button>
+    <button class="print-btn" onclick="window.print()"></button>
     <div class="invoice-container">
         <div class="company-header">
             <div class="company-info">

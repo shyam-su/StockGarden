@@ -10,30 +10,32 @@
                 </div>
                 <div class="card-body">
                     <form method="get" class="mb-3">
-                        <div class="row gx-3 align-items-center">
-                            <!-- Search Field -->
-                            <div class="col">
+                        <div class="row g-3 align-items-center">
+                            <!-- Search Field - Full width on mobile -->
+                            <div class="col-12 col-md">
                                 <input type="text" name="q" class="form-control" placeholder="Search products..." value="{{ query }}">
                             </div>
                             
-                            <!-- From Date -->
-                            <div class="col-auto">
-                                <div class="input-group">
-                                    <span class="input-group-text">From</span>
-                                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                            <!-- Date Range - Stack on mobile -->
+                            <div class="col-12 col-md-auto">
+                                <div class="row g-2">
+                                    <div class="col-12 col-sm-6">
+                                        <div class="input-group">
+                                            <span class="input-group-text">From</span>
+                                            <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-sm-6">
+                                        <div class="input-group">
+                                            <span class="input-group-text">To</span>
+                                            <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <!-- To Date -->
-                            <div class="col-auto">
-                                <div class="input-group">
-                                    <span class="input-group-text">To</span>
-                                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
-                                </div>
-                            </div>
-                            
-                            <!-- Filter Button -->
-                            <div class="col-auto">
+                            <!-- Filter Button - Full width on mobile -->
+                            <div class="col-12 col-md-auto">
                                 <button type="submit" class="btn btn-primary w-100">Filter</button>
                             </div>
                         </div>

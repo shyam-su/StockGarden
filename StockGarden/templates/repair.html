@@ -10,59 +10,55 @@
                     <a href="{% url 'repair_create' %}" class="btn btn-primary btn-sm">Add New</a>
                 </div>
                 <div class="card-body">
-                    <!-- Search and Filter Form -->
-                    <form method="get" class="mb-3">
-                        <div class="row gx-3 align-items-center">
-                            <!-- Search Field -->
-                            <div class="col">
-                                <input type="text" name="q" class="form-control" placeholder="Search repairs..." value="{{ query }}">
-                            </div>
-                            
-                            <!-- Status Filter -->
-                            <div class="col-auto">
-                                <select name="status" class="form-control">
-                                    <option value="">All Statuses</option>
-                                    {% for value, label in status_choices %}
-                                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            
-                                <!-- Payment Status Filter -->
-                                <div class="col-auto">
-                                    <select name="payment_status" class="form-control">
-                                        <option value="">All Payment Statuses</option>
-                                        {% for value, label in payment_status_choices %}
-                                            <option value="{{ value }}" {% if payment_status_filter == value %}selected{% endif %}>{{ label }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                
-                            <!-- From Date -->
-                            <div class="col-auto">
-                                <div class="input-group">
-                                    <span class="input-group-text">From</span>
-                                    <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
-                                </div>
-                            </div>
-                            
-                            <!-- To Date -->
-                            <div class="col-auto">
-                                <div class="input-group">
-                                    <span class="input-group-text">To</span>
-                                    <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
-                                </div>
-                            </div>
-
-
-
-                            <!-- Filter Button -->
-                            <div class="col-auto">
-                                <button type="submit" class="btn btn-primary w-100">Filter</button>
-                            </div>
-                        
+                    <div class="row g-2 mb-4">
+                        <!-- Search Field -->
+                        <div class="col-12 col-md-3">
+                            <input type="text" name="q" class="form-control" placeholder="Search repairs..." value="{{ query }}">
                         </div>
-                    </form>
+                    
+                        <!-- Status Filter -->
+                        <div class="col-12 col-md-2">
+                            <select name="status" class="form-control">
+                                <option value="">All Statuses</option>
+                                {% for value, label in status_choices %}
+                                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    
+                        <!-- Payment Status Filter -->
+                        <div class="col-12 col-md-2">
+                            <select name="payment_status" class="form-control">
+                                <option value="">All Payment Statuses</option>
+                                {% for value, label in payment_status_choices %}
+                                    <option value="{{ value }}" {% if payment_status_filter == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    
+                        <!-- From Date -->
+                        <div class="col-12 col-md-2">
+                            <div class="input-group">
+                                <span class="input-group-text">From</span>
+                                <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+                            </div>
+                        </div>
+                    
+                        <!-- To Date -->
+                        <div class="col-12 col-md-2">
+                            <div class="input-group">
+                                <span class="input-group-text">To</span>
+                                <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+                            </div>
+                        </div>
+                    
+                        <!-- Filter Button -->
+                        <div class="col-12 col-md-1 d-grid">
+                            <button type="submit" class="btn btn-primary">Filter</button>
+                        </div>
+                    </div>
+                    
+                    
                     
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
@@ -83,12 +79,12 @@
                                 {% for repair in repair %}
                                 <tr>
                                     <td>{{ forloop.counter }}</td>
-                                    <td>{{ repair.user.full_name|default:"N/A" }}</td>
+                                    <td>{{ repair.user.full_name|default:"N/A"|slice:":8"  }}</td>
                                     <td>{{ repair.product_name|default:"N/A" }}</td>
                                     <td>{{ repair.device_model|default:"N/A" }}</td>
                                     <td>{{ repair.created_at|date:"M d, Y" }}</td>
                                     <td>{{ repair.get_status_display }}</td>
-                                    <td>{{ repair.get_payment_status_display }}</td>
+                                    <td>{{ repair.get_payment_status_display|slice:":9"  }}</td>
                                     <td>{{ repair.remaining_amount|default:"0.00" }}</td>
                                     <td class="text-center">
                                         <a href="{% url 'repair_update' pk=repair.id %}" class="btn btn-sm btn-success me-1">Update</a>

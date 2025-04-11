@@ -534,8 +534,6 @@ def SalesList(request):
         logger.error(f"Error in SalesListView: {e}")
         return render(request, '404.html', {"message": "An error occurred."})
 
-import uuid
-
 @login_required
 def SalesCreate(request,sales_id=None):
     try:
