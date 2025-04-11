@@ -8,7 +8,7 @@ class User(models.Model):
     full_name = models.CharField(max_length=191)
     address = models.TextField(max_length=191, blank=True, null=True)
     phone = models.CharField(max_length=30,blank=True, null=True,unique=True,db_index=True)
-    email = models.EmailField(max_length=50,unique=True, blank=True)
+    email = models.EmailField(max_length=50,unique=True, blank=True,null=True)
     company_name = models.CharField(max_length=191, unique=True, blank=True, null=True)
     role = models.CharField( max_length=12,choices=ROLE_CHOICES, default='Customer')
     is_active = models.BooleanField(default=True)
