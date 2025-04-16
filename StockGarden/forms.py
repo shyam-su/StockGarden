@@ -398,9 +398,16 @@ class SalesForm(forms.ModelForm):
         product = cleaned_data.get("product")
         quantity = cleaned_data.get("quantity")
 
+        instance = getattr(self, 'instance', None)  # Get the Sales instance being updated (if any)
+
         if product and quantity:
-            if quantity > product.stock:
-                raise ValidationError(f"Insufficient stock. Only {product.stock} items available.")
+            available_stock = product.stock
+            if instance and instance.pk:  # This is an update
+                # Add back the original sales quantity to the available stock
+                available_stock += instance.quantity
+
+            if quantity > available_stock:
+                raise ValidationError(f"Insufficient stock. Only {available_stock} items available.")
 
         return cleaned_data
     
