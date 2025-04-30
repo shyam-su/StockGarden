@@ -21,7 +21,7 @@ from debug_toolbar.toolbar import debug_toolbar_urls
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('root/', admin.site.urls),
     path('login/', LoginView, name='user-login'),
     path('', include('user.urls')),
     path('', include('StockGarden.urls')),

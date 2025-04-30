@@ -16,20 +16,34 @@ logger = logging.getLogger(__name__)
 
 def LoginView(request):
     if request.method == 'POST':
-        username = request.POST.get('username')
+        email = request.POST.get('username') 
         password = request.POST.get('password')
+        
         try:
-            user = authenticate(request, username=username, password=password)
+            user = authenticate(request, username=email, password=password)
             if user is not None:
                 login(request, user)
                 messages.success(request, "You have logged in successfully.")
-                return redirect('home')
+                print(f"User '{user.full_name}' with role '{user.role}' has logged in.")
+
+                if user.role == 'admin':
+                    return redirect('home') 
+                elif user.role == 'seller':
+                    return redirect('seller') 
+                elif user.role == 'vendor':
+                    return redirect('vendor')
+                elif user.role == 'customer':
+                    return redirect('customer')
+                else:
+                    return redirect('home') 
             else:
                 messages.error(request, "Invalid username or password.")
         except Exception as e:
-            logger.error(f"Error during login attempt for username '{username}': {e}")
+            logger.error(f"Error during login attempt for username '{email}': {e}")
             messages.error(request, "An error occurred during login. Please try again.")
+    
     return render(request, 'login.html')
+
 
 @login_required
 def UserListView(request):
@@ -82,11 +96,17 @@ def UserCreateView(request):
         logger.error(f"Error creating user: {e}")
         messages.error(request, "Failed to create user.")
         return render(request, '404.html', status=404)
-
+    
 @login_required
-def UserUpdateView(request,pk):
+def UserUpdateView(request, pk):
     try:
         user = get_object_or_404(User, pk=pk)
+
+        # Restrict modification based on role
+        if user.role in ['vendor', 'seller'] and not (request.user.role == 'admin' or request.user.is_superuser):
+            messages.error(request, "You don't have permission to modify this user.")
+            return HttpResponseForbidden("Only admin can modify vendor/seller accounts.")
+
         if request.method == 'POST':
             form = UserForm(request.POST, instance=user)
             if form.is_valid():
@@ -100,27 +120,50 @@ def UserUpdateView(request,pk):
         else:
             form = UserForm(instance=user)
             logger.debug(f"Rendering update form for user (ID: {pk}).")
+
         return render(request, 'user_update.html', {'form': form})
+
     except Exception as e:
         logger.error(f"Error updating user (ID: {pk}): {e}")
         messages.error(request, "Failed to update user.")
         return render(request, '404.html', status=404)
 
+
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect, render
+from django.http import HttpResponseForbidden
+import logging
+
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
+logger = logging.getLogger(__name__)
+
 @login_required
-def UserDeleteView(request,pk):
+def UserDeleteView(request, pk):
     try:
         user = get_object_or_404(User, pk=pk)
+
+        # Restrict deletion based on role
+        if user.role in ['seller', 'vendor'] and not (request.user.is_superuser or request.user.role == 'admin'):
+            messages.error(request, "You don't have permission to delete this user.")
+            return HttpResponseForbidden("Unauthorized action.")
+
         if request.method == 'POST':
             user.delete()
             logger.info(f"User (ID: {pk}) deleted successfully.")
             messages.success(request, "User deleted successfully!")
             return redirect('user')
+
         logger.debug(f"Rendering delete confirmation for user (ID: {pk}).")
         return render(request, 'user_delete.html', {'user': user})
+
     except Exception as e:
         logger.error(f"Error deleting user (ID: {pk}): {e}")
         messages.error(request, "Failed to delete user.")
         return render(request, '404.html', status=404)
+
 
 @login_required
 def LogoutView(request):
@@ -133,3 +176,18 @@ def LogoutView(request):
         messages.error(request, "An error occurred while logging you out. Please try again.")        
         return redirect('login')
 
+
+
+
+@login_required
+def vendor_dashboard(request):
+    return render(request, 'vendor_dashboard.html')
+
+@login_required
+def seller_dashboard(request):
+    return render(request, 'seller_dashboard.html')
+
+
+@login_required
+def customer_dashboard(request):
+    return render(request, 'customer_dashboard.html')
