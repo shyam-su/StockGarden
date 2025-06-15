@@ -4,6 +4,8 @@ from django.utils.text import slugify
 import uuid
 from decimal import Decimal
 from PIL import Image
+from django.db.models import Sum, Q
+
 
 # Create your models here.
 class PaymentMethodChoices(models.TextChoices):
@@ -155,7 +157,7 @@ class Product(models.Model):
 
 class Sales(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL,null=True,blank=True)  
-    product = models.ForeignKey(Product, on_delete=models.SET_NULL,null=True) 
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, null=False, blank=False)
     Imei = models.CharField(max_length=100,unique=True, blank=True, null=True,db_index=True)
     warranty = models.IntegerField(null=True, blank=True)
     quantity = models.IntegerField(default=1)
@@ -189,6 +191,7 @@ class Sales(models.Model):
     class Meta:
         verbose_name = "Sells"
         indexes = [models.Index(fields=['user',])]
+    
 
     def __str__(self):
        return f"{self.user} - {self.product} - Quantity: {self.quantity} - Price: {self.price}"
@@ -427,6 +430,72 @@ class Return(models.Model):
     def __str__(self):
         return f"Return for Invoice #{self.invoice.invoice_number} - Product {self.product.name}"
     
+    
+class StockLedger(models.Model):
+    """
+    Tracks all inventory movements with running balances
+    """
+    TRANSACTION_TYPES = [
+        ('purchase', 'Purchase'),
+        ('sale', 'Sale'),
+        ('return', 'Return'),
+        ('adjustment', 'Adjustment'),
+        ('transfer', 'Transfer'),
+        ('damage', 'Damage/Loss'),
+    ]
+    
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='stock_ledger_entries')
+    transaction_date = models.DateTimeField(auto_now_add=True, db_index=True)
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    reference_id = models.CharField(max_length=50)  # ID of the related transaction (purchase, sale, etc.)
+    reference_model = models.CharField(max_length=50)  # Model name (e.g., 'Purchase', 'Sales')
+    quantity = models.IntegerField()  # Positive for incoming, negative for outgoing
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2)  # Cost per unit at time of transaction
+    total_value = models.DecimalField(max_digits=12, decimal_places=2)  # quantity * unit_cost
+    balance_quantity = models.IntegerField()  # Running balance
+    balance_value = models.DecimalField(max_digits=12, decimal_places=2)  # Running total value
+    notes = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    
+    class Meta:
+        ordering = ['-transaction_date']
+        verbose_name = "Stock Ledger Entry"
+        indexes = [
+            models.Index(fields=['transaction_date']),
+            models.Index(fields=['product']),
+            models.Index(fields=['transaction_type']),
+            models.Index(fields=['reference_id']),
+        ]
+    
+    def __str__(self):
+        return f"{self.transaction_date.strftime('%Y-%m-%d')} - {self.product.name} - {self.get_transaction_type_display()} - Qty: {self.quantity}"
+    
+    def save(self, *args, **kwargs):
+        # Calculate total value
+        self.total_value = self.quantity * self.unit_cost
+        
+        # Get previous balance for this product
+        previous_entry = StockLedger.objects.filter(
+            product=self.product,
+            transaction_date__lte=self.transaction_date
+        ).exclude(id=self.id).order_by('-transaction_date', '-id').first()
+        
+        # Calculate running balances
+        if previous_entry:
+            self.balance_quantity = previous_entry.balance_quantity + self.quantity
+            self.balance_value = previous_entry.balance_value + self.total_value
+        else:
+            self.balance_quantity = self.quantity
+            self.balance_value = self.total_value
+        
+        super().save(*args, **kwargs)
+        
+        # Update product stock
+        product = self.product
+        product.stock = self.balance_quantity
+        product.save()
+        
+        
 class Report(models.Model):
     Total_sells = models.IntegerField(null=True, blank=True,db_index=True)
     Total_purchase = models.IntegerField(null=True, blank=True,db_index=True)
@@ -446,4 +515,373 @@ class Report(models.Model):
     class Meta:
         verbose_name = "Report"
         indexes = [models.Index(fields=['Total_sells',])]    
+
+
+class Daybook(models.Model):
+    """
+    A chronological record of all financial transactions before posting to ledger
+    """
+    TRANSACTION_TYPES = [
+        ('sale', 'Sale'),
+        ('purchase', 'Purchase'),
+        ('expense', 'Expense'),
+        ('repair', 'Repair'),
+        ('payment_received', 'Payment Received'),
+        ('payment_made', 'Payment Made'),
+        ('return', 'Return'),
+    ]
     
+    date = models.DateTimeField(auto_now_add=True, db_index=True)
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    reference_id = models.CharField(max_length=50)  # Stores the ID of the related transaction
+    reference_model = models.CharField(max_length=50)  # Stores the model name (e.g., 'Sales', 'Purchase')
+    description = models.TextField()
+    debit_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    credit_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    payment_method = models.CharField(max_length=20, choices=PaymentMethodChoices.choices, null=True, blank=True)
+    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices.choices, null=True, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    
+    class Meta:
+        ordering = ['-date']
+        verbose_name = "Daybook Entry"
+        indexes = [
+            models.Index(fields=['date']),
+            models.Index(fields=['transaction_type']),
+            models.Index(fields=['reference_id']),
+        ]
+    
+    def __str__(self):
+        return f"{self.date.strftime('%Y-%m-%d')} - {self.get_transaction_type_display()} - {self.description[:50]}"
+    
+
+class Cashbook(models.Model):
+    """
+    Records all cash and bank transactions (actual money movements)
+    """
+    ENTRY_TYPES = [
+        ('receipt', 'Receipt'),
+        ('payment', 'Payment'),
+    ]
+    
+    SOURCE_TYPES = [
+        ('sale', 'Sale'),
+        ('purchase', 'Purchase'),
+        ('expense', 'Expense'),
+        ('repair', 'Repair'),
+        ('return', 'Return'),
+        ('other', 'Other'),
+    ]
+    
+    date = models.DateTimeField(auto_now_add=True, db_index=True)
+    entry_type = models.CharField(max_length=10, choices=ENTRY_TYPES)
+    source_type = models.CharField(max_length=10, choices=SOURCE_TYPES)
+    reference_id = models.CharField(max_length=50)  # ID of the related transaction
+    reference_model = models.CharField(max_length=50)  # Model name (e.g., 'Sales', 'Purchase')
+    description = models.TextField()
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_method = models.CharField(max_length=20, choices=PaymentMethodChoices.choices)
+    is_bank = models.BooleanField(default=False)  # True for bank transactions, False for cash
+    bank_name = models.CharField(max_length=100, blank=True, null=True)
+    cheque_number = models.CharField(max_length=50, blank=True, null=True)
+    transaction_date = models.DateField()  # Date when the transaction actually occurred
+    recorded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    notes = models.TextField(blank=True, null=True)
+    
+    # Balance fields (calculated on save)
+    cash_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    bank_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    class Meta:
+        ordering = ['-transaction_date', '-date']
+        verbose_name = "Cashbook Entry"
+        indexes = [
+            models.Index(fields=['transaction_date']),
+            models.Index(fields=['entry_type']),
+            models.Index(fields=['payment_method']),
+            models.Index(fields=['is_bank']),
+        ]
+    
+    def __str__(self):
+        return f"{self.transaction_date.strftime('%Y-%m-%d')} - {self.get_entry_type_display()} - {self.amount}"
+    
+    def save(self, *args, **kwargs):
+        # Calculate balances
+        if not self.pk:  # Only for new entries
+            previous_entry = Cashbook.objects.filter(
+                transaction_date__lte=self.transaction_date
+            ).order_by('-transaction_date', '-id').first()
+            
+            if self.is_bank:
+                prev_balance = previous_entry.bank_balance if previous_entry else Decimal('0.00')
+                if self.entry_type == 'receipt':
+                    self.bank_balance = prev_balance + self.amount
+                    self.cash_balance = previous_entry.cash_balance if previous_entry else Decimal('0.00')
+                else:
+                    self.bank_balance = prev_balance - self.amount
+                    self.cash_balance = previous_entry.cash_balance if previous_entry else Decimal('0.00')
+            else:
+                prev_balance = previous_entry.cash_balance if previous_entry else Decimal('0.00')
+                if self.entry_type == 'receipt':
+                    self.cash_balance = prev_balance + self.amount
+                    self.bank_balance = previous_entry.bank_balance if previous_entry else Decimal('0.00')
+                else:
+                    self.cash_balance = prev_balance - self.amount
+                    self.bank_balance = previous_entry.bank_balance if previous_entry else Decimal('0.00')
+        
+        super().save(*args, **kwargs)
+        
+
+class ProfitLossStatement(models.Model):
+    """Official Profit & Loss Statement record with enhanced calculations"""
+    PERIOD_CHOICES = [
+        ('daily', 'Daily'),
+        ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'),
+        ('quarterly', 'Quarterly'),
+        ('annual', 'Annual'),
+        ('custom', 'Custom'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('final', 'Final'),
+        ('published', 'Published'),
+    ]
+    
+    title = models.CharField(max_length=200)
+    period_type = models.CharField(max_length=20, choices=PERIOD_CHOICES)
+    start_date = models.DateField(db_index=True)
+    end_date = models.DateField(db_index=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    generated_at = models.DateTimeField(auto_now_add=True)
+    generated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    notes = models.TextField(blank=True)
+    calculation_data = models.JSONField(default=dict, blank=True)
+    
+    # Summary fields (auto-calculated)
+    total_revenue = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    total_cogs = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)  # Cost of Goods Sold
+    gross_profit = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    total_expenses = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    operating_profit = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    net_profit = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    
+    class Meta:
+        ordering = ['-end_date']
+        verbose_name = "Profit & Loss Statement"
+        verbose_name_plural = "Profit & Loss Statements"
+        indexes = [
+            models.Index(fields=['start_date', 'end_date']),
+            models.Index(fields=['status']),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(end_date__gte=models.F('start_date')),
+                name='end_date_after_start_date'
+            )
+        ]
+    
+    def __str__(self):
+        return f"P&L Statement: {self.title} ({self.start_date} to {self.end_date})"
+    
+    def calculate_profit_loss(self):
+        """
+        Calculate all profit/loss metrics based on transactions between start and end dates
+        """
+        from django.db.models import Sum, Q
+        
+        # 1. Calculate Total Revenue (from Sales)
+        sales_data = Sales.objects.filter(
+            created_at__date__gte=self.start_date,
+            created_at__date__lte=self.end_date
+        ).aggregate(
+            total=Sum('total_amount'),
+            paid=Sum('paid_amount')
+        )
+        self.total_revenue = sales_data['total'] or Decimal('0.00')
+        
+        # 2. Calculate Cost of Goods Sold (from Purchases)
+        purchase_data = Purchase.objects.filter(
+            created_at__date__gte=self.start_date,
+            created_at__date__lte=self.end_date
+        ).aggregate(
+            total=Sum('total_price')
+        )
+        self.total_cogs = purchase_data['total'] or Decimal('0.00')
+        
+        # 3. Calculate Gross Profit
+        self.gross_profit = self.total_revenue - self.total_cogs
+        
+        # 4. Calculate Total Expenses
+        expense_data = Expense.objects.filter(
+            created_at__date__gte=self.start_date,
+            created_at__date__lte=self.end_date
+        ).aggregate(
+            total=Sum('amount')
+        )
+        self.total_expenses = expense_data['total'] or Decimal('0.00')
+        
+        # 5. Calculate Operating Profit
+        self.operating_profit = self.gross_profit - self.total_expenses
+        
+        # 6. Calculate Net Profit (for now same as operating profit, can add taxes etc later)
+        self.net_profit = self.operating_profit
+        
+        # Store detailed calculation data
+        self.calculation_data = {
+            'revenue_sources': self.get_revenue_breakdown(),
+            'expense_breakdown': self.get_expense_breakdown(),
+            'cogs_details': self.get_cogs_details(),
+        }
+        
+        self.save()
+    
+    def get_revenue_breakdown(self):
+        """Break down revenue by product category"""
+        from django.db.models import Sum
+        return Sales.objects.filter(
+            created_at__date__gte=self.start_date,
+            created_at__date__lte=self.end_date
+        ).values(
+            'product__categories__name'
+        ).annotate(
+            total=Sum('total_amount')
+        ).order_by('-total')
+    
+    def get_expense_breakdown(self):
+        """Break down expenses by category"""
+        from django.db.models import Sum
+        return Expense.objects.filter(
+            created_at__date__gte=self.start_date,
+            created_at__date__lte=self.end_date
+        ).values(
+            'category__name'
+        ).annotate(
+            total=Sum('amount')
+        ).order_by('-total')
+    
+    def get_cogs_details(self):
+        """Break down cost of goods sold by product category"""
+        return Purchase.objects.filter(
+            created_at__date__gte=self.start_date,
+            created_at__date__lte=self.end_date
+        ).values(
+            'categories__name'
+        ).annotate(
+            total=Sum('total_price')
+        ).order_by('-total')
+    
+    def save(self, *args, **kwargs):
+        """Ensure dates are valid and calculations are done when finalizing"""
+        if self.status == 'final' and not self.calculation_data:
+            self.calculate_profit_loss()
+        super().save(*args, **kwargs)
+    
+    def publish(self):
+        """Mark statement as published"""
+        if self.status != 'final':
+            self.calculate_profit_loss()
+        self.status = 'published'
+        self.save()
+
+
+class PLSection(models.Model):
+    """Organized sections within a P&L statement with enhanced functionality"""
+    SECTION_TYPES = [
+        ('revenue', 'Revenue'),
+        ('cogs', 'Cost of Goods Sold'),
+        ('expense', 'Operating Expenses'),
+        ('other_income', 'Other Income'),
+        ('other_expense', 'Other Expenses'),
+        ('tax', 'Taxes'),
+    ]
+    
+    statement = models.ForeignKey(
+        ProfitLossStatement, 
+        on_delete=models.CASCADE, 
+        related_name='sections'
+    )
+    title = models.CharField(max_length=100)
+    section_type = models.CharField(max_length=20, choices=SECTION_TYPES)
+    order = models.PositiveIntegerField(default=0)
+    is_income = models.BooleanField(default=True)
+    show_subtotal = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['order']
+        verbose_name = "P&L Section"
+        unique_together = ('statement', 'order')
+    
+    def __str__(self):
+        return f"{self.title} ({self.statement})"
+    
+    @property
+    def total_amount(self):
+        """Calculate total for this section"""
+        return self.line_items.aggregate(
+            total=models.Sum('amount')
+        )['total'] or Decimal('0.00')
+
+
+class PLLineItem(models.Model):
+    """Detailed line items with calculation methods"""
+    CALCULATION_METHODS = [
+        ('auto', 'Automatic from Transactions'),
+        ('manual', 'Manual Entry'),
+        ('formula', 'Calculated Formula'),
+    ]
+    
+    section = models.ForeignKey(
+        PLSection, 
+        on_delete=models.CASCADE, 
+        related_name='line_items'
+    )
+    label = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    amount = models.DecimalField(max_digits=15, decimal_places=2)
+    calculation_method = models.CharField(
+        max_length=20, 
+        choices=CALCULATION_METHODS, 
+        default='manual'
+    )
+    calculation_query = models.JSONField(blank=True, null=True)  # For auto-calculated items
+    formula = models.CharField(max_length=200, blank=True)  # For formula-based items
+    order = models.PositiveIntegerField(default=0)
+    is_contra = models.BooleanField(
+        default=False,
+        help_text="Whether this item reduces the section total (like discounts)"
+    )
+    
+    class Meta:
+        ordering = ['order']
+        verbose_name = "P&L Line Item"
+    
+    def __str__(self):
+        return f"{self.label}: {self.amount}"
+    
+    def calculate_amount(self):
+        """Calculate amount based on the calculation method"""
+        if self.calculation_method == 'auto' and self.calculation_query:
+            model = apps.get_model(self.calculation_query['model'])
+            queryset = model.objects.filter(
+                created_at__date__gte=self.section.statement.start_date,
+                created_at__date__lte=self.section.statement.end_date
+            )
+            
+            if 'filters' in self.calculation_query:
+                queryset = queryset.filter(**self.calculation_query['filters'])
+            
+            result = queryset.aggregate(
+                total=Sum(self.calculation_query['field'])
+            )
+            self.amount = result['total'] or Decimal('0.00')
+        
+        elif self.calculation_method == 'formula' and self.formula:
+            # Implement formula calculation logic here
+            # This would need to parse the formula and evaluate it
+            pass
+        
+        self.save()

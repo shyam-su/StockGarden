@@ -7,6 +7,8 @@ from .forms import UserForm
 from django.contrib.auth import authenticate, login,logout
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden
+
 
 
 
@@ -129,16 +131,7 @@ def UserUpdateView(request, pk):
         return render(request, '404.html', status=404)
 
 
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect, render
-from django.http import HttpResponseForbidden
-import logging
 
-from django.contrib.auth import get_user_model
-User = get_user_model()
-
-logger = logging.getLogger(__name__)
 
 @login_required
 def UserDeleteView(request, pk):

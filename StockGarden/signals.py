@@ -292,3 +292,166 @@ def create_or_update_repair_details_and_invoice(sender, instance, created, **kwa
             "created_at": instance.created_at,
         },
     )
+
+
+@receiver(post_save, sender=Sales)
+def create_sales_daybook_entry(sender, instance, created, **kwargs):
+    if created:
+        Daybook.objects.create(
+            transaction_type='sale',
+            reference_id=instance.id,
+            reference_model='Sales',
+            description=f"Sale of {instance.product.name} (Qty: {instance.quantity})",
+            debit_amount=instance.total_amount,
+            credit_amount=0,
+            balance=instance.total_amount,
+            payment_method=instance.payment_method,
+            payment_status=instance.payment_status,
+            created_by=instance.user
+        )
+
+@receiver(post_save, sender=Purchase)
+def create_purchase_daybook_entry(sender, instance, created, **kwargs):
+    if created:
+        Daybook.objects.create(
+            transaction_type='purchase',
+            reference_id=instance.id,
+            reference_model='Purchase',
+            description=f"Purchase of {instance.product_name} from {instance.vendor.full_name}",
+            debit_amount=0,
+            credit_amount=instance.total_price,
+            balance=-instance.total_price,
+            payment_method=instance.payment_method,
+            payment_status=instance.payment_status,
+            created_by=instance.vendor
+        )
+
+@receiver(post_save, sender=Expense)
+def create_expense_daybook_entry(sender, instance, created, **kwargs):
+    if created:
+        Daybook.objects.create(
+            transaction_type='expense',
+            reference_id=instance.id,
+            reference_model='Expense',
+            description=f"Expense: {instance.category.name if instance.category else 'Miscellaneous'}",
+            debit_amount=0,
+            credit_amount=instance.amount,
+            balance=-instance.amount,
+            payment_method=instance.payment_method,
+            payment_status=instance.payment_status,
+            created_by=None  # Can be set to the user who created the expense if available
+        )
+
+@receiver(post_save, sender=Repair)
+def create_repair_daybook_entry(sender, instance, created, **kwargs):
+    if created and instance.total_amount:
+        Daybook.objects.create(
+            transaction_type='repair',
+            reference_id=instance.id,
+            reference_model='Repair',
+            description=f"Repair service for {instance.device_model}",
+            debit_amount=instance.total_amount,
+            credit_amount=0,
+            balance=instance.total_amount,
+            payment_method=instance.payment_method,
+            payment_status=instance.payment_status,
+            created_by=instance.user
+        )
+
+@receiver(post_save, sender=Return)
+def create_return_daybook_entry(sender, instance, created, **kwargs):
+    if created:
+        Daybook.objects.create(
+            transaction_type='return',
+            reference_id=instance.id,
+            reference_model='Return',
+            description=f"Return of {instance.product.name} (Qty: {instance.quantity_returned})",
+            debit_amount=0,
+            credit_amount=instance.refund_amount,
+            balance=-instance.refund_amount,
+            payment_method=None,
+            payment_status='Full Payment',
+            created_by=None
+        )
+
+@receiver(post_save, sender=Sales)
+def create_sales_cashbook_entry(sender, instance, created, **kwargs):
+    if created and instance.payment_method in ['cash', 'bank_transfer', 'mobile_payment']:
+        Cashbook.objects.create(
+            entry_type='receipt',
+            source_type='sale',
+            reference_id=instance.id,
+            reference_model='Sales',
+            description=f"Payment for sale of {instance.product.name}",
+            amount=instance.paid_amount,
+            payment_method=instance.payment_method,
+            is_bank=instance.payment_method != 'cash',
+            transaction_date=instance.created_at.date(),
+            recorded_by=instance.user
+        )
+
+@receiver(post_save, sender=Purchase)
+def create_purchase_cashbook_entry(sender, instance, created, **kwargs):
+    if created and instance.payment_method in ['cash', 'bank_transfer', 'mobile_payment'] and instance.paid_amount > 0:
+        Cashbook.objects.create(
+            entry_type='payment',
+            source_type='purchase',
+            reference_id=instance.id,
+            reference_model='Purchase',
+            description=f"Payment for purchase of {instance.product_name}",
+            amount=instance.paid_amount,
+            payment_method=instance.payment_method,
+            is_bank=instance.payment_method != 'cash',
+            transaction_date=instance.created_at.date(),
+            recorded_by=instance.vendor
+        )
+
+@receiver(post_save, sender=Expense)
+def create_expense_cashbook_entry(sender, instance, created, **kwargs):
+    if created and instance.payment_method in ['cash', 'bank_transfer', 'mobile_payment']:
+        Cashbook.objects.create(
+            entry_type='payment',
+            source_type='expense',
+            reference_id=instance.id,
+            reference_model='Expense',
+            description=f"Payment for expense: {instance.category.name if instance.category else 'Miscellaneous'}",
+            amount=instance.amount,
+            payment_method=instance.payment_method,
+            is_bank=instance.payment_method != 'cash',
+            transaction_date=instance.created_at.date(),
+            recorded_by=None  # Can be set to the user who created the expense
+        )
+
+@receiver(post_save, sender=Repair)
+def create_repair_cashbook_entry(sender, instance, created, **kwargs):
+    if created and instance.payment_method in ['cash', 'bank_transfer', 'mobile_payment'] and instance.paid_amount > 0:
+        Cashbook.objects.create(
+            entry_type='receipt',
+            source_type='repair',
+            reference_id=instance.id,
+            reference_model='Repair',
+            description=f"Payment for repair of {instance.device_model}",
+            amount=instance.paid_amount,
+            payment_method=instance.payment_method,
+            is_bank=instance.payment_method != 'cash',
+            transaction_date=instance.created_at.date(),
+            recorded_by=instance.user
+        )
+
+@receiver(post_save, sender=Return)
+def create_return_cashbook_entry(sender, instance, created, **kwargs):
+    if created and instance.refund_amount > 0:
+        # Assuming returns are always cash payments (adjust if you have other methods)
+        Cashbook.objects.create(
+            entry_type='payment',
+            source_type='return',
+            reference_id=instance.id,
+            reference_model='Return',
+            description=f"Refund for return of {instance.product.name}",
+            amount=instance.refund_amount,
+            payment_method='cash',
+            is_bank=False,
+            transaction_date=instance.return_date.date(),
+            recorded_by=None  # Can be set to the user who processed the return
+        )
+        
