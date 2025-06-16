@@ -86,15 +86,32 @@ class ReturnAdmin(ImportExportModelAdmin, admin.ModelAdmin):
 
 @admin.register(StockLedger)
 class StockLedgerAdmin(admin.ModelAdmin):
-    list_display = ('transaction_date', 'product', 'transaction_type', 'quantity', 'unit_cost', 'total_value', 'balance_quantity')
+    list_display = ('product', 'transaction_date', 'transaction_type', 
+                   'quantity', 'unit_cost', 'balance_quantity')
+    list_filter = ('transaction_type', 'product')
     search_fields = ('product__name', 'reference_id')
-    list_filter = ('transaction_type', ('transaction_date', DateFieldListFilter))
-    readonly_fields = ('total_value', 'balance_quantity', 'balance_value', 'created_by')
-    autocomplete_fields = ('product',)
+    readonly_fields = ('balance_quantity', 'balance_value', 'total_value')
     date_hierarchy = 'transaction_date'
     
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related('product')
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('product', 'transaction_type', 'transaction_date')
+        }),
+        ('Transaction Details', {
+            'fields': ('reference_id', 'reference_model', 'quantity', 'unit_cost')
+        }),
+        ('Calculated Fields', {
+            'fields': ('total_value', 'balance_quantity', 'balance_value')
+        }),
+        ('Additional Info', {
+            'fields': ('notes', 'created_by')
+        }),
+    )
+    def get_readonly_fields(self, request, obj=None):
+        # Make transaction_date read-only when editing existing records
+        if obj:  # obj is None when creating a new record
+            return ('transaction_date',) + self.readonly_fields
+        return self.readonly_fields
 
 @admin.register(Report)
 class ReportAdmin(admin.ModelAdmin):
@@ -137,20 +154,6 @@ class CashbookAdmin(admin.ModelAdmin):
         }),
     )
 
-class PLLineItemInline(admin.TabularInline):
-    model = PLLineItem
-    extra = 1
-    fields = ('label', 'amount', 'calculation_method', 'is_contra', 'order')
-    ordering = ('order',)
-    show_change_link = True
-
-
-class PLSectionInline(admin.StackedInline):
-    model = PLSection
-    extra = 1
-    fields = ('title', 'section_type', 'is_income', 'show_subtotal', 'order', 'notes')
-    ordering = ('order',)
-    show_change_link = True
 
 
 @admin.register(ProfitLossStatement)
@@ -159,7 +162,6 @@ class ProfitLossStatementAdmin(admin.ModelAdmin):
     list_filter = ('status', 'period_type', 'start_date', 'end_date')
     search_fields = ('title', 'notes')
     date_hierarchy = 'end_date'
-    inlines = [PLSectionInline]
     readonly_fields = ('generated_at', 'net_profit', 'operating_profit', 'gross_profit', 'total_revenue', 'total_cogs', 'total_expenses', 'calculation_data')
     fieldsets = (
         ('Basic Info', {
@@ -173,20 +175,4 @@ class ProfitLossStatementAdmin(admin.ModelAdmin):
         }),
     )
 
-
-@admin.register(PLSection)
-class PLSectionAdmin(admin.ModelAdmin):
-    list_display = ('title', 'statement', 'section_type', 'is_income', 'order')
-    list_filter = ('section_type', 'statement__title')
-    search_fields = ('title', 'notes', 'statement__title')
-    ordering = ('statement', 'order')
-    inlines = [PLLineItemInline]
-
-
-@admin.register(PLLineItem)
-class PLLineItemAdmin(admin.ModelAdmin):
-    list_display = ('label', 'section', 'amount', 'calculation_method', 'is_contra', 'order')
-    list_filter = ('calculation_method', 'is_contra', 'section__title')
-    search_fields = ('label', 'description', 'section__title')
-    ordering = ('section', 'order')
 

@@ -2,6 +2,7 @@ from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
 from .models import *
 from django.db import transaction
+from django.utils import timezone
 
 import logging
 
@@ -455,3 +456,127 @@ def create_return_cashbook_entry(sender, instance, created, **kwargs):
             recorded_by=None  # Can be set to the user who processed the return
         )
         
+def create_stock_ledger_entry(instance, transaction_type, quantity, unit_cost, reference_model):
+    """
+    Creates a stock ledger entry for inventory tracking
+    Handles both Purchase (which uses product_name) and Sales/Return (which use product FK)
+    """
+    try:
+        with transaction.atomic():
+            # Determine the product based on the model type
+            if reference_model == 'Purchase':
+                # For Purchase model, we need to find the product by name
+                try:
+                    product = Product.objects.get(
+                        name=instance.product_name,
+                        brand=instance.brand,
+                        vendor=instance.vendor
+                    )
+                except Product.DoesNotExist:
+                    logger.error(f"Product {instance.product_name} not found for purchase {instance.id}")
+                    return
+            else:
+                # For Sales and Return models, we can use the product FK directly
+                product = instance.product
+            
+            # Create the ledger entry
+            StockLedger.objects.create(
+                product=product,
+                transaction_type=transaction_type,
+                reference_id=instance.id,
+                reference_model=reference_model,
+                quantity=quantity,
+                unit_cost=unit_cost,
+                created_by=getattr(instance, 'user', None) or getattr(instance, 'vendor', None)
+            )
+    except Exception as e:
+        logger.error(f"Error creating stock ledger entry: {e}", exc_info=True)
+        raise
+
+@receiver(post_save, sender=Purchase)
+def create_purchase_ledger_entry(sender, instance, created, **kwargs):
+    """
+    Creates ledger entry when a new purchase is made
+    Only triggers for new purchases (created=True)
+    """
+    if created:
+        create_stock_ledger_entry(
+            instance=instance,
+            transaction_type='purchase',
+            quantity=instance.quantity,
+            unit_cost=instance.price,
+            reference_model='Purchase'
+        )
+
+@receiver(post_save, sender=Sales)
+def create_sale_ledger_entry(sender, instance, created, **kwargs):
+    """
+    Creates ledger entry when a new sale is made
+    Only triggers for new sales (created=True)
+    Uses negative quantity to indicate stock reduction
+    """
+    if created:
+        create_stock_ledger_entry(
+            instance=instance,
+            transaction_type='sale',
+            quantity=-instance.quantity,  # Negative for outgoing stock
+            unit_cost=instance.price,
+            reference_model='Sales'
+        )
+
+@receiver(post_save, sender=Return)
+def create_return_ledger_entry(sender, instance, created, **kwargs):
+    """
+    Creates ledger entry when a product is returned
+    Only triggers for new returns (created=True)
+    """
+    if created:
+        create_stock_ledger_entry(
+            instance=instance,
+            transaction_type='return',
+            quantity=instance.quantity_returned,
+            unit_cost=instance.product.price,
+            reference_model='Return'
+        )
+
+@receiver(post_delete, sender=Purchase)
+def reverse_purchase_ledger_entry(sender, instance, **kwargs):
+    """
+    Creates reversal entry when a purchase is deleted
+    Uses negative quantity to reverse the original entry
+    """
+    create_stock_ledger_entry(
+        instance=instance,
+        transaction_type='purchase',
+        quantity=-instance.quantity,  # Reverse the original entry
+        unit_cost=instance.price,
+        reference_model='Purchase'
+    )
+
+@receiver(post_delete, sender=Sales)
+def reverse_sale_ledger_entry(sender, instance, **kwargs):
+    """
+    Creates reversal entry when a sale is deleted
+    Uses positive quantity to reverse the original negative entry
+    """
+    create_stock_ledger_entry(
+        instance=instance,
+        transaction_type='sale',
+        quantity=instance.quantity,  # Reverse the original entry
+        unit_cost=instance.price,
+        reference_model='Sales'
+    )
+
+@receiver(post_delete, sender=Return)
+def reverse_return_ledger_entry(sender, instance, **kwargs):
+    """
+    Creates reversal entry when a return is deleted
+    Uses negative quantity to reverse the original entry
+    """
+    create_stock_ledger_entry(
+        instance=instance,
+        transaction_type='return',
+        quantity=-instance.quantity_returned,  # Reverse the original entry
+        unit_cost=instance.product.price,
+        reference_model='Return'
+    )

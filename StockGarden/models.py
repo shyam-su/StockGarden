@@ -5,6 +5,7 @@ import uuid
 from decimal import Decimal
 from PIL import Image
 from django.db.models import Sum, Q
+from django.core.exceptions import ValidationError
 
 
 # Create your models here.
@@ -430,7 +431,7 @@ class Return(models.Model):
     def __str__(self):
         return f"Return for Invoice #{self.invoice.invoice_number} - Product {self.product.name}"
     
-    
+
 class StockLedger(models.Model):
     """
     Tracks all inventory movements with running balances
@@ -447,37 +448,42 @@ class StockLedger(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='stock_ledger_entries')
     transaction_date = models.DateTimeField(auto_now_add=True, db_index=True)
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
-    reference_id = models.CharField(max_length=50)  # ID of the related transaction (purchase, sale, etc.)
-    reference_model = models.CharField(max_length=50)  # Model name (e.g., 'Purchase', 'Sales')
+    reference_id = models.PositiveIntegerField()
+    reference_model = models.CharField(max_length=50)
     quantity = models.IntegerField()  # Positive for incoming, negative for outgoing
-    unit_cost = models.DecimalField(max_digits=10, decimal_places=2)  # Cost per unit at time of transaction
-    total_value = models.DecimalField(max_digits=12, decimal_places=2)  # quantity * unit_cost
-    balance_quantity = models.IntegerField()  # Running balance
-    balance_value = models.DecimalField(max_digits=12, decimal_places=2)  # Running total value
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    total_value = models.DecimalField(max_digits=12, decimal_places=2)
+    balance_quantity = models.IntegerField()
+    balance_value = models.DecimalField(max_digits=12, decimal_places=2)
     notes = models.TextField(blank=True, null=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_by = models.ForeignKey('user.User', on_delete=models.SET_NULL, null=True)
     
     class Meta:
-        ordering = ['-transaction_date']
         verbose_name = "Stock Ledger Entry"
+        verbose_name_plural = "Stock Ledger Entries"
+        ordering = ['-transaction_date']
         indexes = [
-            models.Index(fields=['transaction_date']),
             models.Index(fields=['product']),
+            models.Index(fields=['transaction_date']),
             models.Index(fields=['transaction_type']),
-            models.Index(fields=['reference_id']),
         ]
     
     def __str__(self):
-        return f"{self.transaction_date.strftime('%Y-%m-%d')} - {self.product.name} - {self.get_transaction_type_display()} - Qty: {self.quantity}"
+        return f"{self.product.name} - {self.get_transaction_type_display()} - {self.quantity} units"
+    
+    def clean(self):
+        if self.quantity == 0:
+            raise ValidationError("Quantity cannot be zero")
+        if self.unit_cost < 0:
+            raise ValidationError("Unit cost cannot be negative")
     
     def save(self, *args, **kwargs):
         # Calculate total value
-        self.total_value = self.quantity * self.unit_cost
+        self.total_value = Decimal(self.quantity) * Decimal(self.unit_cost)
         
         # Get previous balance for this product
         previous_entry = StockLedger.objects.filter(
-            product=self.product,
-            transaction_date__lte=self.transaction_date
+            product=self.product
         ).exclude(id=self.id).order_by('-transaction_date', '-id').first()
         
         # Calculate running balances
@@ -488,12 +494,15 @@ class StockLedger(models.Model):
             self.balance_quantity = self.quantity
             self.balance_value = self.total_value
         
+        # Validate balances won't go negative
+        if self.balance_quantity < 0:
+            raise ValidationError(f"This transaction would make stock negative for {self.product.name}")
+        
         super().save(*args, **kwargs)
         
         # Update product stock
-        product = self.product
-        product.stock = self.balance_quantity
-        product.save()
+        self.product.stock = self.balance_quantity
+        self.product.save(update_fields=['stock'])
         
         
 class Report(models.Model):
@@ -787,101 +796,3 @@ class ProfitLossStatement(models.Model):
         self.save()
 
 
-class PLSection(models.Model):
-    """Organized sections within a P&L statement with enhanced functionality"""
-    SECTION_TYPES = [
-        ('revenue', 'Revenue'),
-        ('cogs', 'Cost of Goods Sold'),
-        ('expense', 'Operating Expenses'),
-        ('other_income', 'Other Income'),
-        ('other_expense', 'Other Expenses'),
-        ('tax', 'Taxes'),
-    ]
-    
-    statement = models.ForeignKey(
-        ProfitLossStatement, 
-        on_delete=models.CASCADE, 
-        related_name='sections'
-    )
-    title = models.CharField(max_length=100)
-    section_type = models.CharField(max_length=20, choices=SECTION_TYPES)
-    order = models.PositiveIntegerField(default=0)
-    is_income = models.BooleanField(default=True)
-    show_subtotal = models.BooleanField(default=True)
-    notes = models.TextField(blank=True)
-    
-    class Meta:
-        ordering = ['order']
-        verbose_name = "P&L Section"
-        unique_together = ('statement', 'order')
-    
-    def __str__(self):
-        return f"{self.title} ({self.statement})"
-    
-    @property
-    def total_amount(self):
-        """Calculate total for this section"""
-        return self.line_items.aggregate(
-            total=models.Sum('amount')
-        )['total'] or Decimal('0.00')
-
-
-class PLLineItem(models.Model):
-    """Detailed line items with calculation methods"""
-    CALCULATION_METHODS = [
-        ('auto', 'Automatic from Transactions'),
-        ('manual', 'Manual Entry'),
-        ('formula', 'Calculated Formula'),
-    ]
-    
-    section = models.ForeignKey(
-        PLSection, 
-        on_delete=models.CASCADE, 
-        related_name='line_items'
-    )
-    label = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
-    amount = models.DecimalField(max_digits=15, decimal_places=2)
-    calculation_method = models.CharField(
-        max_length=20, 
-        choices=CALCULATION_METHODS, 
-        default='manual'
-    )
-    calculation_query = models.JSONField(blank=True, null=True)  # For auto-calculated items
-    formula = models.CharField(max_length=200, blank=True)  # For formula-based items
-    order = models.PositiveIntegerField(default=0)
-    is_contra = models.BooleanField(
-        default=False,
-        help_text="Whether this item reduces the section total (like discounts)"
-    )
-    
-    class Meta:
-        ordering = ['order']
-        verbose_name = "P&L Line Item"
-    
-    def __str__(self):
-        return f"{self.label}: {self.amount}"
-    
-    def calculate_amount(self):
-        """Calculate amount based on the calculation method"""
-        if self.calculation_method == 'auto' and self.calculation_query:
-            model = apps.get_model(self.calculation_query['model'])
-            queryset = model.objects.filter(
-                created_at__date__gte=self.section.statement.start_date,
-                created_at__date__lte=self.section.statement.end_date
-            )
-            
-            if 'filters' in self.calculation_query:
-                queryset = queryset.filter(**self.calculation_query['filters'])
-            
-            result = queryset.aggregate(
-                total=Sum(self.calculation_query['field'])
-            )
-            self.amount = result['total'] or Decimal('0.00')
-        
-        elif self.calculation_method == 'formula' and self.formula:
-            # Implement formula calculation logic here
-            # This would need to parse the formula and evaluate it
-            pass
-        
-        self.save()
