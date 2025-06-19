@@ -4,7 +4,8 @@ from django.utils.text import slugify
 import uuid
 from decimal import Decimal
 from PIL import Image
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, F, Case, When, Subquery, OuterRef
+from django.db.models.functions import Coalesce
 from django.core.exceptions import ValidationError
 
 
@@ -60,18 +61,6 @@ class Category(models.Model):
     class Meta:
         verbose_name = "Category"
         indexes = [models.Index(fields=['name'])]   
-
-    def __str__(self):
-        return self.name
-     
-class ExpenseCategory(models.Model):
-    name = models.CharField(max_length=191, unique=True)
-    description = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = "Expense Category"
-        indexes = [models.Index(fields=['name'])]
 
     def __str__(self):
         return self.name
@@ -264,7 +253,12 @@ class RepairDetail(models.Model):
         return f"{self.device_model}"
 
 class Expense(models.Model):
-    category = models.ForeignKey(ExpenseCategory, on_delete=models.SET_NULL, null=True, blank=True)
+    CATEGORY_TYPES = [
+        ('selling', 'Selling Expenses'),
+        ('admin', 'Administrative Expenses'),
+        ('direct', 'Direct Costs'),
+    ]
+    category_type = models.CharField(max_length=20, choices=CATEGORY_TYPES)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     description = models.TextField(blank=True, null=True)
     payment_method = models.CharField(max_length=20, choices=PaymentMethodChoices, default='cash',db_index=True)
@@ -278,8 +272,7 @@ class Expense(models.Model):
 
 
     def __str__(self):
-        return f"{self.category.name if self.category else 'Uncategorized'} - {self.amount} ({self.payment_status})"
-
+        return f"{self.category_type} - {self.amount}"
  
 class SalesInvoice(models.Model):
     invoice_number = models.CharField(max_length=50, unique=True, editable=False)
@@ -641,158 +634,207 @@ class Cashbook(models.Model):
         
         super().save(*args, **kwargs)
         
+class AccountType(models.TextChoices):
+    ASSET = 'asset', 'Asset'
+    LIABILITY = 'liability', 'Liability'
+    EQUITY = 'equity', 'Equity'
+    INCOME = 'income', 'Income'
+    EXPENSE = 'expense', 'Expense'
 
-class ProfitLossStatement(models.Model):
-    """Official Profit & Loss Statement record with enhanced calculations"""
-    PERIOD_CHOICES = [
-        ('daily', 'Daily'),
-        ('weekly', 'Weekly'),
-        ('monthly', 'Monthly'),
-        ('quarterly', 'Quarterly'),
-        ('annual', 'Annual'),
-        ('custom', 'Custom'),
-    ]
-    
-    STATUS_CHOICES = [
-        ('draft', 'Draft'),
-        ('final', 'Final'),
-        ('published', 'Published'),
-    ]
-    
-    title = models.CharField(max_length=200)
-    period_type = models.CharField(max_length=20, choices=PERIOD_CHOICES)
-    start_date = models.DateField(db_index=True)
-    end_date = models.DateField(db_index=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
-    generated_at = models.DateTimeField(auto_now_add=True)
-    generated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    notes = models.TextField(blank=True)
-    calculation_data = models.JSONField(default=dict, blank=True)
-    
-    # Summary fields (auto-calculated)
-    total_revenue = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
-    total_cogs = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)  # Cost of Goods Sold
-    gross_profit = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
-    total_expenses = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
-    operating_profit = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
-    net_profit = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
-    
+class Account(models.Model):
+    """
+    Chart of Accounts - Categorizes all financial transactions
+    """
+    code = models.CharField(max_length=20, unique=True)
+    name = models.CharField(max_length=100)
+    account_type = models.CharField(max_length=20, choices=AccountType.choices)
+    parent_account = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['code']
+        verbose_name = "Account"
+        indexes = [
+            models.Index(fields=['code']),
+            models.Index(fields=['account_type']),
+        ]
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+    def clean(self):
+        # Prevent circular references in parent accounts
+        if self.parent_account and self.parent_account.parent_account == self:
+            raise ValidationError("Circular reference in parent accounts is not allowed.")
+
+    def get_balance(self, start_date=None, end_date=None):
+        """
+        Calculate the balance of this account within a date range
+        """
+        qs = LedgerEntry.objects.filter(account=self)
+        if start_date:
+            qs = qs.filter(date__gte=start_date)
+        if end_date:
+            qs = qs.filter(date__lte=end_date)
+        
+        balance = qs.aggregate(
+            total_debit=Coalesce(Sum('debit_amount'), Decimal('0.00')),
+            total_credit=Coalesce(Sum('credit_amount'), Decimal('0.00'))
+        )
+        
+        if self.account_type in [AccountType.ASSET, AccountType.EXPENSE]:
+            return balance['total_debit'] - balance['total_credit']
+        else:
+            return balance['total_credit'] - balance['total_debit']
+        
+class LedgerEntry(models.Model):
+    """
+    Records all financial transactions in a double-entry accounting system
+    """
+    date = models.DateTimeField(db_index=True)
+    account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='ledger_entries')
+    debit_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    credit_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    reference = models.CharField(max_length=100, blank=True, null=True)
+    description = models.TextField()
+    transaction_type = models.CharField(max_length=50)  # Links to source transaction
+    transaction_id = models.PositiveIntegerField()  # ID of the source transaction
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-id']
+        verbose_name = "Ledger Entry"
+        verbose_name_plural = "Ledger Entries"
+        indexes = [
+            models.Index(fields=['date']),
+            models.Index(fields=['account']),
+            models.Index(fields=['transaction_type', 'transaction_id']),
+        ]
+
+    def __str__(self):
+        return f"{self.date.strftime('%Y-%m-%d')} - {self.account} - {self.description[:50]}"
+
+    def clean(self):
+        # Validate that either debit or credit is entered, but not both
+        if self.debit_amount and self.credit_amount:
+            raise ValidationError("A ledger entry cannot have both debit and credit amounts.")
+        if not self.debit_amount and not self.credit_amount:
+            raise ValidationError("A ledger entry must have either a debit or credit amount.")
+        
+        # Validate amounts are positive
+        if self.debit_amount < 0 or self.credit_amount < 0:
+            raise ValidationError("Amounts cannot be negative.")
+
+    def save(self, *args, **kwargs):
+        # Calculate running balance for the account
+        previous_entries = LedgerEntry.objects.filter(
+            account=self.account,
+            date__lte=self.date
+        ).exclude(id=self.id).order_by('-date', '-id')
+        
+        previous_balance = previous_entries.first().balance if previous_entries.exists() else Decimal('0.00')
+        
+        if self.debit_amount:
+            self.balance = previous_balance + self.debit_amount
+        else:
+            self.balance = previous_balance - self.credit_amount
+        
+        super().save(*args, **kwargs)
+        
+class BalanceSheet(models.Model):
+    """
+    Snapshot of the company's financial position at a point in time
+    """
+    report_date = models.DateField(unique=True)
+    is_final = models.BooleanField(default=False)
+    notes = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-report_date']
+        verbose_name = "Balance Sheet"
+        verbose_name_plural = "Balance Sheets"
+
+    def __str__(self):
+        return f"Balance Sheet as of {self.report_date.strftime('%Y-%m-%d')}"
+
+    def get_assets(self):
+        """Calculate total assets"""
+        asset_accounts = Account.objects.filter(account_type=AccountType.ASSET)
+        return sum(account.get_balance(end_date=self.report_date) for account in asset_accounts)
+
+    def get_liabilities(self):
+        """Calculate total liabilities"""
+        liability_accounts = Account.objects.filter(account_type=AccountType.LIABILITY)
+        return sum(account.get_balance(end_date=self.report_date) for account in liability_accounts)
+
+    def get_equity(self):
+        """Calculate total equity"""
+        equity_accounts = Account.objects.filter(account_type=AccountType.EQUITY)
+        return sum(account.get_balance(end_date=self.report_date) for account in equity_accounts)
+
+    def validate_balances(self):
+        """Check if assets = liabilities + equity"""
+        assets = self.get_assets()
+        liabilities = self.get_liabilities()
+        equity = self.get_equity()
+        return assets == (liabilities + equity)
+
+    def save(self, *args, **kwargs):
+        if self.is_final and not self.validate_balances():
+            raise ValidationError("Balance sheet does not balance. Assets must equal Liabilities plus Equity.")
+        super().save(*args, **kwargs)
+        
+class ProfitAndLoss(models.Model):
+    """
+    Reports revenues, costs and expenses during a specific period
+    """
+    start_date = models.DateField()
+    end_date = models.DateField()
+    is_final = models.BooleanField(default=False)
+    notes = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     class Meta:
         ordering = ['-end_date']
-        verbose_name = "Profit & Loss Statement"
-        verbose_name_plural = "Profit & Loss Statements"
-        indexes = [
-            models.Index(fields=['start_date', 'end_date']),
-            models.Index(fields=['status']),
-        ]
+        verbose_name = "Profit and Loss Statement"
+        verbose_name_plural = "Profit and Loss Statements"
         constraints = [
             models.CheckConstraint(
-                check=models.Q(end_date__gte=models.F('start_date')),
+                check=Q(end_date__gte=F('start_date')),
                 name='end_date_after_start_date'
             )
         ]
-    
+
     def __str__(self):
-        return f"P&L Statement: {self.title} ({self.start_date} to {self.end_date})"
-    
-    def calculate_profit_loss(self):
-        """
-        Calculate all profit/loss metrics based on transactions between start and end dates
-        """
-        from django.db.models import Sum, Q
-        
-        # 1. Calculate Total Revenue (from Sales)
-        sales_data = Sales.objects.filter(
-            created_at__date__gte=self.start_date,
-            created_at__date__lte=self.end_date
-        ).aggregate(
-            total=Sum('total_amount'),
-            paid=Sum('paid_amount')
-        )
-        self.total_revenue = sales_data['total'] or Decimal('0.00')
-        
-        # 2. Calculate Cost of Goods Sold (from Purchases)
-        purchase_data = Purchase.objects.filter(
-            created_at__date__gte=self.start_date,
-            created_at__date__lte=self.end_date
-        ).aggregate(
-            total=Sum('total_price')
-        )
-        self.total_cogs = purchase_data['total'] or Decimal('0.00')
-        
-        # 3. Calculate Gross Profit
-        self.gross_profit = self.total_revenue - self.total_cogs
-        
-        # 4. Calculate Total Expenses
-        expense_data = Expense.objects.filter(
-            created_at__date__gte=self.start_date,
-            created_at__date__lte=self.end_date
-        ).aggregate(
-            total=Sum('amount')
-        )
-        self.total_expenses = expense_data['total'] or Decimal('0.00')
-        
-        # 5. Calculate Operating Profit
-        self.operating_profit = self.gross_profit - self.total_expenses
-        
-        # 6. Calculate Net Profit (for now same as operating profit, can add taxes etc later)
-        self.net_profit = self.operating_profit
-        
-        # Store detailed calculation data
-        self.calculation_data = {
-            'revenue_sources': self.get_revenue_breakdown(),
-            'expense_breakdown': self.get_expense_breakdown(),
-            'cogs_details': self.get_cogs_details(),
-        }
-        
-        self.save()
-    
-    def get_revenue_breakdown(self):
-        """Break down revenue by product category"""
-        from django.db.models import Sum
-        return Sales.objects.filter(
-            created_at__date__gte=self.start_date,
-            created_at__date__lte=self.end_date
-        ).values(
-            'product__categories__name'
-        ).annotate(
-            total=Sum('total_amount')
-        ).order_by('-total')
-    
-    def get_expense_breakdown(self):
-        """Break down expenses by category"""
-        from django.db.models import Sum
-        return Expense.objects.filter(
-            created_at__date__gte=self.start_date,
-            created_at__date__lte=self.end_date
-        ).values(
-            'category__name'
-        ).annotate(
-            total=Sum('amount')
-        ).order_by('-total')
-    
-    def get_cogs_details(self):
-        """Break down cost of goods sold by product category"""
-        return Purchase.objects.filter(
-            created_at__date__gte=self.start_date,
-            created_at__date__lte=self.end_date
-        ).values(
-            'categories__name'
-        ).annotate(
-            total=Sum('total_price')
-        ).order_by('-total')
-    
+        return f"Profit & Loss for {self.start_date.strftime('%Y-%m-%d')} to {self.end_date.strftime('%Y-%m-%d')}"
+
+    def get_revenue(self):
+        """Calculate total revenue"""
+        revenue_accounts = Account.objects.filter(account_type=AccountType.INCOME)
+        return sum(account.get_balance(start_date=self.start_date, end_date=self.end_date) 
+                  for account in revenue_accounts)
+
+    def get_expenses(self):
+        """Calculate total expenses"""
+        expense_accounts = Account.objects.filter(account_type=AccountType.EXPENSE)
+        return sum(account.get_balance(start_date=self.start_date, end_date=self.end_date) 
+                  for account in expense_accounts)
+
+    def get_net_profit(self):
+        """Calculate net profit (revenue - expenses)"""
+        return self.get_revenue() - self.get_expenses()
+
     def save(self, *args, **kwargs):
-        """Ensure dates are valid and calculations are done when finalizing"""
-        if self.status == 'final' and not self.calculation_data:
-            self.calculate_profit_loss()
+        if self.end_date < self.start_date:
+            raise ValidationError("End date must be after start date.")
         super().save(*args, **kwargs)
-    
-    def publish(self):
-        """Mark statement as published"""
-        if self.status != 'final':
-            self.calculate_profit_loss()
-        self.status = 'published'
-        self.save()
-
-

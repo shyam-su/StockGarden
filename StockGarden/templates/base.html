@@ -160,6 +160,7 @@
                         <a class="collapse-item" href="{% url 'sales' %}">Sales</a>
                         <a class="collapse-item" href="{% url 'purchase' %}">Purchase</a>
                         <a class="collapse-item" href="{% url 'return' %}">Return</a>
+                        <a class="collapse-item" href="{% url 'stock_ledger' %}">Stock Ledger</a>
                     </div>
                 </div>
             </li>
@@ -197,6 +198,11 @@
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <a class="collapse-item" href="{% url 'expense' %}">Expense</a>
+                        <a class="collapse-item" href="{% url 'cashbook_list' %}">Cashbook</a>
+                        <a class="collapse-item" href="{% url 'daybook_list' %}">Daybook</a>
+                        <a class="collapse-item" href="{% url 'balance_sheet_list' %}">Balance Sheet</a>
+                        <a class="collapse-item" href="{% url 'profit_and_loss_list' %}">Profit & Loss</a>
+                        <a class="collapse-item" href="{% url 'account_list' %}">Account Ledger</a>
                     </div>
                 </div>
             </li>

@@ -46,6 +46,11 @@ urlpatterns = [
     path('expense/<int:pk>/update/', ExpenseUpdate,name='expense_update'),
     path('expense/<int:pk>/delete/', ExpenseDelete,name='expense_delete'),
     
+    path('stock_ledger/', stock_ledger_list, name='stock_ledger'),
+    path('stock_ledger/create/', stock_ledger_create, name='stock_ledger_create'),
+    path('stock_ledger/update/<int:pk>/', stock_ledger_update, name='stock_ledger_update'),
+    path('stock_ledger/delete/<int:pk>/', stock_ledger_delete, name='stock_ledger_delete'),
+    
     path('salesinvoice/', SalesInvoiceList, name='salesinvoice'),
     path('salesinvoice/<int:pk>/update/', SalesInvoiceUpdate,name='salesinvoice_update'),
     
@@ -64,8 +69,35 @@ urlpatterns = [
     path('sales_report/', SalesReportList, name='sales_report'),
     path('repair_report/', RepairReportList, name='repair_report'),
     path('repair_detail_report/', RepairDetailReportList, name='repair_detail_report'),
-    path('stock_report/', StockReportList, name='stock_report'),
+        
+    
+    path('daybook/', daybook_list, name='daybook_list'),
+    path('daybook/create/', daybook_create, name='daybook_create'),
+    path('daybook/update/<int:pk>/', daybook_update, name='daybook_update'),
+    path('daybook/delete/<int:pk>/', daybook_delete, name='daybook_delete'),
+    
+    path('cashbook/', cashbook_list, name='cashbook_list'),
+    path('cashbook/create/', cashbook_create, name='cashbook_create'),
+    path('cashbook/update/<int:pk>/', cashbook_update, name='cashbook_update'),
+    path('cashbook/delete/<int:pk>/', cashbook_delete, name='cashbook_delete'),
+    
+    path('accounts/', account_list, name='account_list'),
+    path('accounts/create/', account_create, name='account_create'),
+    path('accounts/<int:pk>/', account_detail, name='account_detail'),
+    
+    # Ledger Entry URLs
+    path('ledger/entries/create/', ledger_entry_create, name='ledger_entry_create'),
+    
+    # Balance Sheet URLs
+    path('reports/balance-sheets/', balance_sheet_list, name='balance_sheet_list'),
+    path('reports/balance-sheets/<int:pk>/', balance_sheet_detail, name='balance_sheet_detail'),
+    
+    # Profit & Loss URLs
+    path('reports/profit-loss/', profit_and_loss_list, name='profit_and_loss_list'),
+    path('reports/profit-loss/<int:pk>/', profit_and_loss_detail, name='profit_and_loss_detail'),
 
+    
+    path('stock_report/', StockReportList, name='stock_report'),
     path('stock_excel/', stock_excel, name='stock_excel'),
     path('sales_excel/', sales_excel, name='sales_excel'),
     path('search/', global_search, name='global_search'),

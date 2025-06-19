@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Balance Sheet as of {{ sheet.report_date|date:"Y-m-d" }}</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <h2>Assets</h2>
+        <table class="table">
+            {% for account in asset_accounts %}
+            <tr>
+                <td>{{ account.code }} - {{ account.name }}</td>
+                <td>{{ account.get_balance|default:"0.00" }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="table-primary">
+                <td><strong>Total Assets</strong></td>
+                <td><strong>{{ total_assets|default:"0.00" }}</strong></td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="col-md-6">
+        <h2>Liabilities & Equity</h2>
+        <h3>Liabilities</h3>
+        <table class="table">
+            {% for account in liability_accounts %}
+            <tr>
+                <td>{{ account.code }} - {{ account.name }}</td>
+                <td>{{ account.get_balance|default:"0.00" }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="table-primary">
+                <td><strong>Total Liabilities</strong></td>
+                <td><strong>{{ total_liabilities|default:"0.00" }}</strong></td>
+            </tr>
+            
+            <h3>Equity</h3>
+            {% for account in equity_accounts %}
+            <tr>
+                <td>{{ account.code }} - {{ account.name }}</td>
+                <td>{{ account.get_balance|default:"0.00" }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="table-primary">
+                <td><strong>Total Equity</strong></td>
+                <td><strong>{{ total_equity|default:"0.00" }}</strong></td>
+            </tr>
+            
+            <tr class="table-success">
+                <td><strong>Total Liabilities & Equity</strong></td>
+                <td><strong>{{ total_liabilities|add:total_equity|default:"0.00" }}</strong></td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+{% if sheet.is_final %}
+<div class="alert alert-success">
+    This balance sheet has been finalized and balances.
+</div>
+{% else %}
+<div class="alert alert-warning">
+    This is a draft balance sheet. Finalize it when ready.
+</div>
+{% endif %}
+
+<a href="{% url 'balance_sheet_list' %}" class="btn btn-secondary">Back to List</a>
+{% endblock %}

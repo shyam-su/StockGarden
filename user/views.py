@@ -8,6 +8,7 @@ from django.contrib.auth import authenticate, login,logout
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
+from .permissions import role_required, admin_required
 
 
 
@@ -171,7 +172,7 @@ def LogoutView(request):
 
 
 
-
+@role_required('admin', 'vendor')
 @login_required
 def vendor_dashboard(request):
     return render(request, 'vendor_dashboard.html')
@@ -184,3 +185,4 @@ def seller_dashboard(request):
 @login_required
 def customer_dashboard(request):
     return render(request, 'customer_dashboard.html')
+

@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">
+                        {% if form.instance.pk %}Update{% else %}Create{% endif %} Daybook Entry
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date</label>
+                                {{ form.date }}
+                                {% if form.date.errors %}
+                                <div class="text-danger">{{ form.date.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Transaction Type</label>
+                                {{ form.transaction_type }}
+                                {% if form.transaction_type.errors %}
+                                <div class="text-danger">{{ form.transaction_type.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Reference ID</label>
+                                {{ form.reference_id }}
+                                {% if form.reference_id.errors %}
+                                <div class="text-danger">{{ form.reference_id.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Reference Model</label>
+                                {{ form.reference_model }}
+                                {% if form.reference_model.errors %}
+                                <div class="text-danger">{{ form.reference_model.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Description</label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                <div class="text-danger">{{ form.description.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Debit Amount</label>
+                                {{ form.debit_amount }}
+                                {% if form.debit_amount.errors %}
+                                <div class="text-danger">{{ form.debit_amount.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Credit Amount</label>
+                                {{ form.credit_amount }}
+                                {% if form.credit_amount.errors %}
+                                <div class="text-danger">{{ form.credit_amount.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Payment Method</label>
+                                {{ form.payment_method }}
+                                {% if form.payment_method.errors %}
+                                <div class="text-danger">{{ form.payment_method.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Payment Status</label>
+                                {{ form.payment_status }}
+                                {% if form.payment_status.errors %}
+                                <div class="text-danger">{{ form.payment_status.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary me-2">Save</button>
+                            <a href="{% url 'daybook_list' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

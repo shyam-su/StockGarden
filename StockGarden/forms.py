@@ -625,9 +625,9 @@ class RepairDetailForm(forms.ModelForm):
 class ExpenseForm(forms.ModelForm):
     class Meta:
         model = Expense
-        fields = ["category", "amount", "description", "payment_method"]
+        fields = ["category_type", "amount", "description", "payment_method"]
         widgets = {
-            "category": forms.Select(
+            "category_type": forms.Select(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter Category",
@@ -950,3 +950,187 @@ class ReturnForm(forms.ModelForm):
             "total_amount": "Total Amount",
             "refund_amount": "Refund Amount",
         }
+        
+class StockLedgerForm(forms.ModelForm):
+    class Meta:
+        model = StockLedger
+        fields = [
+            'product', 
+            'transaction_type', 
+            'reference_id', 
+            'reference_model', 
+            'quantity', 
+            'unit_cost', 
+            'notes'
+        ]
+        widgets = {
+            'notes': forms.Textarea(attrs={'rows': 3}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Add Bootstrap classes to form fields
+        for field in self.fields:
+            self.fields[field].widget.attrs.update({'class': 'form-control'})
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        quantity = cleaned_data.get('quantity')
+        
+        if quantity == 0:
+            raise forms.ValidationError("Quantity cannot be zero")
+        
+        return cleaned_data
+    
+class DaybookForm(forms.ModelForm):
+    class Meta:
+        model = Daybook
+        fields = [
+            # Remove 'date' from the fields list since it's auto_now_add
+            'transaction_type',
+            'reference_id',
+            'reference_model',
+            'description',
+            'debit_amount',
+            'credit_amount',
+            'payment_method',
+            'payment_status',
+        ]
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Add Bootstrap classes to form fields
+        for field in self.fields:
+            self.fields[field].widget.attrs.update({'class': 'form-control'})
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        debit_amount = cleaned_data.get('debit_amount')
+        credit_amount = cleaned_data.get('credit_amount')
+        
+        if debit_amount == 0 and credit_amount == 0:
+            raise forms.ValidationError("Both debit and credit amounts cannot be zero")
+        
+        return cleaned_data
+    
+    
+class CashbookForm(forms.ModelForm):
+    transaction_date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        required=True
+    )
+    
+    class Meta:
+        model = Cashbook
+        fields = [
+            'entry_type',
+            'source_type',
+            'reference_id',
+            'reference_model',
+            'description',
+            'amount',
+            'payment_method',
+            'is_bank',
+            'bank_name',
+            'cheque_number',
+            'transaction_date',
+            'notes',
+        ]
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'notes': forms.Textarea(attrs={'rows': 2}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Add Bootstrap classes to form fields
+        for field in self.fields:
+            self.fields[field].widget.attrs.update({'class': 'form-control'})
+        
+        # Make bank fields required conditionally
+        self.fields['bank_name'].required = False
+        self.fields['cheque_number'].required = False
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        is_bank = cleaned_data.get('is_bank')
+        bank_name = cleaned_data.get('bank_name')
+        cheque_number = cleaned_data.get('cheque_number')
+        amount = cleaned_data.get('amount')
+        
+        if is_bank:
+            if not bank_name:
+                self.add_error('bank_name', "Bank name is required for bank transactions")
+            
+            payment_method = cleaned_data.get('payment_method')
+            if payment_method == 'cheque' and not cheque_number:
+                self.add_error('cheque_number', "Cheque number is required for cheque payments")
+        
+        if amount is not None and amount <= 0:
+            self.add_error('amount', "Amount must be greater than zero")
+        
+        return cleaned_data
+    
+
+class AccountForm(forms.ModelForm):
+    class Meta:
+        model = Account
+        fields = ['code', 'name', 'account_type', 'parent_account', 'is_active', 'description']
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        parent_account = cleaned_data.get('parent_account')
+        
+        # Prevent circular references
+        if parent_account and parent_account.parent_account == self.instance:
+            raise ValidationError("Circular reference in parent accounts is not allowed.")
+        return cleaned_data
+
+class LedgerEntryForm(forms.ModelForm):
+    class Meta:
+        model = LedgerEntry
+        fields = ['date', 'account', 'debit_amount', 'credit_amount', 
+                 'reference', 'description', 'transaction_type', 'transaction_id']
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        debit_amount = cleaned_data.get('debit_amount', 0)
+        credit_amount = cleaned_data.get('credit_amount', 0)
+        
+        if debit_amount and credit_amount:
+            raise ValidationError("A ledger entry cannot have both debit and credit amounts.")
+        if not debit_amount and not credit_amount:
+            raise ValidationError("A ledger entry must have either a debit or credit amount.")
+        if debit_amount < 0 or credit_amount < 0:
+            raise ValidationError("Amounts cannot be negative.")
+        
+        return cleaned_data
+
+class BalanceSheetForm(forms.ModelForm):
+    class Meta:
+        model = BalanceSheet
+        fields = ['report_date', 'is_final', 'notes']
+
+class ProfitAndLossForm(forms.ModelForm):
+    class Meta:
+        model = ProfitAndLoss
+        fields = ['start_date', 'end_date', 'is_final', 'notes']
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        
+        if start_date and end_date and end_date < start_date:
+            raise ValidationError("End date must be after start date.")
+        
+        return cleaned_data

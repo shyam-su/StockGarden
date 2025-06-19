@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
-
+from django.core.exceptions import PermissionDenied
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, full_name, password=None, **extra_fields):
@@ -51,6 +51,23 @@ class User(AbstractBaseUser, PermissionsMixin):
     class Meta:
         verbose_name = "User"
         indexes = [models.Index(fields=['full_name'])]
+        
+    # Add a method to check roles
+    def has_role(self, *roles):
+        return self.role in roles
+    
+    # Add more specific permission checks
+    def is_admin(self):
+        return self.has_role('admin') and self.is_superuser
+    
+    def is_vendor(self):
+        return self.has_role('vendor')
+    
+    def is_seller(self):
+        return self.has_role('seller')
+    
+    def is_customer(self):
+        return self.has_role('customer')
 
     def __str__(self):
         return self.full_name

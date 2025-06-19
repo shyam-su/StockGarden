@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Create Ledger Entry</h1>
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a href="{% if form.instance.account %}{% url 'account_detail' form.instance.account.pk %}{% else %}{% url 'account_list' %}{% endif %}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

@@ -94,7 +94,10 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
+AUTHENTICATION_BACKENDS = [
+    'user.backends.RoleBasedModelBackend',
+    'django.contrib.auth.backends.ModelBackend',  # fallback
+]
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',

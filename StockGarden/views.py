@@ -15,6 +15,8 @@ from django.utils.timezone import localtime
 from django.db.models.functions import TruncDay
 from datetime import datetime, timedelta
 from django.utils import timezone
+from user.permissions import role_required, admin_required
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 
 
@@ -136,7 +138,6 @@ def home(request):
         return render(request, '404.html', {'message': 'Failed to load dashboard data'})
     
 
-
 @login_required
 def BrandList(request):
     try:
@@ -165,6 +166,7 @@ def BrandList(request):
         messages.error(request, 'An error occurred while loading the brand list.')
         return render(request, '404.html', {"message": "An error occurred while loading the brand list."})
 
+@role_required('admin',)
 @login_required
 def BrandCreate(request, brand_id=None):
     try:
@@ -192,7 +194,8 @@ def BrandCreate(request, brand_id=None):
         logger.error(f"Error in BrandCreateView: {e}")
         messages.error(request, 'An error occurred while processing the brand.')
         return render(request, '404.html', {"message": "An error occurred."})
-    
+
+@role_required('admin',)
 @login_required
 def BrandUpdate(request, pk):
     try:
@@ -213,6 +216,7 @@ def BrandUpdate(request, pk):
         messages.error(request, 'An error occurred while updating the brand.')
         return render(request, 'error.html', {"message": "An error occurred while updating the brand."})
 
+@role_required('admin',)
 @login_required
 def BrandDelete(request, pk):
     try:
@@ -452,6 +456,7 @@ def ProductList(request):
         return render(request, '404.html', {"message": "An error occurred."})
     
 @login_required
+@admin_required
 def ProductUpdate(request, pk):
     try:
         product = get_object_or_404(Product, pk=pk)
@@ -474,6 +479,7 @@ def ProductUpdate(request, pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
+@admin_required
 def ProductDelete(request,pk):
     try:
         product = get_object_or_404(Product,pk=pk)
@@ -557,6 +563,7 @@ def SalesCreate(request,sales_id=None):
     
     
 @login_required
+@admin_required
 def SalesUpdate(request, pk):
     try:
         sales = get_object_or_404(Sales, pk=pk)
@@ -577,6 +584,7 @@ def SalesUpdate(request, pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
+@admin_required
 def SalesDelete(request, pk):
     try:
         sales = get_object_or_404(Sales, pk=pk)
@@ -687,6 +695,7 @@ def RepairUpdate(request,pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
+@admin_required
 def RepairDelete(request,pk):
     try:
         repair=get_object_or_404(Repair,pk=pk)
@@ -744,7 +753,8 @@ def RepairDetailUpdate(request,pk):
         messages.error(request, 'An error occurred while processing the repair detail.')
         return render(request, '404.html', {"message": "An error occurred."})
     
-@login_required    
+@login_required   
+@admin_required 
 def RepairDetailDelete(request, pk):
     try:
         repairdetail = get_object_or_404(RepairDetail, pk=pk)
@@ -1464,3 +1474,415 @@ def generate_repair_invoice(request, pk):
         'company': company
         }
     return render(request, 'repairinvoiceprint.html',context)
+
+
+def stock_ledger_list(request):
+    query = request.GET.get('query', '')
+    
+    ledger_entries = StockLedger.objects.select_related('product', 'created_by').order_by('-transaction_date')
+    
+    if query:
+        ledger_entries = ledger_entries.filter(
+            Q(product__name__icontains=query) |
+            Q(transaction_type__icontains=query) |
+            Q(notes__icontains=query)
+        )
+    
+    paginator = Paginator(ledger_entries, 25)  # Show 25 entries per page
+    page_number = request.GET.get('page')
+    stock_ledger = paginator.get_page(page_number)
+    
+    context = {
+        'stock_ledger': stock_ledger,
+        'query': query,
+    }
+    return render(request, 'stock_ledger.html', context)
+
+def stock_ledger_create(request):
+    if request.method == 'POST':
+        form = StockLedgerForm(request.POST, user=request.user)
+        if form.is_valid():
+            entry = form.save(commit=False)
+            entry.created_by = request.user
+            entry.save()
+            messages.success(request, 'Stock ledger entry created successfully!')
+            return redirect('stock_ledger')
+    else:
+        form = StockLedgerForm(user=request.user)
+    
+    context = {'form': form}
+    return render(request, 'stock_ledger_form.html', context)
+
+def stock_ledger_update(request, pk):
+    entry = get_object_or_404(StockLedger, pk=pk)
+    
+    if request.method == 'POST':
+        form = StockLedgerForm(request.POST, instance=entry, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Stock ledger entry updated successfully!')
+            return redirect('stock_ledger')
+    else:
+        form = StockLedgerForm(instance=entry, user=request.user)
+    
+    context = {'form': form, 'entry': entry}
+    return render(request, 'stock_ledger_form.html', context)
+
+def stock_ledger_delete(request, pk):
+    entry = get_object_or_404(StockLedger, pk=pk)
+    
+    if request.method == 'POST':
+        entry.delete()
+        messages.success(request, 'Stock ledger entry deleted successfully!')
+        return redirect('stock_ledger')
+    
+    context = {'entry': entry}
+    return render(request, 'stock_ledger_confirm_delete.html', context)
+
+
+def daybook_list(request):
+    query = request.GET.get('query', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    transaction_type = request.GET.get('transaction_type', '')
+    
+    entries = Daybook.objects.select_related('created_by').order_by('-date')
+    
+    if query:
+        entries = entries.filter(
+            Q(description__icontains=query) |
+            Q(reference_id__icontains=query) |
+            Q(reference_model__icontains=query)
+        )
+    
+    if date_from:
+        entries = entries.filter(date__gte=date_from)
+    
+    if date_to:
+        entries = entries.filter(date__lte=date_to)
+    
+    if transaction_type:
+        entries = entries.filter(transaction_type=transaction_type)
+    
+    paginator = Paginator(entries, 25)  # Show 25 entries per page
+    page_number = request.GET.get('page')
+    daybook = paginator.get_page(page_number)
+    
+    context = {
+        'daybook': daybook,
+        'query': query,
+        'date_from': date_from,
+        'date_to': date_to,
+        'transaction_type': transaction_type,
+        'transaction_types': Daybook.TRANSACTION_TYPES,
+    }
+    return render(request, 'daybook_list.html', context)
+
+def daybook_create(request):
+    if request.method == 'POST':
+        form = DaybookForm(request.POST, user=request.user)
+        if form.is_valid():
+            entry = form.save(commit=False)
+            entry.created_by = request.user
+            entry.save()
+            messages.success(request, 'Daybook entry created successfully!')
+            return redirect('daybook_list')
+    else:
+        form = DaybookForm(user=request.user)
+    
+    context = {'form': form}
+    return render(request, 'daybook_form.html', context)
+
+def daybook_update(request, pk):
+    entry = get_object_or_404(Daybook, pk=pk)
+    
+    if request.method == 'POST':
+        form = DaybookForm(request.POST, instance=entry, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Daybook entry updated successfully!')
+            return redirect('daybook_list')
+    else:
+        form = DaybookForm(instance=entry, user=request.user)
+    
+    context = {'form': form, 'entry': entry}
+    return render(request, 'daybook_form.html', context)
+
+def daybook_delete(request, pk):
+    entry = get_object_or_404(Daybook, pk=pk)
+    
+    if request.method == 'POST':
+        entry.delete()
+        messages.success(request, 'Daybook entry deleted successfully!')
+        return redirect('daybook_list')
+    
+    context = {'entry': entry}
+    return render(request, 'daybook_confirm_delete.html', context)
+
+
+@login_required
+def cashbook_list(request):
+    try:
+        query = request.GET.get('query', '')
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        entry_type = request.GET.get('entry_type', '')
+        is_bank = request.GET.get('is_bank', '')
+        
+        entries = Cashbook.objects.select_related('recorded_by').order_by('-transaction_date', '-date')
+        
+        if query:
+            entries = entries.filter(
+                Q(description__icontains=query) |
+                Q(reference_id__icontains=query) |
+                Q(reference_model__icontains=query) |
+                Q(cheque_number__icontains=query))
+        
+        if date_from:
+            entries = entries.filter(transaction_date__gte=date_from)
+        
+        if date_to:
+            entries = entries.filter(transaction_date__lte=date_to)
+        
+        if entry_type:
+            entries = entries.filter(entry_type=entry_type)
+        
+        if is_bank in ['true', 'false']:
+            entries = entries.filter(is_bank=(is_bank == 'true'))
+        
+        paginator = Paginator(entries, 25)
+        page_number = request.GET.get('page')
+        
+        try:
+            cashbook = paginator.page(page_number)
+        except PageNotAnInteger:
+            cashbook = paginator.page(1)
+        except EmptyPage:
+            cashbook = paginator.page(paginator.num_pages)
+        
+        context = {
+            'cashbook': cashbook,
+            'query': query,
+            'date_from': date_from,
+            'date_to': date_to,
+            'entry_type': entry_type,
+            'is_bank': is_bank,
+            'entry_types': Cashbook.ENTRY_TYPES,
+            'source_types': Cashbook.SOURCE_TYPES,
+        }
+        return render(request, 'cashbook_list.html', context)
+    
+    except Exception as e:
+        messages.error(request, f"An error occurred while loading cashbook entries: {str(e)}")
+        return render(request, 'cashbook_list.html', {'cashbook': []})
+
+@login_required
+def cashbook_create(request):
+    try:
+        if request.method == 'POST':
+            form = CashbookForm(request.POST, user=request.user)
+            if form.is_valid():
+                entry = form.save(commit=False)
+                entry.recorded_by = request.user
+                entry.save()
+                messages.success(request, 'Cashbook entry created successfully!')
+                return redirect('cashbook_list')
+        else:
+            form = CashbookForm(user=request.user)
+        
+        context = {'form': form}
+        return render(request, 'cashbook_form.html', context)
+    
+    except ValidationError as e:
+        messages.error(request, f"Validation error: {str(e)}")
+        return redirect('cashbook_create')
+    except Exception as e:
+        messages.error(request, f"An error occurred while creating cashbook entry: {str(e)}")
+        return render(request, 'cashbook_form.html', {'form': CashbookForm(user=request.user)})
+
+@login_required
+def cashbook_update(request, pk):
+    try:
+        entry = get_object_or_404(Cashbook, pk=pk)
+        
+        if request.method == 'POST':
+            form = CashbookForm(request.POST, instance=entry, user=request.user)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Cashbook entry updated successfully!')
+                return redirect('cashbook_list')
+        else:
+            form = CashbookForm(instance=entry, user=request.user)
+        
+        context = {'form': form, 'entry': entry}
+        return render(request, 'cashbook_form.html', context)
+    
+    except ValidationError as e:
+        messages.error(request, f"Validation error: {str(e)}")
+        return redirect('cashbook_update', pk=pk)
+    except Exception as e:
+        messages.error(request, f"An error occurred while updating cashbook entry: {str(e)}")
+        return redirect('cashbook_list')
+
+@login_required
+def cashbook_delete(request, pk):
+    try:
+        entry = get_object_or_404(Cashbook, pk=pk)
+        
+        if request.method == 'POST':
+            entry_description = str(entry)
+            entry.delete()
+            messages.success(request, f'Cashbook entry "{entry_description}" deleted successfully!')
+            return redirect('cashbook_list')
+        
+        context = {'entry': entry}
+        return render(request, 'cashbook_confirm_delete.html', context)
+    
+    except Exception as e:
+        messages.error(request, f"An error occurred while deleting cashbook entry: {str(e)}")
+        return redirect('cashbook_list')\
+            
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.contrib.auth.decorators import login_required
+from .models import Account, LedgerEntry, BalanceSheet, ProfitAndLoss
+from .forms import AccountForm, LedgerEntryForm, BalanceSheetForm, ProfitAndLossForm
+
+@login_required
+def account_list(request):
+    try:
+        accounts = Account.objects.filter(is_active=True).order_by('code')
+        context = {'accounts': accounts}
+        return render(request, 'account_list.html', context)
+    except Exception as e:
+        messages.error(request, f"Error loading accounts: {str(e)}")
+        return render(request, 'account_list.html', {'accounts': []})
+
+@login_required
+def account_detail(request, pk):
+    try:
+        account = get_object_or_404(Account, pk=pk)
+        entries = LedgerEntry.objects.filter(account=account).order_by('-date')[:50]
+        
+        # Get balance for different time periods
+        current_balance = account.get_balance()
+        monthly_balance = account.get_balance(
+            start_date=timezone.now().replace(day=1),
+            end_date=timezone.now()
+        )
+        
+        context = {
+            'account': account,
+            'entries': entries,
+            'current_balance': current_balance,
+            'monthly_balance': monthly_balance,
+        }
+        return render(request, 'account_detail.html', context)
+    except Exception as e:
+        messages.error(request, f"Error loading account details: {str(e)}")
+        return redirect('account_list')
+
+@login_required
+def account_create(request):
+    try:
+        if request.method == 'POST':
+            form = AccountForm(request.POST)
+            if form.is_valid():
+                account = form.save(commit=False)
+                account.created_by = request.user
+                account.save()
+                messages.success(request, 'Account created successfully!')
+                return redirect('account_detail', pk=account.pk)
+        else:
+            form = AccountForm()
+        
+        return render(request, 'account_form.html', {'form': form})
+    except Exception as e:
+        messages.error(request, f"Error creating account: {str(e)}")
+        return render(request, 'account_form.html', {'form': AccountForm()})
+
+@login_required
+def ledger_entry_create(request):
+    try:
+        if request.method == 'POST':
+            form = LedgerEntryForm(request.POST)
+            if form.is_valid():
+                with transaction.atomic():
+                    entry = form.save(commit=False)
+                    entry.created_by = request.user
+                    entry.save()
+                messages.success(request, 'Ledger entry created successfully!')
+                return redirect('account_detail', pk=entry.account.pk)
+        else:
+            form = LedgerEntryForm()
+        
+        return render(request, 'ledger_entry_form.html', {'form': form})
+    except Exception as e:
+        messages.error(request, f"Error creating ledger entry: {str(e)}")
+        return render(request, 'ledger_entry_form.html', {'form': LedgerEntryForm()})
+
+@login_required
+def balance_sheet_list(request):
+    try:
+        sheets = BalanceSheet.objects.all().order_by('-report_date')
+        return render(request, 'balance_sheet_list.html', {'balance_sheets': sheets})
+    except Exception as e:
+        messages.error(request, f"Error loading balance sheets: {str(e)}")
+        return render(request, 'balance_sheet_list.html', {'balance_sheets': []})
+
+@login_required
+def balance_sheet_detail(request, pk):
+    try:
+        sheet = get_object_or_404(BalanceSheet, pk=pk)
+        
+        # Get all account balances
+        asset_accounts = Account.objects.filter(account_type=AccountType.ASSET)
+        liability_accounts = Account.objects.filter(account_type=AccountType.LIABILITY)
+        equity_accounts = Account.objects.filter(account_type=AccountType.EQUITY)
+        
+        context = {
+            'sheet': sheet,
+            'asset_accounts': asset_accounts,
+            'liability_accounts': liability_accounts,
+            'equity_accounts': equity_accounts,
+            'total_assets': sheet.get_assets(),
+            'total_liabilities': sheet.get_liabilities(),
+            'total_equity': sheet.get_equity(),
+        }
+        return render(request, 'balance_sheet_detail.html', context)
+    except Exception as e:
+        messages.error(request, f"Error loading balance sheet: {str(e)}")
+        return redirect('balance_sheet_list')
+
+@login_required
+def profit_and_loss_list(request):
+    try:
+        reports = ProfitAndLoss.objects.all().order_by('-end_date')
+        return render(request, 'profit_loss_list.html', {'reports': reports})
+    except Exception as e:
+        messages.error(request, f"Error loading profit and loss reports: {str(e)}")
+        return render(request, 'profit_loss_list.html', {'reports': []})
+
+@login_required
+def profit_and_loss_detail(request, pk):
+    try:
+        report = get_object_or_404(ProfitAndLoss, pk=pk)
+        
+        # Get all account balances
+        income_accounts = Account.objects.filter(account_type=AccountType.INCOME)
+        expense_accounts = Account.objects.filter(account_type=AccountType.EXPENSE)
+        
+        context = {
+            'report': report,
+            'income_accounts': income_accounts,
+            'expense_accounts': expense_accounts,
+            'total_income': report.get_revenue(),
+            'total_expenses': report.get_expenses(),
+            'net_profit': report.get_net_profit(),
+        }
+        return render(request, 'profit_loss_detail.html', context)
+    except Exception as e:
+        messages.error(request, f"Error loading profit and loss report: {str(e)}")
+        return redirect('profit_and_loss_list')
