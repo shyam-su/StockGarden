@@ -7,7 +7,11 @@ from PIL import Image
 from django.db.models import Sum, Q, F, Case, When, Subquery, OuterRef
 from django.db.models.functions import Coalesce
 from django.core.exceptions import ValidationError
+import logging
 
+
+
+logger = logging.getLogger(__name__)
 
 # Create your models here.
 class PaymentMethodChoices(models.TextChoices):
@@ -642,9 +646,6 @@ class AccountType(models.TextChoices):
     EXPENSE = 'expense', 'Expense'
 
 class Account(models.Model):
-    """
-    Chart of Accounts - Categorizes all financial transactions
-    """
     code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=100)
     account_type = models.CharField(max_length=20, choices=AccountType.choices)
@@ -666,34 +667,34 @@ class Account(models.Model):
         return f"{self.code} - {self.name}"
 
     def clean(self):
-        # Prevent circular references in parent accounts
-        if self.parent_account and self.parent_account.parent_account == self:
-            raise ValidationError("Circular reference in parent accounts is not allowed.")
+        try:
+            if self.parent_account and self.parent_account.parent_account == self:
+                raise ValidationError("Circular reference in parent accounts is not allowed.")
+        except Exception as e:
+            logger.error(f"Error in Account.clean for {self.name}: {str(e)}")
+            raise ValidationError(f"Failed to validate account: {str(e)}")
 
     def get_balance(self, start_date=None, end_date=None):
-        """
-        Calculate the balance of this account within a date range
-        """
-        qs = LedgerEntry.objects.filter(account=self)
-        if start_date:
-            qs = qs.filter(date__gte=start_date)
-        if end_date:
-            qs = qs.filter(date__lte=end_date)
-        
-        balance = qs.aggregate(
-            total_debit=Coalesce(Sum('debit_amount'), Decimal('0.00')),
-            total_credit=Coalesce(Sum('credit_amount'), Decimal('0.00'))
-        )
-        
-        if self.account_type in [AccountType.ASSET, AccountType.EXPENSE]:
-            return balance['total_debit'] - balance['total_credit']
-        else:
+        try:
+            qs = LedgerEntry.objects.filter(account=self)
+            if start_date:
+                qs = qs.filter(date__gte=start_date)
+            if end_date:
+                qs = qs.filter(date__lte=end_date)
+            
+            balance = qs.aggregate(
+                total_debit=Coalesce(Sum('debit_amount'), Decimal('0.00')),
+                total_credit=Coalesce(Sum('credit_amount'), Decimal('0.00'))
+            )
+            
+            if self.account_type in [AccountType.ASSET, AccountType.EXPENSE]:
+                return balance['total_debit'] - balance['total_credit']
             return balance['total_credit'] - balance['total_debit']
-        
+        except Exception as e:
+            logger.error(f"Error calculating balance for account {self.code}: {str(e)}")
+            return Decimal('0.00')
+
 class LedgerEntry(models.Model):
-    """
-    Records all financial transactions in a double-entry accounting system
-    """
     date = models.DateTimeField(db_index=True)
     account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='ledger_entries')
     debit_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
@@ -701,15 +702,14 @@ class LedgerEntry(models.Model):
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     reference = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField()
-    transaction_type = models.CharField(max_length=50)  # Links to source transaction
-    transaction_id = models.PositiveIntegerField()  # ID of the source transaction
+    transaction_type = models.CharField(max_length=50)
+    transaction_id = models.PositiveIntegerField()
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-date', '-id']
         verbose_name = "Ledger Entry"
-        verbose_name_plural = "Ledger Entries"
         indexes = [
             models.Index(fields=['date']),
             models.Index(fields=['account']),
@@ -720,42 +720,51 @@ class LedgerEntry(models.Model):
         return f"{self.date.strftime('%Y-%m-%d')} - {self.account} - {self.description[:50]}"
 
     def clean(self):
-        # Validate that either debit or credit is entered, but not both
-        if self.debit_amount and self.credit_amount:
-            raise ValidationError("A ledger entry cannot have both debit and credit amounts.")
-        if not self.debit_amount and not self.credit_amount:
-            raise ValidationError("A ledger entry must have either a debit or credit amount.")
-        
-        # Validate amounts are positive
-        if self.debit_amount < 0 or self.credit_amount < 0:
-            raise ValidationError("Amounts cannot be negative.")
+        try:
+            if self.debit_amount and self.credit_amount:
+                raise ValidationError("A ledger entry cannot have both debit and credit amounts.")
+            if not self.debit_amount and not self.credit_amount:
+                raise ValidationError("A ledger entry must have either a debit or credit amount.")
+            if self.debit_amount < 0 or self.credit_amount < 0:
+                raise ValidationError("Amounts cannot be negative.")
+        except Exception as e:
+            logger.error(f"Error in LedgerEntry.clean for transaction {self.transaction_id}: {str(e)}")
+            raise ValidationError(f"Failed to validate ledger entry: {str(e)}")
 
     def save(self, *args, **kwargs):
-        # Calculate running balance for the account
-        previous_entries = LedgerEntry.objects.filter(
-            account=self.account,
-            date__lte=self.date
-        ).exclude(id=self.id).order_by('-date', '-id')
-        
-        previous_balance = previous_entries.first().balance if previous_entries.exists() else Decimal('0.00')
-        
-        if self.debit_amount:
-            self.balance = previous_balance + self.debit_amount
-        else:
-            self.balance = previous_balance - self.credit_amount
-        
-        super().save(*args, **kwargs)
-        
+        try:
+            previous_entries = LedgerEntry.objects.filter(
+                account=self.account,
+                date__lte=self.date
+            ).exclude(id=self.id).order_by('-date', '-id')
+            
+            previous_balance = previous_entries.first().balance if previous_entries.exists() else Decimal('0.00')
+            
+            if self.debit_amount:
+                self.balance = previous_balance + self.debit_amount
+            else:
+                self.balance = previous_balance - self.credit_amount
+            
+            super().save(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error saving LedgerEntry for transaction {self.transaction_id}: {str(e)}")
+            raise ValidationError(f"Failed to save ledger entry: {str(e)}")
+
 class BalanceSheet(models.Model):
-    """
-    Snapshot of the company's financial position at a point in time
-    """
     report_date = models.DateField(unique=True)
     is_final = models.BooleanField(default=False)
     notes = models.TextField(blank=True, null=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    current_assets = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    fixed_assets = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    other_assets = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    current_liabilities = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    long_term_liabilities = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    equity = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    retained_earnings = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
 
     class Meta:
         ordering = ['-report_date']
@@ -766,36 +775,89 @@ class BalanceSheet(models.Model):
         return f"Balance Sheet as of {self.report_date.strftime('%Y-%m-%d')}"
 
     def get_assets(self):
-        """Calculate total assets"""
-        asset_accounts = Account.objects.filter(account_type=AccountType.ASSET)
-        return sum(account.get_balance(end_date=self.report_date) for account in asset_accounts)
+        try:
+            asset_accounts = Account.objects.filter(account_type=AccountType.ASSET)
+            balances = {
+                'current': Decimal('0.00'),
+                'fixed': Decimal('0.00'),
+                'other': Decimal('0.00')
+            }
+            
+            for account in asset_accounts:
+                balance = account.get_balance(end_date=self.report_date)
+                if account.code.startswith('1') or 'current' in account.name.lower():
+                    balances['current'] += balance
+                elif account.code.startswith('3') or 'fixed' in account.name.lower():
+                    balances['fixed'] += balance
+                else:
+                    balances['other'] += balance
+                
+            self.current_assets = balances['current']
+            self.fixed_assets = balances['fixed']
+            self.other_assets = balances['other']
+            return self.current_assets + self.fixed_assets + self.other_assets
+        except Exception as e:
+            logger.error(f"Error calculating assets for BalanceSheet {self.report_date}: {str(e)}")
+            return Decimal('0.00')
 
     def get_liabilities(self):
-        """Calculate total liabilities"""
-        liability_accounts = Account.objects.filter(account_type=AccountType.LIABILITY)
-        return sum(account.get_balance(end_date=self.report_date) for account in liability_accounts)
+        try:
+            liability_accounts = Account.objects.filter(account_type=AccountType.LIABILITY)
+            balances = {
+                'current': Decimal('0.00'),
+                'long_term': Decimal('0.00')
+            }
+            
+            for account in liability_accounts:
+                balance = account.get_balance(end_date=self.report_date)
+                if account.code.startswith('2') or 'current' in account.name.lower():
+                    balances['current'] += balance
+                else:
+                    balances['long_term'] += balance
+                
+            self.current_liabilities = balances['current']
+            self.long_term_liabilities = balances['long_term']
+            return self.current_liabilities + self.long_term_liabilities
+        except Exception as e:
+            logger.error(f"Error calculating liabilities for BalanceSheet {self.report_date}: {str(e)}")
+            return Decimal('0.00')
 
     def get_equity(self):
-        """Calculate total equity"""
-        equity_accounts = Account.objects.filter(account_type=AccountType.EQUITY)
-        return sum(account.get_balance(end_date=self.report_date) for account in equity_accounts)
+        try:
+            equity_accounts = Account.objects.filter(account_type=AccountType.EQUITY)
+            self.equity = sum(account.get_balance(end_date=self.report_date) for account in equity_accounts)
+            
+            pl_statements = ProfitAndLoss.objects.filter(end_date__lte=self.report_date)
+            self.retained_earnings = sum(pl.get_net_profit() for pl in pl_statements)
+            
+            return self.equity + self.retained_earnings
+        except Exception as e:
+            logger.error(f"Error calculating equity for BalanceSheet {self.report_date}: {str(e)}")
+            return Decimal('0.00')
 
     def validate_balances(self):
-        """Check if assets = liabilities + equity"""
-        assets = self.get_assets()
-        liabilities = self.get_liabilities()
-        equity = self.get_equity()
-        return assets == (liabilities + equity)
+        try:
+            assets = self.get_assets()
+            liabilities = self.get_liabilities()
+            equity = self.get_equity()
+            return abs(assets - (liabilities + equity)) < Decimal('0.01')
+        except Exception as e:
+            logger.error(f"Error validating balances for BalanceSheet {self.report_date}: {str(e)}")
+            return False
 
     def save(self, *args, **kwargs):
-        if self.is_final and not self.validate_balances():
-            raise ValidationError("Balance sheet does not balance. Assets must equal Liabilities plus Equity.")
-        super().save(*args, **kwargs)
-        
+        try:
+            self.get_assets()
+            self.get_liabilities()
+            self.get_equity()
+            if self.is_final and not self.validate_balances():
+                raise ValidationError("Balance sheet does not balance. Assets must equal Liabilities plus Equity.")
+            super().save(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error saving BalanceSheet for {self.report_date}: {str(e)}")
+            raise ValidationError(f"Failed to save balance sheet: {str(e)}")
+
 class ProfitAndLoss(models.Model):
-    """
-    Reports revenues, costs and expenses during a specific period
-    """
     start_date = models.DateField()
     end_date = models.DateField()
     is_final = models.BooleanField(default=False)
@@ -803,38 +865,102 @@ class ProfitAndLoss(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    sales_revenue = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    other_revenue = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    cost_of_goods_sold = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    operating_expenses = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    other_expenses = models.DecimalField(max_digits=15, decimal_places=2, default=0.00)
+    gross_profit = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    net_profit = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
 
     class Meta:
         ordering = ['-end_date']
-        verbose_name = "Profit and Loss Statement"
+        verbose_name = "Profit and Loss"
         verbose_name_plural = "Profit and Loss Statements"
         constraints = [
-            models.CheckConstraint(
-                check=Q(end_date__gte=F('start_date')),
-                name='end_date_after_start_date'
-            )
-        ]
+                models.CheckConstraint(
+                    check=Q(end_date__gte=F('start_date')),
+                    name='end_date_after_start_date'
+                )
+            ]
 
     def __str__(self):
-        return f"Profit & Loss for {self.start_date.strftime('%Y-%m-%d')} to {self.end_date.strftime('%Y-%m-%d')}"
+        return f"Profit and Loss for {self.start_date.strftime('%Y-%m-%d')} to {self.end_date.strftime('%Y-%m-%d')}"
 
     def get_revenue(self):
-        """Calculate total revenue"""
-        revenue_accounts = Account.objects.filter(account_type=AccountType.INCOME)
-        return sum(account.get_balance(start_date=self.start_date, end_date=self.end_date) 
-                  for account in revenue_accounts)
+        try:
+            revenue_accounts = Account.objects.filter(account_type=AccountType.INCOME)
+            balances = {
+                'sales': Decimal('0.00'),
+                'other': Decimal('0.00')
+            }
+            
+            for account in revenue_accounts:
+                balance = account.get_balance(start_date=self.start_date, end_date=self.end_date)
+                if 'sales' in account.name.lower() or account.code.startswith('4'):
+                    balances['sales'] += balance
+                else:
+                    balances['other'] += balance
+            self.sales_revenue = balances['sales']
+            self.other_revenue = balances['other']
+            return self.sales_revenue + self.other_revenue
+        except Exception as e:
+            logger.error(f"Error calculating revenue for ProfitAndLoss {self.start_date} to {self.end_date}: {str(e)}")
+            return Decimal('0.00')
 
     def get_expenses(self):
-        """Calculate total expenses"""
-        expense_accounts = Account.objects.filter(account_type=AccountType.EXPENSE)
-        return sum(account.get_balance(start_date=self.start_date, end_date=self.end_date) 
-                  for account in expense_accounts)
+        try:
+            expense_accounts = Account.objects.filter(account_type=AccountType.EXPENSE)
+            balances = {
+                'cogs': Decimal('0.00'),
+                'operating': Decimal('0.00'),
+                'other': Decimal('0.00')
+            }
+            
+            for account in expense_accounts:
+                balance = account.get_balance(start_date=self.start_date, end_date=self.end_date)
+                if 'cost of goods' in account.name.lower() or account.code.startswith('5'):
+                    balances['cogs'] += balance
+                elif 'operating' in account.name.lower() or account.code.startswith('6'):
+                    balances['operating'] += balance
+                else:
+                    balances['other'] += balance
+                    
+            self.cost_of_goods = balances['cogs']
+            self.operating_costs = balances['operating']
+            self.other_expenses = balances['other']
+            return self.cost_of_goods_sold + self.operating_expenses + self.other_expenses
+        except Exception as e:
+            logger.error(f"Error calculating expenses for ProfitAndLoss {self.start_date} to {self.end_date}: {str(e)}")
+            return Decimal('0.00')
+
+    def get_gross_profit(self):
+        try:
+            self.gross_profit = self.sales_revenue - self.cost_of_goods_sold
+            return self.gross_profit
+        except Exception as e:
+            logger.error(f"Error calculating gross profit for ProfitAndLoss {self.start_date} to {self.end_date}: {str(e)}")
+            return Decimal('0.00')
 
     def get_net_profit(self):
-        """Calculate net profit (revenue - expenses)"""
-        return self.get_revenue() - self.get_expenses()
+        try:
+            self.net_profit = (self.sales_revenue + self.other_revenue) - \
+                (self.cost_of_goods_sold + self.operating_expenses + self.other_expenses)
+            return self.net_profit
+        except Exception as e:
+            logger.error(f"Error calculating net profit for ProfitAndLoss {self.start_date} to {self.end_date}: {str(e)}")
+            return Decimal('0.00')
 
     def save(self, *args, **kwargs):
-        if self.end_date < self.start_date:
-            raise ValidationError("End date must be after start date.")
-        super().save(*args, **kwargs)
+        try:
+            if self.end_date.date < self.start_date:
+                raise ValidationError("End date must be after start date.")
+            self.get_revenue()
+            self.get_expenses()
+            self.get_gross_profit()
+            self.get_net_profit()
+            super().__init__(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error saving ProfitAndLoss for {self.start_date} to {self.end_date}: {str(e)}")
+            raise ValidationError(f"Failed to save profit and loss statement: {str(e)}")

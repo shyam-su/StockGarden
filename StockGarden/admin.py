@@ -156,48 +156,66 @@ class CashbookAdmin(admin.ModelAdmin):
         }),
     )
 
-
-class AccountAdmin(admin.ModelAdmin):
-    list_display = ('code', 'name', 'account_type', 'is_active')
-    list_filter = ('account_type', 'is_active')
-    search_fields = ('code', 'name')
+@admin.register(Account)
+class AccountAdmin(ImportExportModelAdmin):
+    list_display = ('code', 'name', 'account_type', 'is_active', 'created_at')
+    search_fields = ('code', 'name', 'description')
+    list_filter = ('account_type', 'is_active', ('created_at', DateFieldListFilter))
+    list_select_related = ('parent_account',)
     ordering = ('code',)
-    
+    raw_id_fields = ('parent_account',)
+
     def save_model(self, request, obj, form, change):
         try:
             with transaction.atomic():
                 super().save_model(request, obj, form, change)
         except Exception as e:
-            logger.error(f"Error saving account {obj.code}: {str(e)}")
+            logger.error(f"Error saving Account {obj.code}: {str(e)}")
             messages.error(request, f"Error saving account: {str(e)}")
 
-class LedgerEntryAdmin(admin.ModelAdmin):
-    list_display = ('date', 'account', 'debit_amount', 'credit_amount', 'balance')
-    list_filter = ('account', 'transaction_type')
+@admin.register(LedgerEntry)
+class LedgerEntryAdmin(ImportExportModelAdmin):
+    list_display = (
+        'date', 'account', 'debit_amount', 'credit_amount',
+        'balance', 'transaction_type'
+    )
     search_fields = ('description', 'reference')
+    list_filter = ('transaction_type', 'account', ('date', DateFieldListFilter))
+    list_select_related = ('account', 'created_by')
+    readonly_fields = ('balance', 'created_at')
+    ordering = ('-date',)
     date_hierarchy = 'date'
-    readonly_fields = ('balance',)
-    
+    raw_id_fields = ('account', 'created_by')
+
     def save_model(self, request, obj, form, change):
         try:
             with transaction.atomic():
-                # Validate debit/credit amounts
                 if obj.debit_amount and obj.credit_amount:
                     raise ValidationError("Cannot have both debit and credit amounts")
-                
                 if not obj.debit_amount and not obj.credit_amount:
                     raise ValidationError("Must have either debit or credit amount")
-                
                 super().save_model(request, obj, form, change)
         except Exception as e:
-            logger.error(f"Error saving ledger entry: {str(e)}")
+            logger.error(f"Error saving LedgerEntry {obj.id}: {str(e)}")
             messages.error(request, f"Error saving ledger entry: {str(e)}")
 
-class BalanceSheetAdmin(admin.ModelAdmin):
-    list_display = ('report_date', 'is_final')
-    readonly_fields = ('created_at', 'updated_at')
+@admin.register(BalanceSheet)
+class BalanceSheetAdmin(ImportExportModelAdmin):
+    list_display = (
+        'report_date', 'current_assets', 'fixed_assets', 'current_liabilities',
+        'long_term_liabilities', 'equity', 'retained_earnings', 'is_final'
+    )
+    search_fields = ('notes',)
+    list_filter = ('is_final', ('report_date', DateFieldListFilter))
+    readonly_fields = (
+        'current_assets', 'fixed_assets', 'other_assets', 'current_liabilities',
+        'long_term_liabilities', 'equity', 'retained_earnings', 'created_at', 'updated_at'
+    )
+    ordering = ('-report_date',)
+    date_hierarchy = 'report_date'
+    raw_id_fields = ('created_by',)
     actions = ['validate_balance_sheet']
-    
+
     def validate_balance_sheet(self, request, queryset):
         for bs in queryset:
             try:
@@ -206,25 +224,40 @@ class BalanceSheetAdmin(admin.ModelAdmin):
                 else:
                     messages.success(request, f"Balance Sheet {bs.report_date} is balanced")
             except Exception as e:
-                logger.error(f"Error validating balance sheet {bs.id}: {str(e)}")
+                logger.error(f"Error validating BalanceSheet {bs.report_date}: {str(e)}")
                 messages.error(request, f"Error validating balance sheet: {str(e)}")
-    
+
     validate_balance_sheet.short_description = "Validate selected balance sheets"
 
-class ProfitAndLossAdmin(admin.ModelAdmin):
-    list_display = ('start_date', 'end_date', 'is_final')
-    readonly_fields = ('created_at', 'updated_at')
-    
     def save_model(self, request, obj, form, change):
         try:
-            if obj.end_date < obj.start_date:
-                raise ValidationError("End date must be after start date")
-            super().save_model(request, obj, form, change)
+            with transaction.atomic():
+                super().save_model(request, obj, form, change)
         except Exception as e:
-            logger.error(f"Error saving P&L statement: {str(e)}")
-            messages.error(request, f"Error saving P&L statement: {str(e)}")
+            logger.error(f"Error saving BalanceSheet {obj.report_date}: {str(e)}")
+            messages.error(request, f"Error saving balance sheet: {str(e)}")
 
-admin.site.register(Account, AccountAdmin)
-admin.site.register(LedgerEntry, LedgerEntryAdmin)
-admin.site.register(BalanceSheet, BalanceSheetAdmin)
-admin.site.register(ProfitAndLoss, ProfitAndLossAdmin)
+@admin.register(ProfitAndLoss)
+class ProfitAndLossAdmin(ImportExportModelAdmin):
+    list_display = (
+        'start_date', 'end_date', 'sales_revenue', 'gross_profit',
+        'net_profit', 'is_final'
+    )
+    search_fields = ('notes',)
+    list_filter = ('is_final', ('start_date', DateFieldListFilter), ('end_date', DateFieldListFilter))
+    readonly_fields = (
+        'sales_revenue', 'other_revenue', 'cost_of_goods_sold', 'operating_expenses',
+        'other_expenses', 'gross_profit', 'net_profit', 'created_at', 'updated_at'
+    )
+    ordering = ('-end_date',)
+    raw_id_fields = ('created_by',)
+
+    def save_model(self, request, obj, form, change):
+        try:
+            with transaction.atomic():
+                if obj.end_date < obj.start_date:
+                    raise ValidationError("End date must be after start date")
+                super().save_model(request, obj, form, change)
+        except Exception as e:
+            logger.error(f"Error saving ProfitAndLoss {obj.start_date} to {obj.end_date}: {str(e)}")
+            messages.error(request, f"Error saving profit and loss statement: {str(e)}")

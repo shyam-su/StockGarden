@@ -732,3 +732,124 @@ def create_purchase_ledger_entries(sender, instance, created, **kwargs):
                 )
     except Exception as e:
         logger.error(f"Error creating ledger entries for purchase {instance.id}: {str(e)}")
+        
+        
+@receiver(post_save, sender=Sales)
+def create_sales_ledger_entries(sender, instance, created, **kwargs):
+    """Create accounting ledger entries for Sales"""
+    if created:
+        try:
+            # Get or create accounts
+            sales_account = Account.objects.get_or_create(
+                code='4000',
+                defaults={'name': 'Sales Revenue', 'account_type': AccountType.INCOME}
+            )[0]
+            
+            cash_account = Account.objects.get_or_create(
+                code='1000',
+                defaults={'name': 'Cash', 'account_type': AccountType.ASSET}
+            )[0]
+            
+            accounts_receivable = Account.objects.get_or_create(
+                code='1100',
+                defaults={'name': 'Accounts Receivable', 'account_type': AccountType.ASSET}
+            )[0]
+            
+            # Create ledger entries
+            if instance.payment_method == PaymentMethodChoices.CASH:
+                LedgerEntry.objects.create(
+                    date=instance.created_at,
+                    account=cash_account,
+                    debit_amount=instance.total_amount,
+                    description=f"Cash sale of {instance.product.name}",
+                    transaction_type='sale',
+                    transaction_id=instance.id,
+                    created_by=instance.user
+                )
+            else:
+                LedgerEntry.objects.create(
+                    date=instance.created_at,
+                    account=accounts_receivable,
+                    debit_amount=instance.total_amount,
+                    description=f"Credit sale of {instance.product.name}",
+                    transaction_type='sale',
+                    transaction_id=instance.id,
+                    created_by=instance.user
+                )
+            
+            LedgerEntry.objects.create(
+                date=instance.created_at,
+                account=sales_account,
+                credit_amount=instance.total_amount,
+                description=f"Sale of {instance.product.name}",
+                transaction_type='sale',
+                transaction_id=instance.id,
+                created_by=instance.user
+            )
+        except Exception as e:
+            logger.error(f"Error creating ledger entries for sale {instance.id}: {str(e)}")
+
+@receiver(post_save, sender=Purchase)
+def create_purchase_ledger_entries(sender, instance, created, **kwargs):
+    """Create accounting ledger entries for Purchase"""
+    if created:
+        try:
+            # Get or create accounts
+            inventory_account = Account.objects.get_or_create(
+                code='1200',
+                defaults={'name': 'Inventory', 'account_type': AccountType.ASSET}
+            )[0]
+            
+            accounts_payable = Account.objects.get_or_create(
+                code='2000',
+                defaults={'name': 'Accounts Payable', 'account_type': AccountType.LIABILITY}
+            )[0]
+            
+            cash_account = Account.objects.get_or_create(
+                code='1000',
+                defaults={'name': 'Cash', 'account_type': AccountType.ASSET}
+            )[0]
+            
+            # Create ledger entries
+            if instance.payment_method == PaymentMethodChoices.CASH:
+                LedgerEntry.objects.create(
+                    date=instance.created_at,
+                    account=inventory_account,
+                    debit_amount=instance.total_price,
+                    description=f"Cash purchase of {instance.product_name}",
+                    transaction_type='purchase',
+                    transaction_id=instance.id,
+                    created_by=instance.vendor
+                )
+                
+                LedgerEntry.objects.create(
+                    date=instance.created_at,
+                    account=cash_account,
+                    credit_amount=instance.total_price,
+                    description=f"Cash payment for {instance.product_name}",
+                    transaction_type='purchase',
+                    transaction_id=instance.id,
+                    created_by=instance.vendor
+                )
+            else:
+                LedgerEntry.objects.create(
+                    date=instance.created_at,
+                    account=inventory_account,
+                    debit_amount=instance.total_price,
+                    description=f"Credit purchase of {instance.product_name}",
+                    transaction_type='purchase',
+                    transaction_id=instance.id,
+                    created_by=instance.vendor
+                )
+                
+                LedgerEntry.objects.create(
+                    date=instance.created_at,
+                    account=accounts_payable,
+                    credit_amount=instance.total_price,
+                    description=f"Credit purchase of {instance.product_name}",
+                    transaction_type='purchase',
+                    transaction_id=instance.id,
+                    created_by=instance.vendor
+                )
+        except Exception as e:
+            logger.error(f"Error creating ledger entries for purchase {instance.id}: {str(e)}")
