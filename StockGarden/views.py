@@ -1742,147 +1742,214 @@ def cashbook_delete(request, pk):
         messages.error(request, f"An error occurred while deleting cashbook entry: {str(e)}")
         return redirect('cashbook_list')\
             
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-from django.db import transaction
+from django.http import JsonResponse
 from django.core.exceptions import ValidationError
-from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.utils import timezone
+import logging
+from decimal import Decimal
 from .models import Account, LedgerEntry, BalanceSheet, ProfitAndLoss
-from .forms import AccountForm, LedgerEntryForm, BalanceSheetForm, ProfitAndLossForm
 
-@login_required
+logger = logging.getLogger(__name__)
+
+# Account Views
 def account_list(request):
     try:
-        accounts = Account.objects.filter(is_active=True).order_by('code')
-        context = {'accounts': accounts}
-        return render(request, 'account_list.html', context)
+        accounts = Account.objects.filter(is_active=True).select_related('parent_account')
+        return render(request, 'account_list.html', {'accounts': accounts})
     except Exception as e:
-        messages.error(request, f"Error loading accounts: {str(e)}")
+        logger.error(f"Error in account_list: {str(e)}")
+        messages.error(request, "Failed to retrieve accounts.")
         return render(request, 'account_list.html', {'accounts': []})
 
-@login_required
 def account_detail(request, pk):
     try:
         account = get_object_or_404(Account, pk=pk)
-        entries = LedgerEntry.objects.filter(account=account).order_by('-date')[:50]
-        
-        # Get balance for different time periods
-        current_balance = account.get_balance()
-        monthly_balance = account.get_balance(
-            start_date=timezone.now().replace(day=1),
-            end_date=timezone.now()
-        )
-        
-        context = {
+        ledger_entries = account.ledger_entries.order_by('-date')[:50]
+        balance = account.get_balance()
+        return render(request, 'account_detail.html', {
             'account': account,
-            'entries': entries,
-            'current_balance': current_balance,
-            'monthly_balance': monthly_balance,
-        }
-        return render(request, 'account_detail.html', context)
+            'ledger_entries': ledger_entries,
+            'balance': balance
+        })
     except Exception as e:
-        messages.error(request, f"Error loading account details: {str(e)}")
+        logger.error(f"Error in account_detail for pk {pk}: {str(e)}")
+        messages.error(request, "Failed to retrieve account details.")
         return redirect('account_list')
 
-@login_required
 def account_create(request):
-    try:
-        if request.method == 'POST':
-            form = AccountForm(request.POST)
-            if form.is_valid():
-                account = form.save(commit=False)
-                account.created_by = request.user
-                account.save()
-                messages.success(request, 'Account created successfully!')
-                return redirect('account_detail', pk=account.pk)
-        else:
-            form = AccountForm()
-        
-        return render(request, 'account_form.html', {'form': form})
-    except Exception as e:
-        messages.error(request, f"Error creating account: {str(e)}")
-        return render(request, 'account_form.html', {'form': AccountForm()})
-
-@login_required
-def ledger_entry_create(request):
-    try:
-        if request.method == 'POST':
-            form = LedgerEntryForm(request.POST)
-            if form.is_valid():
+    if request.method == 'POST':
+        form = AccountForm(request.POST)
+        if form.is_valid():
+            try:
                 with transaction.atomic():
-                    entry = form.save(commit=False)
-                    entry.created_by = request.user
-                    entry.save()
-                messages.success(request, 'Ledger entry created successfully!')
-                return redirect('account_detail', pk=entry.account.pk)
+                    account = form.save()
+                    messages.success(request, f"Account {account.name} created successfully.")
+                    return redirect('account_detail', pk=account.pk)
+            except ValidationError as e:
+                logger.error(f"Validation error in account_create: {str(e)}")
+                messages.error(request, f"Failed to create account: {str(e)}")
+            except Exception as e:
+                logger.error(f"Error in account_create: {str(e)}")
+                messages.error(request, "Failed to create account.")
         else:
-            form = LedgerEntryForm()
-        
-        return render(request, 'ledger_entry_form.html', {'form': form})
-    except Exception as e:
-        messages.error(request, f"Error creating ledger entry: {str(e)}")
-        return render(request, 'ledger_entry_form.html', {'form': LedgerEntryForm()})
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = AccountForm()
+    
+    return render(request, 'account_form.html', {
+        'form': form,
+        'account_types': AccountType.choices,
+        'accounts': Account.objects.all()
+    })
+    
+def account_update(request, pk):
+    account = get_object_or_404(Account, pk=pk)
 
-@login_required
+    if request.method == 'POST':
+        form = AccountForm(request.POST, instance=account)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    form.save()
+                    messages.success(request, f"Account {account.name} updated successfully.")
+                    return redirect('account_detail', pk=account.pk)
+            except ValidationError as e:
+                logger.error(f"Validation error in account_update for pk {pk}: {str(e)}")
+                messages.error(request, f"Failed to update account: {str(e)}")
+            except Exception as e:
+                logger.error(f"Error in account_update for pk {pk}: {str(e)}")
+                messages.error(request, "Failed to update account.")
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = AccountForm(instance=account)
+
+    return render(request, 'account_form.html', {
+        'form': form,
+        'account': account,
+        'account_types': AccountType.choices,
+        'accounts': Account.objects.exclude(pk=pk)
+    })
+
+
+# LedgerEntry Views
+def ledger_entry_create(request):
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                ledger_entry = LedgerEntry(
+                    date=request.POST['date'],
+                    account_id=request.POST['account'],
+                    debit_amount=Decimal(request.POST.get('debit_amount', '0.00')),
+                    credit_amount=Decimal(request.POST.get('credit_amount', '0.00')),
+                    description=request.POST['description'],
+                    transaction_type=request.POST['transaction_type'],
+                    transaction_id=request.POST['transaction_id'],
+                    created_by=request.user if request.user.is_authenticated else None
+                )
+                ledger_entry.full_clean()
+                ledger_entry.save()
+                messages.success(request, "Ledger entry created successfully.")
+                return redirect('account_detail', pk=ledger_entry.account_id)
+        except ValidationError as e:
+            logger.error(f"Validation error in ledger_entry_create: {str(e)}")
+            messages.error(request, f"Failed to create ledger entry: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in ledger_entry_create: {str(e)}")
+            messages.error(request, "Failed to create ledger entry.")
+    
+    return render(request, 'ledger_entry_form.html', {
+        'accounts': Account.objects.filter(is_active=True)
+    })
+
+# BalanceSheet Views
 def balance_sheet_list(request):
     try:
-        sheets = BalanceSheet.objects.all().order_by('-report_date')
-        return render(request, 'balance_sheet_list.html', {'balance_sheets': sheets})
+        balance_sheets = BalanceSheet.objects.all().order_by('-report_date')
+        return render(request, 'balance_sheet_list.html', {'balance_sheets': balance_sheets})
     except Exception as e:
-        messages.error(request, f"Error loading balance sheets: {str(e)}")
+        logger.error(f"Error in balance_sheet_list: {str(e)}")
+        messages.error(request, "Failed to retrieve balance sheets.")
         return render(request, 'balance_sheet_list.html', {'balance_sheets': []})
 
-@login_required
 def balance_sheet_detail(request, pk):
     try:
-        sheet = get_object_or_404(BalanceSheet, pk=pk)
-        
-        # Get all account balances
-        asset_accounts = Account.objects.filter(account_type=AccountType.ASSET)
-        liability_accounts = Account.objects.filter(account_type=AccountType.LIABILITY)
-        equity_accounts = Account.objects.filter(account_type=AccountType.EQUITY)
-        
-        context = {
-            'sheet': sheet,
-            'asset_accounts': asset_accounts,
-            'liability_accounts': liability_accounts,
-            'equity_accounts': equity_accounts,
-            'total_assets': sheet.get_assets(),
-            'total_liabilities': sheet.get_liabilities(),
-            'total_equity': sheet.get_equity(),
-        }
-        return render(request, 'balance_sheet_detail.html', context)
+        balance_sheet = get_object_or_404(BalanceSheet, pk=pk)
+        is_balanced = balance_sheet.validate_balances()
+        return render(request, 'balance_sheet_detail.html', {
+            'balance_sheet': balance_sheet,
+            'is_balanced': is_balanced
+        })
     except Exception as e:
-        messages.error(request, f"Error loading balance sheet: {str(e)}")
+        logger.error(f"Error in balance_sheet_detail for pk {pk}: {str(e)}")
+        messages.error(request, "Failed to retrieve balance sheet details.")
         return redirect('balance_sheet_list')
 
-@login_required
+def balance_sheet_create(request):
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                balance_sheet = BalanceSheet(
+                    report_date=request.POST['report_date'],
+                    is_final=request.POST.get('is_final', False) == 'on',
+                    notes=request.POST.get('notes', ''),
+                    created_by=request.user if request.user.is_authenticated else None
+                )
+                balance_sheet.full_clean()
+                balance_sheet.save()
+                messages.success(request, "Balance sheet created successfully.")
+                return redirect('balance_sheet_detail', pk=balance_sheet.pk)
+        except ValidationError as e:
+            logger.error(f"Validation error in balance_sheet_create: {str(e)}")
+            messages.error(request, f"Failed to create balance sheet: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in balance_sheet_create: {str(e)}")
+            messages.error(request, "Failed to create balance sheet.")
+    
+    return render(request, 'balance_sheet_form.html')
+
+# ProfitAndLoss Views
 def profit_and_loss_list(request):
     try:
-        reports = ProfitAndLoss.objects.all().order_by('-end_date')
-        return render(request, 'profit_loss_list.html', {'reports': reports})
+        pl_statements = ProfitAndLoss.objects.all().order_by('-end_date')
+        return render(request, 'profit_and_loss_list.html', {'pl_statements': pl_statements})
     except Exception as e:
-        messages.error(request, f"Error loading profit and loss reports: {str(e)}")
-        return render(request, 'profit_loss_list.html', {'reports': []})
+        logger.error(f"Error in profit_and_loss_list: {str(e)}")
+        messages.error(request, "Failed to retrieve profit and loss statements.")
+        return render(request, 'profit_and_loss_list.html', {'pl_statements': []})
 
-@login_required
 def profit_and_loss_detail(request, pk):
     try:
-        report = get_object_or_404(ProfitAndLoss, pk=pk)
-        
-        # Get all account balances
-        income_accounts = Account.objects.filter(account_type=AccountType.INCOME)
-        expense_accounts = Account.objects.filter(account_type=AccountType.EXPENSE)
-        
-        context = {
-            'report': report,
-            'income_accounts': income_accounts,
-            'expense_accounts': expense_accounts,
-            'total_income': report.get_revenue(),
-            'total_expenses': report.get_expenses(),
-            'net_profit': report.get_net_profit(),
-        }
-        return render(request, 'profit_loss_detail.html', context)
+        pl_statement = get_object_or_404(ProfitAndLoss, pk=pk)
+        return render(request, 'profit_and_loss_detail.html', {'pl_statement': pl_statement})
     except Exception as e:
-        messages.error(request, f"Error loading profit and loss report: {str(e)}")
+        logger.error(f"Error in profit_and_loss_detail for pk {pk}: {str(e)}")
+        messages.error(request, "Failed to retrieve profit and loss details.")
         return redirect('profit_and_loss_list')
+
+def profit_and_loss_create(request):
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                pl_statement = ProfitAndLoss(
+                    start_date=request.POST['start_date'],
+                    end_date=request.POST['end_date'],
+                    is_final=request.POST.get('is_final', False) == 'on',
+                    notes=request.POST.get('notes', ''),
+                    created_by=request.user if request.user.is_authenticated else None
+                )
+                pl_statement.full_clean()
+                pl_statement.save()
+                messages.success(request, "Profit and loss statement created successfully.")
+                return redirect('profit_and_loss_detail', pk=pl_statement.pk)
+        except ValidationError as e:
+            logger.error(f"Validation error in profit_and_loss_create: {str(e)}")
+            messages.error(request, f"Failed to create profit and loss statement: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in profit_and_loss_create: {str(e)}")
+            messages.error(request, "Failed to create profit and loss statement.")
+    
+    return render(request, 'profit_and_loss_form.html')

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-    <h1>Balance Sheets</h1>
+    <h1>Profit and Loss Statements</h1>
     {% if messages %}
         <div class="alert alert-info">
             {% for message in messages %}
@@ -9,27 +9,27 @@
             {% endfor %}
         </div>
     {% endif %}
-    <a href="{% url 'balance_sheet_create' %}" class="btn btn-primary mb-3">Create New Balance Sheet</a>
+    <a href="{% url 'profit_and_loss_create' %}" class="btn btn-primary mb-3">Create New P&L Statement</a>
     <table class="table table-striped">
         <thead>
             <tr>
-                <th>Date</th>
+                <th>Period</th>
                 <th>Finalized</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            {% for balance_sheet in balance_sheets %}
+            {% for pl_statement in pl_statements %}
                 <tr>
-                    <td><a href="{% url 'balance_sheet_detail' balance_sheet.pk %}">{{ balance_sheet.report_date|date:"Y-m-d" }}</a></td>
-                    <td>{{ balance_sheet.is_final|yesno:"Yes,No" }}</td>
+                    <td><a href="{% url 'profit_and_loss_detail' pl_statement.pk %}">{{ pl_statement.start_date|date:"Y-m-d" }} to {{ pl_statement.end_date|date:"Y-m-d" }}</a></td>
+                    <td>{{ pl_statement.is_final|yesno:"Yes,No" }}</td>
                     <td>
-                        <a href="{% url 'balance_sheet_detail' balance_sheet.pk %}" class="btn btn-sm btn-info">View</a>
+                        <a href="{% url 'profit_and_loss_detail' pl_statement.pk %}" class="btn btn-sm btn-info">View</a>
                     </td>
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="3">No balance sheets found.</td>
+                    <td colspan="3">No profit and loss statements found.</td>
                 </tr>
             {% endfor %}
         </tbody>

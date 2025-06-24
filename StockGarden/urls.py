@@ -81,20 +81,25 @@ urlpatterns = [
     path('cashbook/update/<int:pk>/', cashbook_update, name='cashbook_update'),
     path('cashbook/delete/<int:pk>/', cashbook_delete, name='cashbook_delete'),
     
+    
+        # Account URLs
     path('accounts/', account_list, name='account_list'),
-    path('accounts/create/', account_create, name='account_create'),
     path('accounts/<int:pk>/', account_detail, name='account_detail'),
+    path('accounts/create/', account_create, name='account_create'),
+    path('accounts/<int:pk>/update/', account_update, name='account_update'),
     
-    # Ledger Entry URLs
-    path('ledger/entries/create/', ledger_entry_create, name='ledger_entry_create'),
+    # LedgerEntry URLs
+    path('ledger-entries/create/', ledger_entry_create, name='ledger_entry_create'),
     
-    # Balance Sheet URLs
-    path('reports/balance-sheets/', balance_sheet_list, name='balance_sheet_list'),
-    path('reports/balance-sheets/<int:pk>/', balance_sheet_detail, name='balance_sheet_detail'),
+    # BalanceSheet URLs
+    path('balance-sheets/', balance_sheet_list, name='balance_sheet_list'),
+    path('balance-sheets/<int:pk>/', balance_sheet_detail, name='balance_sheet_detail'),
+    path('balance-sheets/create/', balance_sheet_create, name='balance_sheet_create'),
     
-    # Profit & Loss URLs
-    path('reports/profit-loss/', profit_and_loss_list, name='profit_and_loss_list'),
-    path('reports/profit-loss/<int:pk>/', profit_and_loss_detail, name='profit_and_loss_detail'),
+    # ProfitAndLoss URLs
+    path('profit-and-loss/', profit_and_loss_list, name='profit_and_loss_list'),
+    path('profit-and-loss/<int:pk>/', profit_and_loss_detail, name='profit_and_loss_detail'),
+    path('profit-and-loss/create/', profit_and_loss_create, name='profit_and_loss_create'),
 
     
     path('stock_report/', StockReportList, name='stock_report'),

@@ -1134,3 +1134,52 @@ class ProfitAndLossForm(forms.ModelForm):
             raise ValidationError("End date must be after start date.")
         
         return cleaned_data
+
+class AccountForm(forms.ModelForm):
+    class Meta:
+        model = Account
+        fields = ['code', 'name', 'account_type', 'parent_account', 'description', 'is_active']
+        widgets = {
+            'code': forms.TextInput(attrs={
+                'class': 'form-control',
+                'pattern': '[A-Za-z0-9]+',
+                'title': 'Code must be alphanumeric',
+                'required': 'required',
+                'placeholder': 'Enter account code (e.g., 1001)'
+            }),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'required': 'required',
+                'placeholder': 'Enter account name'
+            }),
+            'account_type': forms.Select(attrs={
+                'class': 'form-select',
+                'required': 'required'
+            }),
+            'parent_account': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Enter description (optional)'
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+        }
+
+    def clean_code(self):
+        code = self.cleaned_data['code']
+        if not code.isalnum():
+            raise forms.ValidationError("Code must be alphanumeric.")
+        return code
+
+    def __init__(self, *args, **kwargs):
+        instance = kwargs.get('instance')
+        super().__init__(*args, **kwargs)
+        # Exclude the current account from parent_account choices to prevent self-referencing
+        if instance:
+            self.fields['parent_account'].queryset = Account.objects.exclude(pk=instance.pk)
+        else:
+            self.fields['parent_account'].queryset = Account.objects.all()

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h1>{% if account %}Edit Account{% else %}Create Account{% endif %}</h1>
+    {% if messages %}
+        <div class="alert alert-info">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="mb-3">
+            <label for="id_code" class="form-label">Code</label>
+            {{ form.code }}
+            {% if form.code.errors %}
+                <div class="text-danger">{{ form.code.errors }}</div>
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            <label for="id_name" class="form-label">Name</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+                <div class="text-danger">{{ form.name.errors }}</div>
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            <label for="id_account_type" class="form-label">Account Type</label>
+            {{ form.account_type }}
+            {% if form.account_type.errors %}
+                <div class="text-danger">{{ form.account_type.errors }}</div>
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            <label for="id_parent_account" class="form-label">Parent Account</label>
+            {{ form.parent_account }}
+            {% if form.parent_account.errors %}
+                <div class="text-danger">{{ form.parent_account.errors }}</div>
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            <label for="id_description" class="form-label">Description</label>
+            {{ form.description }}
+            {% if form.description.errors %}
+                <div class="text-danger">{{ form.description.errors }}</div>
+            {% endif %}
+        </div>
+        <div class="mb-3 form-check">
+            {{ form.is_active }}
+            <label class="form-check-label" for="id_is_active">Active</label>
+            {% if form.is_active.errors %}
+                <div class="text-danger">{{ form.is_active.errors }}</div>
+            {% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a href="{% url 'account_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

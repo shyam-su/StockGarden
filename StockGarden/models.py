@@ -954,13 +954,13 @@ class ProfitAndLoss(models.Model):
 
     def save(self, *args, **kwargs):
         try:
-            if self.end_date.date < self.start_date:
+            if self.end_date < self.start_date:  # Remove .date
                 raise ValidationError("End date must be after start date.")
             self.get_revenue()
             self.get_expenses()
             self.get_gross_profit()
             self.get_net_profit()
-            super().__init__(*args, **kwargs)
+            super().save(*args, **kwargs)  # Call super().save, not super().__init__
         except Exception as e:
             logger.error(f"Error saving ProfitAndLoss for {self.start_date} to {self.end_date}: {str(e)}")
             raise ValidationError(f"Failed to save profit and loss statement: {str(e)}")
