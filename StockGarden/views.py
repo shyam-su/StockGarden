@@ -1,20 +1,23 @@
+import logging
+import json
+import openpyxl
 from django.shortcuts import HttpResponse,render, get_object_or_404, redirect
-from django.http import JsonResponse
 from .models import *
 from .forms import *
-import logging
 from django.core.paginator import Paginator
 from django.contrib import messages  
-from django.db.models import Sum,Q,F
+from django.db.models import Sum,Q,Count
 from openpyxl import Workbook
-from reportlab.lib.pagesizes import letter, landscape
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from openpyxl.styles import Font, PatternFill
 from datetime import datetime
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
+from django.utils.timezone import localtime
+from django.db.models.functions import TruncDay
+from datetime import datetime, timedelta
+from django.utils import timezone
+from user.permissions import role_required, admin_required
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
 
 
 
@@ -24,48 +27,121 @@ logger = logging.getLogger(__name__)
 @login_required
 def home(request):
     try:
-        total_sales = Sales.objects.aggregate(Sum('total'))['total__sum'] or 0 
-        total_repair_cost = RepairDetail.objects.aggregate(total_repair_cost=Sum('repair_cost'))['total_repair_cost'] or 0
-        total_amount = total_sales + total_repair_cost
-        total_products = Product.objects.count()  
-        pending_repairs = Repair.objects.filter(status='in-progress').count()  
-        low_stock_count = Product.objects.filter(stock__lt=3).count() 
+        time_period = request.GET.get('period', 'week')
 
+        # Card Data Calculations (Overall totals)
+        total_sales = Sales.objects.aggregate(total=Sum('total_amount'))['total'] or 0
+        total_repair = RepairDetail.objects.aggregate(total=Sum('repair_cost'))['total'] or 0
+        total_expenses = Expense.objects.aggregate(total=Sum('amount'))['total'] or 0
+        total_earning = (total_sales + total_repair) - total_expenses
+        low_stock_count = Product.objects.filter(stock__lt=5).count()
+        
+        # Metrics for cards
+        metrics = {
+            'total_earning': total_earning,
+            'total_products': Product.objects.count(),
+            'total_categories': Category.objects.count(),
+            'total_brands': Brand.objects.count(),
+            'pending_repairs': Repair.objects.filter(status='in-progress').count(),
+            'low_stock': low_stock_count,
+            'completed_repairs': Repair.objects.filter(status='completed').count(),
+            'product_categories': Category.objects.count(),
+            'product_brands': Brand.objects.count(),
+        }
+        
+        # Chart Data - Filter by selected period
+        months = []
+        earnings_data = []
+        expenses_data = []
+        sales_data = []
+        repair_data = []
+        
+        end_date = timezone.now()
+        
+        if time_period == 'week':
+            start_date = end_date - timedelta(days=7)
+            date_format = '%d %b'
+            delta = timedelta(days=1)
+        elif time_period == 'month':
+            start_date = end_date - timedelta(days=30)
+            date_format = '%d %b'
+            delta = timedelta(days=1)
+        elif time_period == '3months':
+            start_date = end_date - timedelta(days=90)
+            date_format = '%b %d'
+            delta = timedelta(days=7)
+        else:  # 6months
+            start_date = end_date - timedelta(days=180)
+            date_format = '%b %Y'
+            delta = timedelta(days=30)
+        
+        current_date = start_date
+        while current_date <= end_date:
+            if time_period in ['week', 'month']:
+                date_label = current_date.strftime(date_format)
+                next_date = current_date + timedelta(days=1)
+            elif time_period == '3months':
+                date_label = f"Week {current_date.isocalendar()[1]}"
+                next_date = current_date + timedelta(weeks=1)
+            else:  # 6months
+                date_label = current_date.strftime('%b')
+                next_date = (current_date.replace(day=1) + timedelta(days=32)).replace(day=1)
+            
+            sales = Sales.objects.filter(
+                created_at__gte=current_date,
+                created_at__lt=next_date
+            ).aggregate(total=Sum('total_amount'))['total'] or 0
+            
+            repairs = RepairDetail.objects.filter(
+                created_at__gte=current_date,
+                created_at__lt=next_date
+            ).aggregate(total=Sum('repair_cost'))['total'] or 0
+            
+            expenses = Expense.objects.filter(
+                created_at__gte=current_date,
+                created_at__lt=next_date
+            ).aggregate(total=Sum('amount'))['total'] or 0
+            
+            earnings = (sales + repairs) - expenses
+            
+            months.append(date_label)
+            earnings_data.append(earnings)
+            expenses_data.append(expenses)
+            sales_data.append(sales)
+            repair_data.append(repairs)
+            
+            current_date = next_date
+        
+        period_total_sales = sum(sales_data)
+        period_total_repair = sum(repair_data)
+        
         context = {
-            'total_amount': total_amount,
-            'total_product': total_products,
-            'pending_repairs': pending_repairs,
-            'low_stock_count': low_stock_count 
+            **metrics,
+            'months': months,
+            'sales_data': sales_data,
+            'repair_data': repair_data,
+            'total_sales': total_sales,  
+            'total_repair': total_repair, 
+            'total_expenses': total_expenses,  
+            'period_total_sales': period_total_sales,  
+            'period_total_repair': period_total_repair, 
+            'sales_percentage': (period_total_sales / (period_total_sales + period_total_repair) * 100) if (period_total_sales + period_total_repair) > 0 else 0,
+            'repair_percentage': (period_total_repair / (period_total_sales + period_total_repair) * 100) if (period_total_sales + period_total_repair) > 0 else 0,
+            'selected_period': time_period,
+            'earnings_data': earnings_data,
+            'expenses_data': expenses_data,
         }
         return render(request, 'home.html', context)
+        
     except Exception as e:
-        logger.error(f"Error in home view: {e}")
-        messages.error(request, 'An error occurred while loading the dashboard.')
-    return render(request, '404.html', {"message": "An error occurred while loading the dashboard."})
+        logger.error(f"Dashboard error: {e}")
+        return render(request, '404.html', {'message': 'Failed to load dashboard data'})
+    
 
 @login_required
-def get_chart_data(request):
+def BrandList(request):
     try:
-        total_sales = Sales.objects.aggregate(total=Sum('total')).get('total', 0) or 0
-        total_repair_cost = RepairDetail.objects.aggregate(total=Sum('repair_cost')).get('total', 0) or 0
-        total_earnings = total_sales + total_repair_cost
-            
-        chart_data = {
-            "sales": total_sales,
-            "repair": total_repair_cost,
-            "earnings": total_earnings
-        }
-        return JsonResponse(chart_data)
-    except Exception as e:
-        logger.error(f"Error in home view: {e}")
-        messages.error(request, 'An error occurred while loading the chart.')
-        return JsonResponse({"error": str(e)}, status=500)
-
-
-@login_required
-def BrandListView(request):
-    try:
-        query = request.GET.get('q', '')
+        query = request.GET.get('query', '')
         brands = Brand.objects.all().order_by('-id')
         if query:
             brands = brands.filter(name__icontains=query)
@@ -90,8 +166,9 @@ def BrandListView(request):
         messages.error(request, 'An error occurred while loading the brand list.')
         return render(request, '404.html', {"message": "An error occurred while loading the brand list."})
 
+@role_required('admin',)
 @login_required
-def BrandCreateView(request, brand_id=None):
+def BrandCreate(request, brand_id=None):
     try:
         if brand_id:
             brand = get_object_or_404(Brand, id=brand_id)
@@ -117,9 +194,10 @@ def BrandCreateView(request, brand_id=None):
         logger.error(f"Error in BrandCreateView: {e}")
         messages.error(request, 'An error occurred while processing the brand.')
         return render(request, '404.html', {"message": "An error occurred."})
-    
+
+@role_required('admin',)
 @login_required
-def BrandUpdateView(request, pk):
+def BrandUpdate(request, pk):
     try:
         brand = get_object_or_404(Brand, pk=pk)
 
@@ -138,8 +216,9 @@ def BrandUpdateView(request, pk):
         messages.error(request, 'An error occurred while updating the brand.')
         return render(request, 'error.html', {"message": "An error occurred while updating the brand."})
 
+@role_required('admin',)
 @login_required
-def BrandDeleteView(request, pk):
+def BrandDelete(request, pk):
     try:
         brand = get_object_or_404(Brand, pk=pk)
 
@@ -156,9 +235,9 @@ def BrandDeleteView(request, pk):
         return render(request, '404.html', {"message": "An error occurred while deleting the brand."})
 
 @login_required
-def CategoryListView(request):
+def CategoryList(request):
     try:
-        query = request.GET.get('q', '').strip()
+        query = request.GET.get('query', '').strip()
         category =Category.objects.all().order_by('-id')
 
         if query:
@@ -181,7 +260,7 @@ def CategoryListView(request):
         return render(request, '404.html', {"message": "An error occurred."})
     
 @login_required
-def CategoryCreateView(request,catagory_id=None):
+def CategoryCreate(request,catagory_id=None):
     try:
         if catagory_id:
             category =get_object_or_404(Category,id=catagory_id)
@@ -202,7 +281,7 @@ def CategoryCreateView(request,catagory_id=None):
         return render(request, '404.html', {"message": "An error occurred."})
     
 @login_required    
-def CategoryUpdateView(request,pk):
+def CategoryUpdate(request,pk):
     try:
         category=get_object_or_404(Category,pk=pk)
         if request.method == 'POST':
@@ -220,7 +299,7 @@ def CategoryUpdateView(request,pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def CategoryDeleteView(request,pk):
+def CategoryDelete(request,pk):
     try:
         category=get_object_or_404(Category,pk=pk)
         if request.method == 'POST':
@@ -234,28 +313,140 @@ def CategoryDeleteView(request,pk):
         logger.error(f"Error in CategoryDeleteView: {e}")
         messages.error(request, 'An error occurred while processing the category.')
         return render(request, '404.html', {"message": "An error occurred."})
-    
+
+
 @login_required
-def ProductListView(request):
+def PurchaseList(request):
+    query = request.GET.get('q', '').strip()
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    purchases = Purchase.objects.all()
+
+    try:
+        if query:
+            purchases = purchases.filter(
+                Q(vendor__full_name__icontains=query) |  
+                Q(product_name__icontains=query) |       
+                Q(condition__icontains=query)           
+            ).order_by('-created_at')
+
+        if date_from:
+            naive_date = datetime.strptime(date_from, '%Y-%m-%d')
+            aware_date = timezone.make_aware(naive_date)
+            purchases = purchases.filter(created_at__gte=date_from)
+        if date_to:
+            naive_date = datetime.strptime(date_to, '%Y-%m-%d')
+            aware_date = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+            purchases = purchases.filter(created_at__lt=aware_date)
+        purchases = purchases.order_by('-created_at')
+        paginator = Paginator(purchases, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context = {
+            'purchases': page_obj,
+            'query': query,
+            'date_from': date_from,
+            'date_to': date_to
+        }
+        return render(request, 'purchases.html', context)
+
+    except Exception as e:
+        logger.error(f"Error in PurchaseListView: {e}")
+        messages.error(request, 'An error occurred while loading the purchase list.')
+        return render(request, 'purchases.html', {'purchases': [], 'query': query})
+
+@login_required
+def PurchaseCreate(request,pruchase_id=None):
+    try:
+        if pruchase_id:
+            purchase=get_object_or_404(Purchase,id=pruchase_id)
+            form=PurchaseForm(request.POST or None,request.FILES or None,instance=purchase)
+            action='update'
+        else:
+            form=PurchaseForm(request.POST or None,request.FILES or None)
+            action='create'
+        if request.method == 'POST':
+            if form.is_valid():
+                form.save()
+                messages.success(request,f'Purchase {action.lower()}d successfully!')
+                return redirect('purchase')
+        return render(request, 'purchases_create.html',{'form':form,'action':action})
+    except Exception as e:
+        logger.error(f"Error in PurchaseCreateView: {e}")
+        messages.error(request, 'An error occurred while processing the purchase.')
+        return render(request, '404.html', {"message": "An error occurred."})
+
+
+@login_required
+def PurchaseUpdate(request,pk):
+    try:
+        purchase = get_object_or_404(Purchase,pk=pk)
+        if request.method == 'POST':
+            form= PurchaseForm(request.POST,instance=purchase)
+            if form.is_valid():
+                form.save()
+                messages.success(request,f'Purchase updated successfully!')
+                return redirect('purchase')
+        else:
+            form = PurchaseForm(instance=purchase)
+            return render(request, 'purchases_update.html',{'form':form,'purchase':purchase})
+    except Exception as e:
+        logger.error(request, 'An error occurred while processing the purchase.')
+        messages.error(request, 'An error occurred while processing the purchase.')
+        return render(request, '404.html', {"message": "An error occurred."})
+
+@login_required
+def PurchaseDelete(request,pk):
+    try:
+        purchase= get_object_or_404(Purchase,pk=pk)
+        if request.method == 'POST':
+            purchase_name=purchase.product_name
+            purchase.delete()
+            messages.success(request,f'Purchase {purchase_name} deleted successfully!')
+            return redirect('purchase')
+        return render(request, 'purchase_delete.html',{'purchase':purchase})
+    except Exception as e:
+        logger.error(f"Error in PurchaseDeleteView: {e}")
+        messages.error(request, 'An error occurred while processing the purchase.')
+        return render(request, '404.html', {"message": "An error occurred."})
+    
+        
+@login_required
+def ProductList(request):
     try:
         query = request.GET.get('q', '')
-        product =Product.objects.all().order_by('-id')
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        products =Product.objects.all().order_by('-created_at')
 
         if query:
-            product = product.filter(
+            products = products.filter(
                 Q(name__icontains=query) |
                 Q(description__icontains=query) |
                 Q(brand__name__icontains=query) |
                 Q(categories__name__icontains=query)
             )
 
-        paginator =Paginator(product,10)
+        if date_from:
+            naive_date = datetime.strptime(date_from, '%Y-%m-%d')
+            aware_date = timezone.make_aware(naive_date)
+            products = products.filter(created_at__gte=aware_date)
+        
+        if date_to:
+            naive_date = datetime.strptime(date_to, '%Y-%m-%d')
+            aware_date = timezone.make_aware(naive_date) + timedelta(days=1)
+            products = products.filter(created_at__lt=aware_date)
+
+        paginator =Paginator(products,10)
         page_number =request.GET.get('page')
         page_obj =paginator.get_page(page_number)
         
         context ={
-            "product":page_obj,
+            "products":page_obj,
             "query": query,
+            "date_from": date_from,
+            "date_to": date_to
         }
         return render(request, 'product.html',context)
 
@@ -265,32 +456,8 @@ def ProductListView(request):
         return render(request, '404.html', {"message": "An error occurred."})
     
 @login_required
-def ProductCreateView(request, product_id=None):
-    try:
-        if product_id:
-            product = get_object_or_404(Product, id=product_id)
-            form = ProductForm(request.POST or None, request.FILES or None, instance=product)
-            action = 'Update'
-        else:
-            form = ProductForm(request.POST or None, request.FILES or None)
-            action = 'Create'
-
-        if request.method == 'POST':
-            if form.is_valid():
-                form.save()
-                messages.success(request, f'Product {action.lower()}d successfully!')
-                return redirect('product') 
-            else:
-                messages.error(request, 'Please correct the errors below.')
-
-        return render(request, 'product_create.html', {'form': form, 'action': action})
-    except Exception as e:
-        messages.error(request, 'An error occurred while processing the product.')
-        logger.error(f"Error in ProductCreateView: {e}")
-        return render(request, '404.html', {"message": "An error occurred."})
-    
-@login_required
-def ProductUpdateView(request, pk):
+@admin_required
+def ProductUpdate(request, pk):
     try:
         product = get_object_or_404(Product, pk=pk)
 
@@ -312,7 +479,8 @@ def ProductUpdateView(request, pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def ProductDeleteView(request,pk):
+@admin_required
+def ProductDelete(request,pk):
     try:
         product = get_object_or_404(Product,pk=pk)
         if request.method == 'POST':
@@ -327,17 +495,34 @@ def ProductDeleteView(request,pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def SalesListView(request):
+def SalesList(request):
     try:
         query = request.GET.get('q', '')
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        payment_status = request.GET.get('payment_status', '')
+
         sales = Sales.objects.all().order_by('-id')
 
         if query:
             sales = sales.filter(
-                Q(name__full_name__icontains=query) |
-                Q(product__name__icontains=query) | 
-                Q(contact_no__icontains=query) 
+                Q(user__full_name__icontains=query) | 
+                Q(product__name__icontains=query) 
+                 
             )
+
+        if date_from:
+            naive_date = datetime.strptime(date_from, '%Y-%m-%d')
+            aware_date = timezone.make_aware(naive_date)
+            sales = sales.filter(created_at__gte=aware_date)
+        
+        if date_to:
+            naive_date = datetime.strptime(date_to, '%Y-%m-%d')
+            aware_date = timezone.make_aware(naive_date) + timedelta(days=1)
+            sales = sales.filter(created_at__lt=aware_date)
+
+        if payment_status:
+            sales = sales.filter(payment_status=payment_status)
 
         paginator = Paginator(sales, 10) 
         page_number = request.GET.get('page')
@@ -345,14 +530,18 @@ def SalesListView(request):
         context={
             "sales":page_obj,
             "query": query,
+            "date_from": date_from,
+            "date_to": date_to,
+            "payment_status": payment_status,
+            "status_choices": PaymentStatusChoices.choices
         }
         return render(request, 'sales.html',context)
     except Exception as e:
         logger.error(f"Error in SalesListView: {e}")
         return render(request, '404.html', {"message": "An error occurred."})
-    
+
 @login_required
-def SalesCreateView(request,sales_id=None):
+def SalesCreate(request,sales_id=None):
     try:
         if sales_id:
             sales = get_object_or_404(Sales,id = sales_id)
@@ -372,8 +561,10 @@ def SalesCreateView(request,sales_id=None):
         messages.error(request, 'An error occurred while processing the sales.')
         return render(request, '404.html', {"message": "An error occurred."})
     
+    
 @login_required
-def SalesUpdateView(request, pk):
+@admin_required
+def SalesUpdate(request, pk):
     try:
         sales = get_object_or_404(Sales, pk=pk)
 
@@ -393,200 +584,67 @@ def SalesUpdateView(request, pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def SalesDeleteView(request,pk):
+@admin_required
+def SalesDelete(request, pk):
     try:
-        sales =get_object_or_404(Sales,pk=pk)
+        sales = get_object_or_404(Sales, pk=pk)
+        product_name = sales.product.name if sales.product else 'Unknown Product'
+        
         if request.method == 'POST':
-            sales_name = sales.name
+            # Check if the product is already deleted (None)
+            sales_name = product_name  # Use the safe product name
             sales.delete()
-            messages.success(request,f'Sales {sales_name} deleted successfully!')
+            messages.success(request, f'Sales {sales_name} deleted successfully!')
             return redirect('sales')
-        return render(request, 'sales_delete.html',{'sales':sales})
+
+        return render(request, 'sales_delete.html', {'sales': sales})
+
     except Exception as e:
         logger.error(f"Error in SalesDeleteView: {e}")
         messages.error(request, 'An error occurred while processing the sales.')
         return render(request, '404.html', {"message": "An error occurred."})
 
+
+
 @login_required
-def VendorListView(request):
+def RepairList(request):
     try:
         query = request.GET.get('q', '')
-        vendor=Vendor.objects.all().order_by('-id')
+        start_date = request.GET.get('start_date', '')
+        end_date = request.GET.get('end_date', '')
+        status_filter = request.GET.get('status', '')
+        payment_status_filter = request.GET.get('payment_status', '')
+
+        repairs=Repair.objects.all().order_by('id')
 
         if query:
-            vendor = vendor.filter(
-                Q(name__full_name__icontains=query) | 
-                Q(company_name__icontains=query) |    
-                Q(contact_no__icontains=query) |       
-                Q(email__icontains=query) |
-                Q(address__icontains=query)
+            repairs = repairs.filter(
+                Q(user__full_name__icontains=query) | 
+                Q(device_model__icontains=query) |    
+                Q(payment_status__icontains=query) 
             )
+        if start_date:
+            repairs = repairs.filter(created_at__gte=start_date)
+        if end_date:
+            end_date_obj = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            repairs = repairs.filter(created_at__lte=end_date_obj)
+        if status_filter:
+            repairs = repairs.filter(status=status_filter)
+        if payment_status_filter: 
+            repairs = repairs.filter(payment_status=payment_status_filter)
 
-
-        paginator=Paginator(vendor,10)
-        page_number=request.GET.get('page')
-        page_obj=paginator.get_page(page_number)
-        context={
-            "vendors":page_obj,
-        }
-        return render(request, 'vendor.html',context)
-    except Exception as e:
-        logger.error(f"Error in VendorListView: {e}")
-        messages.error(request, 'An error occurred while loading the Vendor list.')
-        return render(request, '404.html', {"message": "An error occurred."})
-
-@login_required
-def VendorCreateView(request,vendor_id=None):
-    try:
-        if vendor_id:
-            vendor = get_object_or_404(Vendor,id=vendor_id)
-            form =VendorForm(request.POST or None,instance=vendor)
-            action = 'update'
-        else:
-            form = VendorForm(request.POST or None)
-            action = 'create'
-        if request.method == 'POST':
-            if form.is_valid():
-                form.save()
-                messages.success(request,f'Vendor {action.lower()}d successfully!')
-                return redirect('vendor')
-        return render(request, 'vendor_create.html',{'form':form,'action':action})
-    except Exception as e:
-        logger.error(f"Error in VendorCreateView: {e}")
-        messages.error(request,"An error occurred while processing the vendor.")
-        return redirect('404.html', {"message": "An error occurred."})
-    
-@login_required
-def VendorUpdateView(request,pk):
-    try:
-        vendor=get_object_or_404(Vendor,pk=pk)
-        if request.method == 'POST':
-            form=VendorForm(request.POST or None,instance=vendor)
-            if form.is_valid():
-                form.save()
-                messages.success(request,f'Vendor updated successfully!')
-                return redirect('vendor')
-        else:
-            form =VendorForm(instance=vendor)
-            return render(request, 'vendor_update.html',{'form':form,'vendor':vendor})
-    except Exception as e:
-        logger.error(f"Error in VendorUpdateView: {e}")
-        messages.error(request,"An error occurred while processing the vendor.")
-        return redirect('404.html', {"message": "An error occurred."})
-    
-@login_required
-def VendorDeleteView(request,pk):
-    try:
-        vendor=get_object_or_404(Vendor,pk=pk)
-        if request.method == 'POST':
-            vendo_name = vendor.name
-            vendor.delete()
-            messages.success(request,f'Vendor {vendo_name} deleted successfully!')
-            return redirect('vendor')
-        return render(request, 'vendor_delete.html',{'vendor':vendor})
-    except Exception as e:
-        logger.error(f"Error in VendorDeleteView: {e}")
-        messages.error(request,"An error occurred while processing the vendor.")
-        return redirect('404.html', {"message": "An error occurred."})
-
-@login_required
-def PurchaseListView(request):
-    try:
-        query = request.GET.get('q', '')
-        purches=Purchase.objects.all()
-
-        if query:
-            purches = purches.filter(
-                Q(vendor__company_name__icontains=query) |  
-                Q(product__name__icontains=query) |       
-                Q(description__icontains=query)      
-            )
-
-        pagination =Paginator(purches,10)
-        page_number=request.GET.get('page')
-        page_obj=pagination.get_page(page_number)
-        context={
-            'purches':page_obj,
-        }
-        return render(request, 'purchases.html',context)
-    except Exception as e:
-        logger.error(f"Error in PurchaseListView: {e}")
-        messages.error(request, 'An error occurred while loading the purchase list.')
-        return render(request, '404.html', {"message": "An error occurred."})
-
-@login_required
-def PurchaseCreateView(request,pruchase_id=None):
-    try:
-        if pruchase_id:
-            purchase=get_object_or_404(Purchase,id=pruchase_id)
-            form=PurchaseForm(request.POST or None,instance=purchase)
-            action='update'
-        else:
-            form=PurchaseForm(request.POST or None)
-            action='create'
-        if request.method == 'POST':
-            if form.is_valid():
-                form.save()
-                messages.success(request,f'Purchase {action.lower()}d successfully!')
-                return redirect('purchase')
-        return render(request, 'purchases_create.html',{'form':form,'action':action})
-    except Exception as e:
-        logger.error(f"Error in PurchaseCreateView: {e}")
-        messages.error(request, 'An error occurred while processing the purchase.')
-        return render(request, '404.html', {"message": "An error occurred."})
-
-@login_required
-def PurchaseUpdateView(request,pk):
-    try:
-        purchase = get_object_or_404(Purchase,pk=pk)
-        if request.method == 'POST':
-            form= PurchaseForm(request.POST,instance=purchase)
-            if form.is_valid():
-                form.save()
-                messages.success(request,f'Purchase updated successfully!')
-                return redirect('purchase')
-        else:
-            form = PurchaseForm(instance=purchase)
-            return render(request, 'purchases_update.html',{'form':form,'purchase':purchase})
-    except Exception as e:
-        logger.error(request, 'An error occurred while processing the purchase.')
-        messages.error(request, 'An error occurred while processing the purchase.')
-        return render(request, '404.html', {"message": "An error occurred."})
-
-@login_required
-def PurchaseDeleteView(request,pk):
-    try:
-        purchase= get_object_or_404(Purchase,pk=pk)
-        if request.method == 'POST':
-            purchase_name=purchase.product.name
-            purchase.delete()
-            messages.success(request,f'Purchase {purchase_name} deleted successfully!')
-            return redirect('purchase')
-        return render(request, 'purchase_delete.html',{'purchase':purchase})
-    except Exception as e:
-        logger.error(f"Error in PurchaseDeleteView: {e}")
-        messages.error(request, 'An error occurred while processing the purchase.')
-        return render(request, '404.html', {"message": "An error occurred."})
-
-@login_required
-def RepairListView(request):
-    try:
-        query = request.GET.get('q', '')
-        repair=Repair.objects.all().order_by('id')
-
-        if query:
-            repair = repair.filter(
-                Q(product_name__icontains=query) | 
-                Q(device_model__icontains=query) |
-                Q(name__full_name__icontains=query) 
-            )
-
-        pagination=Paginator(repair,10)
+        pagination=Paginator(repairs,10)
         page_number=request.GET.get('page')
         page_obj=pagination.get_page(page_number)
         context={
             'repair':page_obj,
             'query': query,
+            'status_choices': Repair.STATUS_CHOICES,
+            'status_filter': status_filter,
+            'payment_status_choices': PaymentStatusChoices.choices,
+            'payment_status_filter': payment_status_filter, 
+            'start_date': start_date,                
+            'end_date': end_date,
         }
         return render(request, 'repair.html',context)
     except Exception as e:
@@ -595,7 +653,7 @@ def RepairListView(request):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def RepairCreateView(request,repair_id=None):
+def RepairCreate(request,repair_id=None):
     try:
         if repair_id:
             repair=get_object_or_404(Repair,id=repair_id)
@@ -619,7 +677,7 @@ def RepairCreateView(request,repair_id=None):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def RepairUpdateView(request,pk):
+def RepairUpdate(request,pk):
     try:
         repair=get_object_or_404(Repair,pk=pk)
         if request.method =='POST':
@@ -637,11 +695,12 @@ def RepairUpdateView(request,pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def RepairDeleteView(request,pk):
+@admin_required
+def RepairDelete(request,pk):
     try:
         repair=get_object_or_404(Repair,pk=pk)
         if request.method == 'POST':
-            repair_name=repair.name
+            repair_name=repair.product_name
             repair.delete()
             messages.success(request,f'Repair {repair_name} deleted successfully!')
             return redirect('repair')
@@ -652,16 +711,16 @@ def RepairDeleteView(request,pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def RepairDetailListView(request):
+def RepairDetailList(request):
     try:
         query = request.GET.get('q', '')
         repairdetail = RepairDetail.objects.all().order_by('id')
 
         if query:
             repairdetail = repairdetail.filter(
-                Q(repair_order__product_name__icontains=query) |  # You can search by repair_order product_name
-                Q(fixed_description__icontains=query) |  # Search by fixed_description
-                Q(repair_action__icontains=query)  # Search by repair_action
+                Q(repair_order__product_name__icontains=query) | 
+                Q(fixed_description__icontains=query) |  
+                Q(repair_action__icontains=query) 
             )
         pagination = Paginator(repairdetail, 10)
         page_number = request.GET.get('page') 
@@ -676,29 +735,8 @@ def RepairDetailListView(request):
         messages.error(request, 'An error occurred while loading the repair detail list.')
         return render(request, '404.html', {"message": "An error occurred."})
 
-@login_required    
-def RepairDetailCreate(request,repairde_id=None):
-    try:
-        if repairde_id:
-            repairdetail=get_object_or_404(RepairDetail,id=repairde_id)
-            form=RepairDetail(request.POST or None,instance=repairdetail)
-            action='Update'
-        else:
-            form = RepairDetailForm(request.POST or None)
-            action = 'Create'
-            if request.method == 'POST':
-                if form.is_valid():
-                    form.save()
-                    messages.success(request,f'Repair Detail {action.lower()}d successfully!')
-                    return redirect('repair_detail')
-            return render(request, 'repair_detail_create.html',{'form':form,'action':action})
-    except Exception as e:
-        logger.error(f"Error in RepairDetailCreateView: {e}")
-        messages.error(request, 'An error occurred while processing the repair detail.')
-        return render(request, '404.html', {"message": "An error occurred."})
-
 @login_required
-def RepairDetailUpdateView(request,pk):
+def RepairDetailUpdate(request,pk):
     try:
         repairdetail=get_object_or_404(RepairDetail,pk=pk)
         if request.method == 'POST':
@@ -715,13 +753,14 @@ def RepairDetailUpdateView(request,pk):
         messages.error(request, 'An error occurred while processing the repair detail.')
         return render(request, '404.html', {"message": "An error occurred."})
     
-@login_required    
-def RepairDetailDeleteView(request, pk):
+@login_required   
+@admin_required 
+def RepairDetailDelete(request, pk):
     try:
         repairdetail = get_object_or_404(RepairDetail, pk=pk)
 
         if request.method == 'POST':
-            repairdetail_name = repairdetail.repair_order.product_name
+            repairdetail_name = repairdetail.product_name
             repairdetail.delete()
             messages.success(request, f"Repair Detail '{repairdetail_name}' deleted successfully!")
             return redirect('repair_detail')  
@@ -731,52 +770,249 @@ def RepairDetailDeleteView(request, pk):
         logger.error(f"Error in RepairDetailDeleteView: {e}", exc_info=True)
         messages.error(request, 'An error occurred while processing the repair detail. Please try again later.')
         return render(request, '404.html', {"message": "An error occurred."})
-
+    
 @login_required
-def InvoiceListView(request):
+def ExpenseList(request):
     try:
-        invoice=Invoice.objects.all().order_by('id')
-        pagination=Paginator(invoice,10)
-        page_number=request.GET.get('page')
-        page_obj=pagination.get_page(page_number)
-        context={
-            "invoice":page_obj,
-        }
-        return render(request, 'invoice.html',context)
+        query = request.GET.get('search', '')
+        expenses = Expense.objects.filter(description__icontains=query) if query else Expense.objects.all()
+        paginator = Paginator(expenses, 10) 
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        return render(request, 'expense.html', {'expenses': page_obj, 'query': query})
     except Exception as e:
-        logger.error(f"Error in occurred while loading the invoice list.': {e}") 
-        messages.error(request, 'An error occurred while loading the invoice list.')
-        return render(request, '404.html', {"message": "An error occurred."})
+        logger.error(f"Error occurred while fetching expenses: {e}", exc_info=True)
+        return render(request, 'error.html', {'message': 'An error occurred while fetching expenses.'})
+
 
 @login_required
-def InvoiceCreateView(request,invoice_id=None):
+def ExpenseCreate(request,expense_id=None):
     try:
-        if invoice_id:
-            invoice=get_object_or_404(Invoice,id=invoice_id)
-            form=InvoiceForm(request.POST or None,instance=invoice)
+        if expense_id:
+            expense=get_object_or_404(Expense,id=expense_id)
+            form=ExpenseForm(request.POST or None,instance=expense)
             action='update'
         else:
-            form=InvoiceForm(request.POST or None)
+            form=ExpenseForm(request.POST or None)
             action='create'
         if request.method == 'POST':
             if form.is_valid():
                 form.save()
-                messages.success(request, f'Invoice {action.lower()}d successfully!')
-                return redirect('invoice')
-        return render(request, 'invoice_create.html',{'form':form,'action':action})
+                messages.success(request,f'Expense {action.lower()}d successfully!')
+                return redirect('expense')
+            else:
+                messages.error(request, 'Expense Form is invalid.')
+        return render(request, 'expense_create.html',{'form':form,'action':action})
     except Exception as e:
-        logger.error(f"Error in InvoiceCreateView: {e}")
-        messages.error(request, 'An error occurred while processing the invoice.')
+        logger.error(f"Error in Expense Create: {e}")
+        messages.error(request, 'An error occurred while processing the Expense Create.')
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def UserReportListView(request):
+def ExpenseUpdate(request,pk):
+    try:
+        expense=get_object_or_404(Expense,pk=pk)
+        if request.method == 'POST':
+            form=ExpenseForm(request.POST or None,instance=expense)
+            if form.is_valid():
+                form.save()
+                messages.success(request,f'Expense updated successfully!')
+                return redirect('expense')
+        else:
+            form =ExpenseForm(instance=expense)
+            return render(request, 'expense_update.html', {'form': form, 'expenses': expense})
+    except Exception as e:
+        logger.error(f"Error in Expense Update: {e}")
+        messages.error(request, 'An error occurred while processing the expense.')
+        return render(request, '404.html', {"message": "An error occurred."})
+
+@login_required
+def ExpenseDelete(request,pk):
+    try:
+        expense= get_object_or_404(Expense,pk=pk)
+        if request.method == 'POST':
+            expense=expense.category.name
+            expense.delete()
+            messages.success(request,f'Expense {expense} deleted successfully!')
+            return redirect('expense')
+        return render(request, 'expense_delete.html',{'expenses':expense})
+    except Exception as e:
+        logger.error(f"Error in ExpenseDelete: {e}")
+        messages.error(request, 'An error occurred while processing the Expense Delete.')
+        return render(request, '404.html', {"message": "An error occurred Expense Delete."})
+
+@login_required
+def SalesInvoiceList(request):
+    query = request.GET.get('search', '')
+    invoices = SalesInvoice.objects.filter(
+        invoice_number__icontains=query
+        ) if query else SalesInvoice.objects.all()
+
+    paginator = Paginator(invoices, 10) 
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    context = ({            
+            'invoices': page_obj,
+            'query': query
+        })
+    return render(request, 'sales_invoice.html', context)
+    
+@login_required
+def SalesInvoiceUpdate(request, pk):
+    try:
+        salesinvoice = get_object_or_404(SalesInvoice, pk=pk)
+        if request.method == 'POST':
+            form = SalesInvoiceForm(request.POST, instance=salesinvoice)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Sales Invoice updated successfully!')
+                return redirect('salesinvoice')
+        else:
+            form = SalesInvoiceForm(instance=salesinvoice)
+        return render(request, 'sales_invoice_update.html', {'form': form, 'salesinvoice': salesinvoice})
+    except Exception as e:
+        logger.error(f"Error in Sales Invoice: {e}")
+        messages.error(request, 'An error occurred while processing the Sales Invoice.')
+        return render(request, '404.html', {"message": "An error occurred."})
+
+@login_required
+def RepairInvoiceList(request):
+    query = request.GET.get('search', '')
+    repair_invoices = RepairInvoice.objects.filter(
+        invoice_number__icontains=query
+    ) if query else RepairInvoice.objects.all()
+
+    paginator = Paginator(repair_invoices, 10) 
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    context = {
+        'invoices': page_obj,
+        'query': query,
+    }
+    return render(request, 'repair_invoice.html', context)
+
+@login_required
+def RepairInvoiceUpdate(request, pk):
+    try:
+        repair_invoice = get_object_or_404(RepairInvoice, pk=pk)
+
+        if request.method == 'POST':
+            form = RepairInvoiceForm(request.POST, instance=repair_invoice)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Repair Invoice updated successfully!')
+                return redirect('repairinvoice')
+        else:
+            form = RepairInvoiceForm(instance=repair_invoice)
+        return render(request, 'repair_invoice_update.html', {'form': form, 'repair_invoice': repair_invoice})
+    except Exception as e:
+        logger.error(f"Error in Repair Invoice: {e}")
+        messages.error(request, 'An error occurred while processing the Repair Invoice.')
+        return render(request, '404.html', {"message": "An error occurred."})
+
+@login_required
+def ReturnList(request):
+    query = request.GET.get('search', '')
+    if query:
+        returns = Return.objects.filter(
+            Q(invoice__invoice_number__icontains=query) | 
+            Q(product__name__icontains=query) | 
+            Q(customer_name__icontains=query)
+        )
+    else:
+        returns = Return.objects.all()
+
+    paginator = Paginator(returns, 10) 
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'return.html', {
+        'returns': page_obj,
+        'query': query
+    })
+
+
+@login_required
+def ReturnCreate(request,return_id=None):
+    try:
+        if return_id:
+            returns=get_object_or_404(Return,id=return_id)
+            form=ReturnForm(request.POST or None,instance=returns)
+            action='update'
+        else:
+            form=ReturnForm(request.POST or None)
+            action='create'
+        if request.method == 'POST':
+            if form.is_valid():
+                form.save()
+                messages.success(request,f'Return {action.lower()}d successfully!')
+                return redirect('return')
+            else:
+                messages.error(request, 'Return Form is invalid.')
+        return render(request, 'return_create.html',{'form':form,'action':action})
+    except Exception as e:
+        logger.error(f"Error in Return Create: {e}")
+        messages.error(request, 'An error occurred while processing the Return Create.')
+        return render(request, '404.html', {"message": "An error occurred."})
+
+@login_required
+def ReturnUpdate(request,pk):
+    try:
+        returns=get_object_or_404(Return,pk=pk)
+        if request.method == 'POST':
+            form=ReturnForm(request.POST or None,instance=returns)
+            if form.is_valid():
+                form.save()
+                messages.success(request,f'Return updated successfully!')
+                return redirect('return')
+        else:
+            form =ReturnForm(instance=returns)
+            return render(request, 'return_update.html', {'form': form, 'returns': returns})
+    except Exception as e:
+        logger.error(f"Error in Return Update: {e}")
+        messages.error(request, 'An error occurred while processing the Return.')
+        return render(request, '404.html', {"message": "An error occurred."})
+
+
+@login_required
+def ReturnDelete(request, pk):
+    try:
+        returns = get_object_or_404(Return, pk=pk) 
+        invoice_number = returns.invoice.invoice_number
+
+        if request.method == 'POST':
+            returns.delete() 
+            messages.success(request, f'Return {invoice_number} deleted successfully!')
+            return redirect('return')
+
+        return render(request, 'return_delete.html', {'returns': returns})
+
+    except Exception as e:
+        logger.error(f"Error in Return Delete: {e}")
+        messages.error(request, 'An error occurred while processing the Return Delete.')
+        return render(request, '404.html', {"message": "An error occurred Return Delete."})
+
+@login_required
+def UserReportList(request):
     try:
         selected_role = request.GET.get('role', '') 
         users = User.objects.all().order_by('id')
 
         if selected_role:
             users = users.filter(role=selected_role)
+
+        customer_count = users.filter(role='Customer').count()
+        vendor_count = users.filter(role='Vendor').count()
+        active_users = users.filter(is_active=True).count()
+        inactive_users = users.filter(is_active=False).count()
+        role_chart_data = {
+            'labels': ['Customers', 'Vendors'],
+            'data': [customer_count, vendor_count] if customer_count or vendor_count else [0, 0]
+        }
+        status_chart_data = {
+            'labels': ['Active', 'Inactive'],
+            'data': [active_users, inactive_users] if active_users or inactive_users else [0, 0]
+        }
 
         pagination = Paginator(users, 10)
         page_number = request.GET.get('page')
@@ -785,6 +1021,13 @@ def UserReportListView(request):
         context = {
             'page_obj': page_obj,
             'selected_role': selected_role,
+            'customer_count': customer_count,
+            'vendor_count': vendor_count,
+            'active_users': active_users,
+            'inactive_users': inactive_users,
+            'role_chart_data': role_chart_data,
+            'status_chart_data': status_chart_data,
+
         }
         return render(request, 'user_report.html', context)
 
@@ -796,30 +1039,95 @@ def UserReportListView(request):
 @login_required
 def global_search(request):
     query = request.GET.get('q')
-    context = {}
+    context = {'query': query}
 
     try:
         if query:
-            products = Product.objects.filter(Q(name__icontains=query) | Q(description__icontains=query))
-            sales = Sales.objects.filter(Q(name__full_name__icontains=query) | Q(product__name__icontains=query))
-            purchases = Purchase.objects.filter(Q(vendor__company_name__icontains=query) | Q(product__name__icontains=query))
-            repairs = Repair.objects.filter(Q(product_name__icontains=query) | Q(device_model__icontains=query) | Q(name__full_name__icontains=query))
-            vendors = Vendor.objects.filter(Q(company_name__icontains=query) | Q(name__full_name__icontains=query))
-            brands = Brand.objects.filter(Q(name__icontains=query))
-            categories = Category.objects.filter(Q(name__icontains=query))
-            users = User.objects.filter(Q(full_name__icontains=query))
+            products = Product.objects.filter(
+                Q(name__icontains=query) |
+                Q(description__icontains=query) |
+                Q(brand__name__icontains=query) |
+                Q(categories__name__icontains=query)
+            ).distinct()
+            sales = Sales.objects.filter(
+                Q(user__full_name__icontains=query) |
+                Q(product__name__icontains=query) |
+                Q(payment_status__icontains=query) |
+                Q(Imei__icontains=query)
+            ).distinct()
 
-            context = {
+
+            purchases = Purchase.objects.filter(
+                Q(vendor__full_name__icontains=query) |
+                Q(product_name__icontains=query) |
+                Q(brand__name__icontains=query) |
+                Q(Imei__icontains=query)
+            ).distinct()
+
+
+            repairs = Repair.objects.filter(
+                Q(user__full_name__icontains=query) |
+                Q(device_model__icontains=query) |
+                Q(payment_status__icontains=query) |
+                Q(product_name__icontains=query)
+            ).distinct()
+
+            brands = Brand.objects.filter(
+                Q(name__icontains=query)
+            ).distinct()
+
+
+            categories = Category.objects.filter(
+                Q(name__icontains=query)
+            ).distinct()
+
+
+            users = User.objects.filter(
+                Q(full_name__icontains=query) |
+                Q(email__icontains=query) |
+                Q(phone__icontains=query)
+            ).distinct()
+        
+            expenses = Expense.objects.filter(
+                Q(category__name__icontains=query) |
+                Q(description__icontains=query) |
+                Q(payment_status__icontains=query)
+            ).distinct()
+
+            sales_invoices = SalesInvoice.objects.filter(
+                Q(customer_name__icontains=query) |
+                Q(invoice_number__icontains=query) |
+                Q(product_name__icontains=query)
+            ).distinct()
+
+            repair_invoices = RepairInvoice.objects.filter(
+                Q(customer_name__icontains=query) |
+                Q(invoice_number__icontains=query) |
+                Q(product_name__icontains=query)
+            ).distinct()
+
+
+            # Companies search
+            companies = Company.objects.filter(
+                Q(name__icontains=query) |
+                Q(email__icontains=query) |
+                Q(phone_number__icontains=query)
+            ).distinct().order_by('-created_at')
+
+
+            context.update({
                 'products': products,
                 'sales': sales,
                 'purchases': purchases,
                 'repairs': repairs,
-                'vendors': vendors,
                 'brands': brands,
                 'categories': categories,
+                'companies':companies,
                 'users': users,
-                'query': query,
-            }
+                'expenses': expenses,
+                'sales_invoices': sales_invoices,
+                'repair_invoices': repair_invoices,
+            })
     except Exception as e:
         logger.error(f"Error occurred in global_search: {e}", exc_info=True)
         context['error'] = "An error occurred while processing your search. Please try again."
@@ -827,23 +1135,45 @@ def global_search(request):
     return render(request, 'search_results.html', context)
 
 @login_required
-def SalesReportListView(request):
+def SalesReportList(request):
     context = {}
-
     try:
-        sales = Sales.objects.annotate(total_amount=F('quantity') * F('price'))
-
+        sales = Sales.objects.all()
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
-
         if start_date and end_date:
             sales = sales.filter(created_at__date__range=[start_date, end_date])
-
         total_quantity = sales.aggregate(Sum('quantity'))['quantity__sum'] or 0
+        total_sales = sales.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
 
-        context = { 
+        daily_sales = sales.annotate(
+            day=TruncDay('created_at')
+        ).values('day').annotate(
+            daily_total=Sum('total_amount')
+        ).order_by('day')
+        
+        payment_methods = sales.values('payment_method').annotate(
+            total=Sum('total_amount'),
+            count=Count('id')
+        ).order_by('-total')
+
+        context = {
             'sales': sales,
             'total_quantity': total_quantity,
+            'total_sales': total_sales,
+            'daily_sales': json.dumps([
+                {
+                    'day': item['day'].isoformat(),
+                    'daily_total': float(item['daily_total'])
+                } for item in daily_sales
+            ]),
+            'payment_methods': json.dumps([
+                {
+                    'method': item['payment_method'],
+                    'total': float(item['total']),
+                    'count': item['count']
+                } for item in payment_methods
+            ]),
         }
     
     except Exception as e:
@@ -852,16 +1182,62 @@ def SalesReportListView(request):
 
     return render(request, 'sales_report.html', context)
 
+
 @login_required
-def StockReportListView(request):
-    # Get query parameters for filtering
+def sales_excel(request):
+    sales = Sales.objects.all().select_related('product', 'user')
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Sales Report"
+
+    headers = [
+        "ID", "Product", "IMEI", "Customer", "Quantity", "Price", "Discount", "Total Amount",
+        "Paid", "Remaining", "Payment Method", "Payment Status", "Warranty",
+        "Due Date", "Notes", "Created At"
+    ]
+    ws.append(headers)
+
+    for col in ws.iter_cols(min_row=1, max_row=1):
+        for cell in col:
+            cell.font = Font(bold=True)
+
+    for sale in sales:
+        ws.append([
+            sale.id,
+            sale.product.name if sale.product else 'N/A',
+            sale.Imei or '',
+            sale.user.full_name if sale.user else 'N/A', 
+            sale.quantity,
+            sale.price or 0, 
+            sale.discount or 0, 
+            sale.total_amount or 0, 
+            sale.paid_amount or 0, 
+            sale.remaining_amount or 0,
+            sale.payment_method,
+            sale.payment_status,
+            sale.warranty or 0, 
+            sale.due_date.strftime('%Y-%m-%d') if sale.due_date else '',
+            sale.notes or '',
+            localtime(sale.created_at).strftime('%Y-%m-%d %H:%M') if sale.created_at else '',
+        ])
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename=SalesReport.xlsx'
+    
+    wb.save(response)
+    return response
+
+@login_required
+def StockReportList(request):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
     product_name = request.GET.get('product_name')
     low_stock_threshold = request.GET.get('low_stock_threshold')
     total_sales_threshold = request.GET.get('total_sales_threshold')
 
-    # Filter the products based on the provided parameters
     products = Product.objects.all()
 
     if start_date:
@@ -878,14 +1254,14 @@ def StockReportListView(request):
         ).filter(total_sales__gte=total_sales_threshold)
 
     sales_data = Sales.objects.filter(product__in=products).values('product').annotate(total_sales=Sum('quantity'))
-    purchases_data = Purchase.objects.filter(product__in=products).values('product').annotate(total_purchased=Sum('quantity'))
-
+    purchases_data = Purchase.objects.filter(product_name__in=products.values_list('name', flat=True))\
+    .values('product_name').annotate(total_purchased=Sum('quantity'))
     sales_dict = {sale['product']: sale['total_sales'] for sale in sales_data}
-    purchases_dict = {purchase['product']: purchase['total_purchased'] for purchase in purchases_data}
+    purchases_dict = {purchase['product_name']: purchase['total_purchased'] for purchase in purchases_data}
 
     for product in products:
         product.total_sales = sales_dict.get(product.id, 0)
-        product.total_purchased = purchases_dict.get(product.id, 0)
+        product.total_purchased = purchases_dict.get(product.name, 0)
 
     context = {
         'products': products,
@@ -899,204 +1275,62 @@ def StockReportListView(request):
     return render(request, 'stock_report.html', context)
 
 
-def generate_pdf(request):
-    start_date = request.GET.get("start_date")
-    end_date = request.GET.get("end_date")
-    product_name = request.GET.get("product_name")
-    
-    products = Product.objects.all()
-    if product_name:
-        products = products.filter(name__icontains=product_name)
-    
-    sales = Sales.objects.all()
-    purchases = Purchase.objects.all()
-
-    if start_date and end_date:
-        try:
-            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-            if start_date <= end_date:
-                sales = sales.filter(created_at__date__range=[start_date, end_date])  
-                purchases = purchases.filter(created_at__date__range=[start_date, end_date])  
-        except ValueError:
-            pass
-
-    total_sells = sum(sale.quantity for sale in sales if sale.quantity is not None)
-    total_purchase = sum(purchase.quantity for purchase in purchases if purchase.quantity is not None)
-
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="sales_report.pdf"'
-
-    doc = SimpleDocTemplate(response, pagesize=landscape(letter))
-    styles = getSampleStyleSheet()
-    
-    title_style = ParagraphStyle(name="Title", fontSize=18, textColor=colors.darkblue, alignment=1, spaceAfter=15)
-    subtitle_style = ParagraphStyle(name="Subtitle", fontSize=14, textColor=colors.darkred, spaceAfter=10)
-    normal_style = ParagraphStyle(name="Normal", fontSize=12, spaceAfter=8)
-
-    elements = []
-
-    # Header
-    elements.append(Paragraph("Sales and Purchase Report", title_style))
-    elements.append(Spacer(1, 8))
-
-    # Date Range
-    date_range_text = f"Date Range: {start_date} to {end_date}" if start_date and end_date else "Date Range: All Time"
-    elements.append(Paragraph(date_range_text, subtitle_style))
-    elements.append(Spacer(1, 8))
-
-    # Product Filter
-    if product_name:
-        elements.append(Paragraph(f"Product: {product_name}", normal_style))
-        elements.append(Spacer(1, 8))
-
-    # Summary Section
-    summary_data = [
-        ["Total Sales", total_sells],
-        ["Total Purchases", total_purchase],
-    ]
-    summary_table = Table(summary_data, colWidths=[150, 200])
-    summary_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ]))
-    elements.append(summary_table)
-    elements.append(Spacer(1, 15))
-
-    # Sales Table
-    sales_data = [['Sale Date', 'Product', 'Quantity', 'Price']]
-    for sale in sales:
-        sales_data.append([
-            sale.created_at.strftime('%Y-%m-%d'),
-            sale.product.name,
-            sale.quantity,
-            f"${sale.price:.2f}",
-        ])
-
-    sales_table = Table(sales_data, colWidths=[100, 200, 100, 100])
-    sales_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.darkgreen),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ]))
-    elements.append(Paragraph("Sales Data", subtitle_style))
-    elements.append(sales_table)
-    elements.append(Spacer(1, 15))
-
-    # Purchase Table
-    purchase_data = [['Purchase Date', 'Product', 'Vendor', 'Quantity', 'Price', 'Total Value']]
-    for purchase in purchases:
-        purchase_data.append([
-            purchase.created_at.strftime('%Y-%m-%d'),
-            purchase.product.name if purchase.product else "N/A",
-            purchase.vendor.name,
-            purchase.quantity,
-            f"${purchase.price:.2f}",
-            f"${purchase.total_value:.2f}",
-        ])
-
-    purchase_table = Table(purchase_data, colWidths=[100, 200, 150, 100, 100, 100])
-    purchase_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.darkred),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ]))
-    elements.append(Paragraph("Purchase Data", subtitle_style))
-    elements.append(purchase_table)
-    elements.append(Spacer(1, 15))
-
-    # Footer (Page Numbers)
-    def add_footer(canvas, doc):
-        canvas.setFont("Helvetica", 9)
-        canvas.drawString(500, 20, f"Page {doc.page}")
-
-    # Build the PDF
-    doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
-
-    return response
-
 @login_required
-def generate_excel(request):
+def stock_excel(request):
     try:
         start_date = request.GET.get("start_date")
         end_date = request.GET.get("end_date")
         product_name = request.GET.get("product_name")
         
-        # Initialize queryset with select_related to optimize database queries
         products = Product.objects.select_related('categories').all()
         if product_name:
             products = products.filter(name__icontains=product_name)
         
-        # Optimize queries with select_related
         sales = Sales.objects.select_related('product')
-        purchases = Purchase.objects.select_related('product')
+        purchases = Purchase.objects.all() 
 
-        # Improved date validation and parsing
+        parsed_start_date = None
+        parsed_end_date = None
+
         if start_date and end_date:
-            # Validate date format
             date_format = "%Y-%m-%d"
             try:
-                # Parse dates and convert to date objects
                 parsed_start_date = datetime.strptime(start_date, date_format).date()
                 parsed_end_date = datetime.strptime(end_date, date_format).date()
                 
-                # Validate date range
                 if parsed_start_date > parsed_end_date:
                     messages.error(request, "Start date must be before or equal to end date")
                     return redirect('stock_report')
                 
-                # Apply date filters
                 sales = sales.filter(created_at__date__range=[parsed_start_date, parsed_end_date])
                 purchases = purchases.filter(created_at__date__range=[parsed_start_date, parsed_end_date])
                 
             except ValueError:
-                messages.error(request, "Invalid date format. Please use YYYY-MM-DD format (e.g., 2024-01-31)")
+                messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
                 return redirect('stock_report')
 
-        # Create Excel workbook
+        sales_totals = sales.values('product_id').annotate(total_sold=Sum('quantity'))
+        sales_dict = {item['product_id']: item['total_sold'] or 0 for item in sales_totals}
+
+        purchases_totals = purchases.values('product_name').annotate(total_purchased=Sum('quantity'))
+        purchases_dict = {item['product_name']: item['total_purchased'] or 0 for item in purchases_totals}
+
         wb = Workbook()
         ws = wb.active
         ws.title = "Stock Report"
 
-        # Add headers with styling
-        headers = ["ID", "Product Name", "Category", "Stock", "Sold", "Purchased", "Date"]
+        headers = ["ID", "Product Name", "Category", "Stock", "Sold", "Purchased", "Created Date"]
         ws.append(headers)
-        
-        # Style headers
         for cell in ws[1]:
             cell.font = Font(bold=True)
-            cell.fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+            cell.fill = PatternFill(start_color="CCCCCC", fill_type="solid")
 
-        # Add product data
         for product in products:
             try:
-                # Calculate totals
-                total_sold = (
-                    sales.filter(product=product)
-                    .aggregate(total_sold=models.Sum('quantity'))
-                    ['total_sold'] or 0
-                )
+                total_sold = sales_dict.get(product.id, 0)
+                total_purchased = purchases_dict.get(product.name, 0) 
+                created_date = product.created_at.strftime("%Y-%m-%d") if product.created_at else "N/A"
 
-                total_purchased = (
-                    purchases.filter(product=product)
-                    .aggregate(total_purchased=models.Sum('quantity'))
-                    ['total_purchased'] or 0
-                )
-
-                # Add row data
                 ws.append([
                     product.id,
                     product.name,
@@ -1104,57 +1338,57 @@ def generate_excel(request):
                     product.stock,
                     total_sold,
                     total_purchased,
-                    # Assuming product has a created_at field (you can adjust it to the correct field name if needed)
-                    product.created_at.strftime("%Y-%m-%d") if product.created_at else "N/A"
+                    created_date
                 ])
-            except Exception as row_error:
-                logger.error(f"Error processing product {product.id}: {str(row_error)}")
+            except Exception as e:
+                logger.error(f"Error processing product {product.id}: {e}")
                 continue
 
-        # Auto-adjust column widths
-        for column in ws.columns:
+        for col in ws.columns:
             max_length = 0
-            column = list(column)
-            for cell in column:
+            col_letter = col[0].column_letter
+            for cell in col:
                 try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
+                    max_length = max(max_length, len(str(cell.value)))
                 except:
                     pass
-            adjusted_width = (max_length + 2)
-            ws.column_dimensions[column[0].column_letter].width = adjusted_width
+            ws.column_dimensions[col_letter].width = max_length + 2
 
-        # Generate response with current date in filename
-        current_date = datetime.now().strftime("%Y%m%d")
-        filename = f"stock_report_{current_date}.xlsx"
-        
+        filename = f"stock_report_{datetime.now().strftime('%Y%m%d')}.xlsx"
         response = HttpResponse(
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': f'attachment; filename="{filename}"'},
         )
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
         wb.save(response)
         return response
 
     except Exception as e:
-        logger.error(f"Error generating Excel report: {str(e)}")
-        messages.error(request, "An error occurred while generating the Excel report")
+        logger.error(f"Error generating report: {e}")
+        messages.error(request, "Failed to generate Excel report.")
         return redirect('stock_report')
 
-
-
 @login_required
-def RepairReportListView(request):
+def RepairReportList(request):
     try:
         status = request.GET.get('status', '')  
         customer_id = request.GET.get('customer', '')  
-
         repairs = Repair.objects.all().order_by('-created_at')  
-
         if status:
             repairs = repairs.filter(status=status)
         if customer_id:
             repairs = repairs.filter(name_id=customer_id) 
+        status_counts = repairs.values('status').annotate(
+            count=Count('id'),
+            percentage=Count('id') * 100.0 / repairs.count()
+        ).order_by('-count')
+        daily_repairs = repairs.annotate(
+            day=TruncDay('created_at')
+        ).values('day').annotate(
+            count=Count('id')
+        ).order_by('day')
+
+        status_data = list(status_counts)
+        daily_data = list(daily_repairs)
 
         paginator = Paginator(repairs, 10)
         page_number = request.GET.get('page')
@@ -1163,7 +1397,7 @@ def RepairReportListView(request):
             repairs_page = paginator.get_page(page_number)
         except Exception as e:
             logger.warning(f"Pagination error: {e}")
-            repairs_page = paginator.get_page(1)  # Default to first page if error occurs
+            repairs_page = paginator.get_page(1)  
 
         customers = User.objects.filter(role="Customer").order_by('full_name')
 
@@ -1172,17 +1406,17 @@ def RepairReportListView(request):
             'customers': customers,
             'selected_status': status,
             'selected_customer': customer_id,
+            'status_data': json.dumps(status_data),
+            'daily_data': json.dumps(daily_data, default=str),
         }
-
         logger.info("Repair report generated successfully.")
-
     except Exception as e:
         logger.error(f"Error in RepairReportListView: {e}", exc_info=True)
         context = {"error": "An error occurred while generating the repair report."}
     return render(request, 'repair_report.html', context)
 
 @login_required
-def RepairDetailReportListView(request):
+def RepairDetailReportList(request):
     try:
         repair_order_id = request.GET.get('repair_order', '')  
         repair_action = request.GET.get('repair_action', '')  
@@ -1221,27 +1455,290 @@ def RepairDetailReportListView(request):
     return render(request, 'repair_detail_report.html', context)
 
 @login_required
-@csrf_exempt
-def get_product_price(request):
+def generate_sales_invoice(request, pk):
+    invoice = get_object_or_404(SalesInvoice, pk=pk)
+    company = Company.objects.first()
+    context={
+        'invoice': invoice,
+        'company': company
+        }
+    return render(request, 'salesinvoiceprint.html',context)
+
+@login_required
+def generate_repair_invoice(request, pk):
+    invoice = get_object_or_404(RepairInvoice, pk=pk)
+    company = Company.objects.first()  
+    
+    context={
+        'invoice': invoice,
+        'company': company
+        }
+    return render(request, 'repairinvoiceprint.html',context)
+
+
+def stock_ledger_list(request):
+    query = request.GET.get('query', '')
+    
+    ledger_entries = StockLedger.objects.select_related('product', 'created_by').order_by('-transaction_date')
+    
+    if query:
+        ledger_entries = ledger_entries.filter(
+            Q(product__name__icontains=query) |
+            Q(transaction_type__icontains=query) |
+            Q(notes__icontains=query)
+        )
+    
+    paginator = Paginator(ledger_entries, 25)  # Show 25 entries per page
+    page_number = request.GET.get('page')
+    stock_ledger = paginator.get_page(page_number)
+    
+    context = {
+        'stock_ledger': stock_ledger,
+        'query': query,
+    }
+    return render(request, 'stock_ledger.html', context)
+
+def stock_ledger_create(request):
+    if request.method == 'POST':
+        form = StockLedgerForm(request.POST, user=request.user)
+        if form.is_valid():
+            entry = form.save(commit=False)
+            entry.created_by = request.user
+            entry.save()
+            messages.success(request, 'Stock ledger entry created successfully!')
+            return redirect('stock_ledger')
+    else:
+        form = StockLedgerForm(user=request.user)
+    
+    context = {'form': form}
+    return render(request, 'stock_ledger_form.html', context)
+
+def stock_ledger_update(request, pk):
+    entry = get_object_or_404(StockLedger, pk=pk)
+    
+    if request.method == 'POST':
+        form = StockLedgerForm(request.POST, instance=entry, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Stock ledger entry updated successfully!')
+            return redirect('stock_ledger')
+    else:
+        form = StockLedgerForm(instance=entry, user=request.user)
+    
+    context = {'form': form, 'entry': entry}
+    return render(request, 'stock_ledger_form.html', context)
+
+def stock_ledger_delete(request, pk):
+    entry = get_object_or_404(StockLedger, pk=pk)
+    
+    if request.method == 'POST':
+        entry.delete()
+        messages.success(request, 'Stock ledger entry deleted successfully!')
+        return redirect('stock_ledger')
+    
+    context = {'entry': entry}
+    return render(request, 'stock_ledger_confirm_delete.html', context)
+
+
+def daybook_list(request):
+    query = request.GET.get('query', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    transaction_type = request.GET.get('transaction_type', '')
+    
+    entries = Daybook.objects.select_related('created_by').order_by('-date')
+    
+    if query:
+        entries = entries.filter(
+            Q(description__icontains=query) |
+            Q(reference_id__icontains=query) |
+            Q(reference_model__icontains=query)
+        )
+    
+    if date_from:
+        entries = entries.filter(date__gte=date_from)
+    
+    if date_to:
+        entries = entries.filter(date__lte=date_to)
+    
+    if transaction_type:
+        entries = entries.filter(transaction_type=transaction_type)
+    
+    paginator = Paginator(entries, 25)  # Show 25 entries per page
+    page_number = request.GET.get('page')
+    daybook = paginator.get_page(page_number)
+    
+    context = {
+        'daybook': daybook,
+        'query': query,
+        'date_from': date_from,
+        'date_to': date_to,
+        'transaction_type': transaction_type,
+        'transaction_types': Daybook.TRANSACTION_TYPES,
+    }
+    return render(request, 'daybook_list.html', context)
+
+def daybook_create(request):
+    if request.method == 'POST':
+        form = DaybookForm(request.POST, user=request.user)
+        if form.is_valid():
+            entry = form.save(commit=False)
+            entry.created_by = request.user
+            entry.save()
+            messages.success(request, 'Daybook entry created successfully!')
+            return redirect('daybook_list')
+    else:
+        form = DaybookForm(user=request.user)
+    
+    context = {'form': form}
+    return render(request, 'daybook_form.html', context)
+
+def daybook_update(request, pk):
+    entry = get_object_or_404(Daybook, pk=pk)
+    
+    if request.method == 'POST':
+        form = DaybookForm(request.POST, instance=entry, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Daybook entry updated successfully!')
+            return redirect('daybook_list')
+    else:
+        form = DaybookForm(instance=entry, user=request.user)
+    
+    context = {'form': form, 'entry': entry}
+    return render(request, 'daybook_form.html', context)
+
+def daybook_delete(request, pk):
+    entry = get_object_or_404(Daybook, pk=pk)
+    
+    if request.method == 'POST':
+        entry.delete()
+        messages.success(request, 'Daybook entry deleted successfully!')
+        return redirect('daybook_list')
+    
+    context = {'entry': entry}
+    return render(request, 'daybook_confirm_delete.html', context)
+
+
+@login_required
+def cashbook_list(request):
     try:
-        product_id = request.GET.get("product_id")
-
-        if not product_id:
-            logger.warning("Invalid request: Missing product_id")
-            return JsonResponse({"error": "Invalid request"}, status=400)
-
+        query = request.GET.get('query', '')
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        entry_type = request.GET.get('entry_type', '')
+        is_bank = request.GET.get('is_bank', '')
+        
+        entries = Cashbook.objects.select_related('recorded_by').order_by('-transaction_date', '-date')
+        
+        if query:
+            entries = entries.filter(
+                Q(description__icontains=query) |
+                Q(reference_id__icontains=query) |
+                Q(reference_model__icontains=query) |
+                Q(cheque_number__icontains=query))
+        
+        if date_from:
+            entries = entries.filter(transaction_date__gte=date_from)
+        
+        if date_to:
+            entries = entries.filter(transaction_date__lte=date_to)
+        
+        if entry_type:
+            entries = entries.filter(entry_type=entry_type)
+        
+        if is_bank in ['true', 'false']:
+            entries = entries.filter(is_bank=(is_bank == 'true'))
+        
+        paginator = Paginator(entries, 25)
+        page_number = request.GET.get('page')
+        
         try:
-            product = Product.objects.get(id=product_id)
-            logger.info(f"Product found: {product.name} (ID: {product_id}) - Price: {product.price}")
-            return JsonResponse({"price": product.price})
-
-        except Product.DoesNotExist:
-            logger.error(f"Product with ID {product_id} not found")
-            return JsonResponse({"error": "Product not found"}, status=404)
-
+            cashbook = paginator.page(page_number)
+        except PageNotAnInteger:
+            cashbook = paginator.page(1)
+        except EmptyPage:
+            cashbook = paginator.page(paginator.num_pages)
+        
+        context = {
+            'cashbook': cashbook,
+            'query': query,
+            'date_from': date_from,
+            'date_to': date_to,
+            'entry_type': entry_type,
+            'is_bank': is_bank,
+            'entry_types': Cashbook.ENTRY_TYPES,
+            'source_types': Cashbook.SOURCE_TYPES,
+        }
+        return render(request, 'cashbook_list.html', context)
+    
     except Exception as e:
-        logger.critical(f"Unexpected error in get_product_price: {e}", exc_info=True)
-        return JsonResponse({"error": "An internal error occurred"}, status=500)
+        messages.error(request, f"An error occurred while loading cashbook entries: {str(e)}")
+        return render(request, 'cashbook_list.html', {'cashbook': []})
 
+@login_required
+def cashbook_create(request):
+    try:
+        if request.method == 'POST':
+            form = CashbookForm(request.POST, user=request.user)
+            if form.is_valid():
+                entry = form.save(commit=False)
+                entry.recorded_by = request.user
+                entry.save()
+                messages.success(request, 'Cashbook entry created successfully!')
+                return redirect('cashbook_list')
+        else:
+            form = CashbookForm(user=request.user)
+        
+        context = {'form': form}
+        return render(request, 'cashbook_form.html', context)
+    
+    except ValidationError as e:
+        messages.error(request, f"Validation error: {str(e)}")
+        return redirect('cashbook_create')
+    except Exception as e:
+        messages.error(request, f"An error occurred while creating cashbook entry: {str(e)}")
+        return render(request, 'cashbook_form.html', {'form': CashbookForm(user=request.user)})
 
+@login_required
+def cashbook_update(request, pk):
+    try:
+        entry = get_object_or_404(Cashbook, pk=pk)
+        
+        if request.method == 'POST':
+            form = CashbookForm(request.POST, instance=entry, user=request.user)
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Cashbook entry updated successfully!')
+                return redirect('cashbook_list')
+        else:
+            form = CashbookForm(instance=entry, user=request.user)
+        
+        context = {'form': form, 'entry': entry}
+        return render(request, 'cashbook_form.html', context)
+    
+    except ValidationError as e:
+        messages.error(request, f"Validation error: {str(e)}")
+        return redirect('cashbook_update', pk=pk)
+    except Exception as e:
+        messages.error(request, f"An error occurred while updating cashbook entry: {str(e)}")
+        return redirect('cashbook_list')
 
+@login_required
+def cashbook_delete(request, pk):
+    try:
+        entry = get_object_or_404(Cashbook, pk=pk)
+        
+        if request.method == 'POST':
+            entry_description = str(entry)
+            entry.delete()
+            messages.success(request, f'Cashbook entry "{entry_description}" deleted successfully!')
+            return redirect('cashbook_list')
+        
+        context = {'entry': entry}
+        return render(request, 'cashbook_confirm_delete.html', context)
+    
+    except Exception as e:
+        messages.error(request, f"An error occurred while deleting cashbook entry: {str(e)}")
+        return redirect('cashbook_list')
+            

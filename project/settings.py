@@ -29,6 +29,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://1205-113-199-214-5.ngrok-free.app",
+]
 
 # Application definition
 
@@ -39,12 +42,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'user',
-    'StockGarden',
-    'debug_toolbar',
-    'import_export',
-    'login_history',
-    'django_admin_logs',
+    'debug_toolbar',       
+    'import_export',       
+    'login_history',      
+    'django_admin_logs',   
+    'user.apps.UserConfig',                
+    'StockGarden.apps.StockgardenConfig', 
 
 ]
 
@@ -72,6 +75,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'StockGarden.context_processors.company_info',
             ],
         },
     },
@@ -79,6 +83,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'project.wsgi.application'
 
+AUTH_USER_MODEL = 'user.User'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -89,17 +94,20 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
+AUTHENTICATION_BACKENDS = [
+    'user.backends.RoleBasedModelBackend',
+    'django.contrib.auth.backends.ModelBackend',  # fallback
+]
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'stockgardendb',          
-#         'USER': 'root',           
-#         'PASSWORD': '',            
-#         'HOST': 'localhost',        
-#         'PORT': '3306',            
+#         'NAME': 'barunmo1_StockGarden',
+#         'USER': 'barunmo1_barunmobile',
+#         'PASSWORD': 'BarunMobile',
+#         'HOST': '192.250.235.75',
+#         'PORT': '3306',
 #         'OPTIONS': {
-#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES,STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'",
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'",
 #         },
 #     }
 # }
@@ -128,7 +136,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kathmandu'
 
 USE_I18N = True
 

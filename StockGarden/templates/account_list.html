@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h1>Accounts</h1>
+    {% if messages %}
+        <div class="alert alert-info">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <a href="{% url 'account_create' %}" class="btn btn-primary mb-3">Create New Account</a>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Parent Account</th>
+                <th>Active</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for account in accounts %}
+                <tr>
+                    <td>{{ account.code }}</td>
+                    <td><a href="{% url 'account_detail' account.pk %}">{{ account.name }}</a></td>
+                    <td>{{ account.get_account_type_display }}</td>
+                    <td>{{ account.parent_account.name|default:"None" }}</td>
+                    <td>{{ account.is_active|yesno:"Yes,No" }}</td>
+                    <td>
+                        <a href="{% url 'account_update' account.pk %}" class="btn btn-sm btn-warning">Edit</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6">No accounts found.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

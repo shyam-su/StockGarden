@@ -12,5 +12,9 @@ urlpatterns = [
     path('user/<int:pk>/update/', UserUpdateView,name='user_update'),
     path('user/<int:pk>/delete/', UserDeleteView,name='user_delete'),
 
+    
+    path('vendor/', vendor_dashboard, name='vendor'),
+    path('seller/', seller_dashboard, name='seller'),
+    path('customer/', customer_dashboard, name='customer')
 ]
 

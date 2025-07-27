@@ -25,11 +25,11 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.name.id_for_label }}">Name</label>
-                                {{ form.name }}
-                                {% if form.name.errors %}
+                                <label for="{{ form.user.id_for_label }}">Customer Name</label>
+                                {{ form.user }}
+                                {% if form.user.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {{ form.name.errors }}
+                                        {{ form.user.errors }}
                                     </div>
                                 {% endif %}
                             </div>
@@ -39,6 +39,27 @@
                                 {% if form.product.errors %}
                                     <div class="invalid-feedback d-block">
                                         {{ form.product.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.Imei.id_for_label }}">IMEI</label>
+                                {{ form.Imei }}
+                                {% if form.Imei.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.Imei.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.warranty.id_for_label }}">Warranty (Months)</label>
+                                {{ form.warranty }}
+                                {% if form.warranty.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.warranty.errors }}
                                     </div>
                                 {% endif %}
                             </div>
@@ -67,21 +88,54 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.contact_no.id_for_label }}">Contact Number</label>
-                                {{ form.contact_no }}
-                                {% if form.contact_no.errors %}
+                                <label for="{{ form.discount.id_for_label }}">Discount</label>
+                                {{ form.discount }}
+                                {% if form.discount.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {{ form.contact_no.errors }}
+                                        {{ form.discount.errors }}
                                     </div>
                                 {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.expiring_date.id_for_label }}">Expiring Date</label>
-                                {{ form.expiring_date }}
-                                <small class="form-text text-muted">Format: YYYY-MM-DD</small>
-                                {% if form.expiring_date.errors %}
+                                <label for="{{ form.payment_method.id_for_label }}">Payment Method</label>
+                                {{ form.payment_method }}
+                                {% if form.payment_method.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {{ form.expiring_date.errors }}
+                                        {{ form.payment_method.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Modified section - removed total_amount and adjusted layout -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.paid_amount.id_for_label }}">Paid Amount</label>
+                                {{ form.paid_amount }}
+                                {% if form.paid_amount.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.paid_amount.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.due_date.id_for_label }}">Due Date</label>
+                                {{ form.due_date }}
+                                {% if form.due_date.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.due_date.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <label for="{{ form.notes.id_for_label }}">Notes</label>
+                                {{ form.notes }}
+                                {% if form.notes.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.notes.errors }}
                                     </div>
                                 {% endif %}
                             </div>
@@ -93,6 +147,7 @@
                                 <a href="{% url 'sales' %}" class="btn btn-secondary">Cancel</a>
                             </div>
                         </div>
+
                     </form>
                 </div>
             </div>

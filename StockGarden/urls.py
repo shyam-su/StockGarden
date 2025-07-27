@@ -7,68 +7,88 @@ from .views import *
 urlpatterns = [
     path('', home, name='home'),
     
-    path('brand/', BrandListView, name='brand'),
-    path('brand/create/', BrandCreateView, name='brand_create'),
-    path('brand/<int:pk>/update/', BrandUpdateView,name='brand_update'),
-    path('brand/<int:pk>/delete/', BrandDeleteView,name='brand_delete'),
+    path('brand/', BrandList, name='brand'),
+    path('brand/create/', BrandCreate, name='brand_create'),
+    path('brand/<int:pk>/update/', BrandUpdate,name='brand_update'),
+    path('brand/<int:pk>/delete/', BrandDelete,name='brand_delete'),
     
-    path('category/', CategoryListView, name='category'),
-    path('category/create/', CategoryCreateView,name='category_create'),
-    path('category/<int:pk>/update/', CategoryUpdateView,name='category_update'),
-    path('category/<int:pk>/delete/', CategoryDeleteView,name='category_delete'),
+    path('category/', CategoryList, name='category'),
+    path('category/create/', CategoryCreate,name='category_create'),
+    path('category/<int:pk>/update/', CategoryUpdate,name='category_update'),
+    path('category/<int:pk>/delete/', CategoryDelete,name='category_delete'),
     
-    path('product/', ProductListView, name='product'),
-    path('product/create/', ProductCreateView,name='product_create'),
-    path('product/<int:pk>/update/', ProductUpdateView,name='product_update'),
-    path('product/<int:pk>/delete/', ProductDeleteView,name='product_delete'),
+    path('product/', ProductList, name='product'),
+    path('product/<int:pk>/update/', ProductUpdate,name='product_update'),
+    path('product/<int:pk>/delete/', ProductDelete,name='product_delete'),
     
-    path('sales/', SalesListView, name='sales'),
-    path('sales/create/', SalesCreateView,name='sales_create'),
-    path('sales/<int:pk>/update/', SalesUpdateView,name='sales_update'),
-    path('sales/<int:pk>/delete/', SalesDeleteView,name='sales_delete'),
+    path('sales/', SalesList, name='sales'),
+    path('sales/create/', SalesCreate,name='sales_create'),
+    path('sales/<int:pk>/update/', SalesUpdate,name='sales_update'),
+    path('sales/<int:pk>/delete/', SalesDelete,name='sales_delete'),
     
-    path('vendor/', VendorListView, name='vendor'),
-    path('vendor/create/', VendorCreateView,name='vendor_create'),
-    path('vendor/<int:pk>/update/', VendorUpdateView,name='vendor_update'),
-    path('vendor/<int:pk>/delete/', VendorDeleteView,name='vendor_delete'),
     
-    path('purchase/', PurchaseListView, name='purchase'),
-    path('purchase/create/', PurchaseCreateView,name='purchase_create'),
-    path('purchase/<int:pk>/update/', PurchaseUpdateView,name='purchase_update'),
-    path('purchase/<int:pk>/delete/', PurchaseDeleteView,name='purchase_delete'),
+    path('purchase/', PurchaseList, name='purchase'),
+    path('purchase/create/', PurchaseCreate,name='purchase_create'),
+    path('purchase/<int:pk>/update/', PurchaseUpdate,name='purchase_update'),
+    path('purchase/<int:pk>/delete/', PurchaseDelete,name='purchase_delete'),
     
-    path('repair/', RepairListView, name='repair'),
-    path('repair/create/', RepairCreateView,name='repair_create'),
-    path('repair/<int:pk>/update/', RepairUpdateView,name='repair_update'),
-    path('repair/<int:pk>/delete/', RepairDeleteView,name='repair_delete'),
+    path('repair/', RepairList, name='repair'),
+    path('repair/create/', RepairCreate,name='repair_create'),
+    path('repair/<int:pk>/update/', RepairUpdate,name='repair_update'),
+    path('repair/<int:pk>/delete/', RepairDelete,name='repair_delete'),
     
-    path('repair_detail/', RepairDetailListView, name='repair_detail'),
-    path('repair_detail/create/', RepairDetailCreate,name='repair_detail_create'),
-    path('repair_detail/<int:pk>/update/', RepairDetailUpdateView,name='repair_detail_update'),
-    path('repair_detail/<int:pk>/delete/', RepairDetailDeleteView,name='repair_detail_delete'),
+    path('repair_detail/', RepairDetailList, name='repair_detail'),
+    path('repair_detail/<int:pk>/update/', RepairDetailUpdate,name='repair_detail_update'),
+    path('repair_detail/<int:pk>/delete/', RepairDetailDelete,name='repair_detail_delete'),
     
-    path('invoice/', InvoiceListView, name='invoice'),
-    path('invoice/create/', InvoiceCreateView,name='invoice_create'),
+    path('expense/', ExpenseList, name='expense'),
+    path('expense/create/', ExpenseCreate,name='expense_create'),
+    path('expense/<int:pk>/update/', ExpenseUpdate,name='expense_update'),
+    path('expense/<int:pk>/delete/', ExpenseDelete,name='expense_delete'),
     
-    path('user_report/', UserReportListView, name='user_report'),
-    path('sales_report/', SalesReportListView, name='sales_report'),
-    path('repair_report/', RepairReportListView, name='repair_report'),
-    path('stock_report/', StockReportListView, name='stock_report'),
-    path('generate_pdf/', generate_pdf, name='generate_pdf'),
-    path('generate_excel/', generate_excel, name='generate_excel'),
+    path('stock_ledger/', stock_ledger_list, name='stock_ledger'),
+    path('stock_ledger/create/', stock_ledger_create, name='stock_ledger_create'),
+    path('stock_ledger/update/<int:pk>/', stock_ledger_update, name='stock_ledger_update'),
+    path('stock_ledger/delete/<int:pk>/', stock_ledger_delete, name='stock_ledger_delete'),
+    
+    path('salesinvoice/', SalesInvoiceList, name='salesinvoice'),
+    path('salesinvoice/<int:pk>/update/', SalesInvoiceUpdate,name='salesinvoice_update'),
+    
+    path('repairinvoice/', RepairInvoiceList, name='repairinvoice'),
+    path('repairinvoice/<int:pk>/update/', RepairInvoiceUpdate,name='repairinvoice_update'),
+    
+    path('return/', ReturnList, name='return'),
+    path('return/create/', ReturnCreate,name='return_create'),
+    path('return/<int:pk>/update/', ReturnUpdate,name='return_update'),
+    path('return/<int:pk>/delete/', ReturnDelete,name='return_delete'),
 
+    path('salesinvoiceprint/<int:pk>/', generate_sales_invoice, name='salesinvoiceprint'),
+    path('repairinvoiceprint/<int:pk>/', generate_repair_invoice, name='repairinvoiceprint'),
+
+    path('user_report/', UserReportList, name='user_report'),
+    path('sales_report/', SalesReportList, name='sales_report'),
+    path('repair_report/', RepairReportList, name='repair_report'),
+    path('repair_detail_report/', RepairDetailReportList, name='repair_detail_report'),
+        
     
+    path('daybook/', daybook_list, name='daybook_list'),
+    path('daybook/create/', daybook_create, name='daybook_create'),
+    path('daybook/update/<int:pk>/', daybook_update, name='daybook_update'),
+    path('daybook/delete/<int:pk>/', daybook_delete, name='daybook_delete'),
+    
+    path('cashbook/', cashbook_list, name='cashbook_list'),
+    path('cashbook/create/', cashbook_create, name='cashbook_create'),
+    path('cashbook/update/<int:pk>/', cashbook_update, name='cashbook_update'),
+    path('cashbook/delete/<int:pk>/', cashbook_delete, name='cashbook_delete'),
+    
+    path('stock_report/', StockReportList, name='stock_report'),
+    path('stock_excel/', stock_excel, name='stock_excel'),
+    path('sales_excel/', sales_excel, name='sales_excel'),
     path('search/', global_search, name='global_search'),
 
-    path('sales-report/', SalesReportListView, name='sales_report'),
-
-    path('repair_report/', RepairReportListView, name='repair_report'),
-
-    path('repair_detail_report/', RepairDetailReportListView, name='repair_detail_report'),
-    path('chart-data/', get_chart_data, name='chart_data'),
 
 
-    path("get-product-price/", get_product_price, name="get_product_price"),
+
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

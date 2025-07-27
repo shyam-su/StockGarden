@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h1>Create Ledger Entry</h1>
+    {% if messages %}
+        <div class="alert alert-info">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="date" class="form-label">Date</label>
+            <input type="date" class="form-control" id="date" name="date" required>
+        </div>
+        <div class="mb-3">
+            <label for="account" class="form-label">Account</label>
+            <select class="form-select" id="account" name="account" required>
+                {% for account in accounts %}
+                    <option value="{{ account.pk }}" {% if account.pk == request.GET.account|add:0 %}selected{% endif %}>{{ account.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="debit_amount" class="form-label">Debit Amount</label>
+            <input type="number" class="form-control" id="debit_amount" name="debit_amount" step="0.01" value="0.00">
+        </div>
+        <div class="mb-3">
+            <label for="credit_amount" class="form-label">Credit Amount</label>
+            <input type="number" class="form-control" id="credit_amount" name="credit_amount" step="0.01" value="0.00">
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" required></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="transaction_type" class="form-label">Transaction Type</label>
+            <input type="text" class="form-control" id="transaction_type" name="transaction_type" required>
+        </div>
+        <div class="mb-3">
+            <label for="transaction_id" class="form-label">Transaction ID</label>
+            <input type="number" class="form-control" id="transaction_id" name="transaction_id" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a href="{% url 'account_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

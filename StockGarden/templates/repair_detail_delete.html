@@ -8,7 +8,7 @@
                 <div class="alert alert-success text-center" role="alert">
                     <i class="fas fa-check-circle text-success fa-2x"></i>
                     <h5 class="mt-3"><strong>Success!</strong></h5>
-                    <p>The Repair Detail '<strong>{{ repairdetail.name }}</strong>' has been successfully deleted.</p>
+                    <p>The Repair Detail '<strong>{{ repairdetail.product_name }}</strong>' has been successfully deleted.</p>
                     <a href="{% url 'repair_detail' %}" class="btn btn-primary mt-3">
                         <i class="fas fa-arrow-left"></i> Back to Repair Detail List
                     </a>
@@ -21,7 +21,7 @@
                     <div class="card-body">
                         <p class="mb-4">
                             Are you sure you want to delete the Repair Detail 
-                            <strong class="text-danger">{{ repairdetail.repair_order.product_name }}</strong>?
+                            <strong class="text-danger">{{ repairdetail.product_name }}</strong>?
                         </p>
                         <form method="POST" class="d-flex justify-content-between">
                             {% csrf_token %}

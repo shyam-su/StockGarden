@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Product Returns</h5>
+                    <a href="{% url 'return_create' %}" class="btn btn-primary btn-sm">Add New Return</a>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="" class="mb-3 d-flex justify-content-end">
+                        <div class="input-group w-auto">
+                            <input type="text" name="search" class="form-control" placeholder="Search returns..." value="{{ query }}">
+                            <button type="submit" class="btn btn-primary ms-1">Search</button>
+                        </div>
+                    </form>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="table-primary text-center">
+                                <tr>
+                                    <th scope="col">ID</th>
+                                    <th scope="col">Invoice</th>
+                                    <th scope="col">Product</th>
+                                    <th scope="col">Qty</th>
+                                    <th scope="col">Total</th>
+                                    <th scope="col">Refund</th>
+                                    <th scope="col">Return Date</th>
+                                    <th scope="col">Reason</th>
+                                    <th scope="col">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="align-middle">
+                                {% for return_item in returns %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ return_item.invoice.invoice_number }}</td>
+                                    <td>{{ return_item.product.name }}</td>
+                                    <td>{{ return_item.quantity_returned }}</td>
+                                    <td>{{ return_item.total_amount }}</td>
+                                    <td>{{ return_item.refund_amount }}</td>
+                                    <td>{{ return_item.return_date|date:"M d, Y" }}</td>
+                                    <td>{{ return_item.reason|default:"N/A" }}</td>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center">
+                                            <a href="{% url 'return_update' pk=return_item.id %}" class="btn btn-sm btn-success me-1">Update</a>
+                                            <a href="{% url 'return_delete' pk=return_item.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="9" class="text-center">No returns found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if returns.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1" aria-label="First">&laquo;&laquo;</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ returns.previous_page_number }}" aria-label="Previous">&laquo;</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="First">&laquo;&laquo;</a>
+                        </li>
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Previous">&laquo;</a>
+                        </li>
+                        {% endif %}
+
+                        {% for num in returns.paginator.page_range %}
+                            <li class="page-item {% if returns.number == num %} active {% endif %}">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endfor %}
+
+                        {% if returns.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ returns.next_page_number }}" aria-label="Next">&raquo;</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ returns.paginator.num_pages }}" aria-label="Last">&raquo;&raquo;</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Next">&raquo;</a>
+                        </li>
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" aria-label="Last">&raquo;&raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -6,48 +6,113 @@
         <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Update Repair Detail</h5>
+                    <h5 class="mb-0">Edit Repair Detail</h5>
                 </div>
                 <div class="card-body">
-                    <form method="post">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="POST" enctype="multipart/form-data" id="repairDetailForm">
                         {% csrf_token %}
-                        
-                        <!-- First Row -->
+
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="id_repair_order">Repair Order</label>
-                                    {{ form.repair_order }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.repair_order.id_for_label }}">Repair Order</label>
+                                {{ form.repair_order }}
+                                {% if form.repair_order.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.repair_order.errors }}
+                                    </div>
+                                {% endif %}
                             </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="id_repair_cost">Repair Cost</label>
-                                    {{ form.repair_cost }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.product_name.id_for_label }}">Product Name</label>
+                                {{ form.product_name }}
+                                {% if form.product_name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.product_name.errors }}
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
-                        
-                        <!-- Second Row -->
+
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="id_fixed_description">Fixed Description</label>
-                                    {{ form.fixed_description }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.device_model.id_for_label }}">Device Model</label>
+                                {{ form.device_model }}
+                                {% if form.device_model.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.device_model.errors }}
+                                    </div>
+                                {% endif %}
                             </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="id_repair_action">Repair Action</label>
-                                    {{ form.repair_action }}
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.repair_cost.id_for_label }}">Repair Cost</label>
+                                {{ form.repair_cost }}
+                                {% if form.repair_cost.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.repair_cost.errors }}
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
-                        
-                        <!-- Submit Button -->
-                        <div class="form-group text-right">
-                            <button type="submit" class="btn btn-success">Update Repair Detail</button>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.repair_detail_cost.id_for_label }}">Repair Detail Cost</label>
+                                {{ form.repair_detail_cost }}
+                                {% if form.repair_detail_cost.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.repair_detail_cost.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.issue_description.id_for_label }}">Issue Description</label>
+                                {{ form.issue_description }}
+                                {% if form.issue_description.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.issue_description.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
                         </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.fixed_description.id_for_label }}">Fixed Description</label>
+                                {{ form.fixed_description }}
+                                {% if form.fixed_description.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.fixed_description.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.repair_action.id_for_label }}">Repair Action</label>
+                                {{ form.repair_action }}
+                                {% if form.repair_action.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.repair_action.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                                <a href="{% url 'sales' %}" class="btn btn-secondary">Cancel</a>
+                            </div>
+                        </div>
+
                     </form>
                 </div>
             </div>

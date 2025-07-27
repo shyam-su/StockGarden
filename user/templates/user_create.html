@@ -11,61 +11,120 @@
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
-                        
-                        <!-- First Row -->
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="id_full_name">Full Name</label>
                                     {{ form.full_name }}
+                                    {% if form.full_name.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.full_name.errors %}
+                                                <small>{{ error }}</small><br>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="id_address">Address</label>
                                     {{ form.address }}
+                                    {% if form.address.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.address.errors %}
+                                                <small>{{ error }}</small><br>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Second Row -->
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="id_phone">Phone</label>
                                     {{ form.phone }}
+                                    {% if form.phone.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.phone.errors %}
+                                                <small>{{ error }}</small><br>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="id_email">Email</label>
                                     {{ form.email }}
+                                    {% if form.email.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.email.errors %}
+                                                <small>{{ error }}</small><br>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Third Row -->
+
                         <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="id_company_name">Company Name</label>
+                                    {{ form.company_name }}
+                                    {% if form.company_name.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.company_name.errors %}
+                                                <small>{{ error }}</small><br>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="id_role">Role</label>
                                     {{ form.role }}
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="id_is_active">Active Status</label>
-                                    <div class="form-check">
-                                        {{ form.is_active }}
-                                        <label class="form-check-label" for="id_is_active">
-                                            Active
-                                        </label>
-                                    </div>
+                                    {% if form.role.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.role.errors %}
+                                                <small>{{ error }}</small><br>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Submit Button -->
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group form-check">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label ml-2" for="id_is_active">
+                                        Active Status
+                                    </label>
+                                    {% if form.is_active.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.is_active.errors %}
+                                                <small>{{ error }}</small><br>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="form-group text-right mt-4">
                             <button type="submit" class="btn btn-primary">Create User</button>
                         </div>
@@ -75,4 +134,23 @@
         </div>
     </div>
 </div>
+
+<style>
+    /* Add red border to fields with errors */
+    .is-invalid {
+        border-color: #dc3545 !important;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if form.errors %}
+            {% for field in form %}
+                {% if field.errors %}
+                    document.getElementById('id_{{ field.name }}').classList.add('is-invalid');
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    });
+</script>
 {% endblock content %}

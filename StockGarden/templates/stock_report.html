@@ -43,10 +43,7 @@
 
                     <!-- Download Buttons -->
                     <div class="d-flex justify-content-end mb-4">
-                        <a href="{% url 'generate_pdf' %}?start_date={{ start_date }}&end_date={{ end_date }}&product_name={{ product_name }}&low_stock_threshold={{ low_stock_threshold }}&total_sales_threshold={{ total_sales_threshold }}" class="btn btn-success mx-3">
-                            <i class="fas fa-file-pdf me-2"></i>Download PDF
-                        </a>
-                        <a href="{% url 'generate_excel' %}{% if start_date or end_date or product_name or low_stock_threshold or total_sales_threshold %}?{% if start_date %}start_date={{ start_date }}&{% endif %}{% if end_date %}end_date={{ end_date }}&{% endif %}{% if product_name %}product_name={{ product_name }}&{% endif %}{% if low_stock_threshold %}low_stock_threshold={{ low_stock_threshold }}&{% endif %}{% if total_sales_threshold %}total_sales_threshold={{ total_sales_threshold }}{% endif %}{% endif %}" 
+                        <a href="{% url 'stock_excel' %}{% if start_date or end_date or product_name or low_stock_threshold or total_sales_threshold %}?{% if start_date %}start_date={{ start_date }}&{% endif %}{% if end_date %}end_date={{ end_date }}&{% endif %}{% if product_name %}product_name={{ product_name }}&{% endif %}{% if low_stock_threshold %}low_stock_threshold={{ low_stock_threshold }}&{% endif %}{% if total_sales_threshold %}total_sales_threshold={{ total_sales_threshold }}{% endif %}{% endif %}" 
                             class="btn btn-success">
                                 <i class="fas fa-file-excel me-2"></i>Download Excel
                             </a>

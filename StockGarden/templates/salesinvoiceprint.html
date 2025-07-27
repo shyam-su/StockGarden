@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales Invoice</title>
+<style>
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #f8f9fa;
+    --accent-color: #e9ecef;
+    --text-dark: #343a40;
+    --text-light: #6c757d;
+}
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 10px;
+    background-color: var(--secondary-color);
+    color: var(--text-dark);
+    font-size: 14px;
+}
+.invoice-container {
+    max-width: 900px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+.print-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--primary-color);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    z-index: 100;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.print-btn:hover {
+    background-color: #0056b3;
+}
+.print-btn::before {
+    content: "🖨️";
+    font-size: 16px;
+}
+.company-header {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--primary-color);
+    gap: 15px;
+}
+.company-info h2 {
+    color: var(--primary-color);
+    margin: 0 0 5px 0;
+    font-size: 20px;
+}
+.invoice-meta {
+    text-align: left;
+}
+.invoice-title {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 5px;
+}
+.customer-info, .payment-info {
+    padding: 12px;
+    background: var(--secondary-color);
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+.invoice-details {
+    overflow-x: auto;
+}
+.invoice-details table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    min-width: 500px;
+}
+.invoice-details th, .invoice-details td {
+    padding: 10px;
+    border-bottom: 1px solid var(--accent-color);
+    font-size: 13px;
+}
+.invoice-details th {
+    background-color: var(--primary-color);
+    color: #fff;
+    text-align: left;
+}
+.invoice-details td {
+    background: #fff;
+}
+.total-section {
+    background: var(--secondary-color);
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 15px;
+}
+.grand-total {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--primary-color);
+    padding-top: 8px;
+    border-top: 1px solid var(--accent-color);
+}
+.footer-note {
+    text-align: center;
+    margin-top: 20px;
+    color: var(--text-light);
+    font-size: 12px;
+    line-height: 1.4;
+}
+@media print {
+    .print-btn { display: none; }
+    .invoice-container { box-shadow: none; padding: 0; }
+    body { padding: 0; background: #fff; }
+    .invoice-details table { min-width: 100%; }
+}
+@media (min-width: 768px) {
+    body {
+        padding: 20px;
+        font-size: 16px;
+    }
+    .company-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .invoice-meta {
+        text-align: right;
+    }
+    .invoice-title {
+        font-size: 28px;
+    }
+    .company-info h2 {
+        font-size: 24px;
+    }
+    .invoice-details th, .invoice-details td {
+        padding: 12px;
+        font-size: 14px;
+    }
+    .total-section {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .print-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        bottom: auto;
+        padding: 8px 16px;
+    }
+    .print-btn::before {
+        content: "Print";
+        font-size: 14px;
+    }
+}
+</style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()"></button>
+<div class="invoice-container">
+    <div class="company-header">
+        <div class="company-info">
+            <h2>{{ company.name }}</h2>
+            <p>{{ company.address }}</p>
+            <p>Email: <a href="mailto:{{ company.email }}">{{ company.email }}</a></p>
+            <p>Phone: {{ company.phone_number }}</p>
+        </div>
+        <div class="invoice-meta">
+            <h1 class="invoice-title">SALES INVOICE</h1>
+            <p><strong>Date:</strong> {{ invoice.created_at|date:"M d, Y" }}</p>
+            <p><strong>Invoice #:</strong> {{ invoice.invoice_number }}</p>
+        </div>
+    </div>
+    <div class="customer-info">
+        <h3>Bill To:</h3>
+        <p>{{ invoice.customer_name }}<br>{{ invoice.customer_address }}<br>Phone: {{ invoice.customer_number }}</p>
+    </div>
+    <div class="invoice-details">
+        <table>
+            <thead>
+                <tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Discount</th><th>Total</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ invoice.product_name }}</td>
+                    <td>{{ invoice.sales.quantity }}</td>
+                    <td>रु.{{ invoice.sales.price }}</td>
+                    <td>रु.{{ invoice.discount_amount }}</td>
+                    <td>रु.{{ invoice.total_amount }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="payment-info">
+        <h4>Payment Method: {{ invoice.get_payment_method_display }}</h4>
+        {% if invoice.due_date %}<p><strong>Due Date:</strong> {{ invoice.due_date|date:"M d, Y" }}</p>{% endif %}
+    </div>
+    <div class="total-section">
+        <div class="total-row"><span>Total:</span><span>${{ invoice.total_amount }}</span></div>
+        <div class="total-row"><span>Paid:</span><span>${{ invoice.paid_amount }}</span></div>
+        <div class="total-row grand-total"><span>Remaining:</span><span>${{ invoice.remaining_amount }}</span></div>
+    </div>
+    <div class="footer-note">
+        <p>Thank you for your business! Please make payments payable to {{ company.name }}</p>
+        <p>For inquiries, contact us at {{ company.email }} or {{ company.phone_number }}</p>
+    </div>
+</div>
+<script>
+if(window.location.search.includes('print=1')) { window.print(); }
+</script>
+</body>
+</html>

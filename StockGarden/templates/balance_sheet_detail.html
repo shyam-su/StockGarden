@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h1>Balance Sheet as of {{ balance_sheet.report_date|date:"Y-m-d" }}</h1>
+    {% if messages %}
+        <div class="alert alert-info">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h3>Assets</h3>
+            <p><strong>Current Assets:</strong> {{ balance_sheet.current_assets|floatformat:2 }}</p>
+            <p><strong>Fixed Assets:</strong> {{ balance_sheet.fixed_assets|floatformat:2 }}</p>
+            <p><strong>Other Assets:</strong> {{ balance_sheet.other_assets|floatformat:2 }}</p>
+            <p><strong>Total Assets:</strong> {{ balance_sheet.current_assets|add:balance_sheet.fixed_assets|add:balance_sheet.other_assets|floatformat:2 }}</p>
+            <h3>Liabilities</h3>
+            <p><strong>Current Liabilities:</strong> {{ balance_sheet.current_liabilities|floatformat:2 }}</p>
+            <p><strong>Long-term Liabilities:</strong> {{ balance_sheet.long_term_liabilities|floatformat:2 }}</p>
+            <p><strong>Total Liabilities:</strong> {{ balance_sheet.current_liabilities|add:balance_sheet.long_term_liabilities|floatformat:2 }}</p>
+            <h3>Equity</h3>
+            <p><strong>Equity:</strong> {{ balance_sheet.equity|floatformat:2 }}</p>
+            <p><strong>Retained Earnings:</strong> {{ balance_sheet.retained_earnings|floatformat:2 }}</p>
+            <p><strong>Total Equity:</strong> {{ balance_sheet.equity|add:balance_sheet.retained_earnings|floatformat:2 }}</p>
+            <p><strong>Balance Check:</strong> {% if is_balanced %}Balanced{% else %}Not Balanced{% endif %}</p>
+            <p><strong>Notes:</strong> {{ balance_sheet.notes|default:"N/A" }}</p>
+            <p><strong>Created By:</strong> {{ balance_sheet.created_by|default:"N/A" }}</p>
+            <p><strong>Created:</strong> {{ balance_sheet.created_at }}</p>
+            <p><strong>Updated:</strong> {{ balance_sheet.updated_at }}</p>
+        </div>
+    </div>
+    <a href="{% url 'balance_sheet_list' %}" class="btn btn-secondary">Back to Balance Sheets</a>
+</div>
+{% endblock %}
