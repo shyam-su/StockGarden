@@ -42,49 +42,131 @@ class CategoryForm(forms.ModelForm):
         }
 
 
-class PurchaseForm(forms.ModelForm):
+class PurchaseVoucherForm(forms.ModelForm):
     class Meta:
-        model = Purchase
+        model = PurchaseVoucher
         fields = [
+            "date", 
             "vendor",
+            "discount",
+            "payment_method",
+            "status"
+        ]
+        widgets = {
+            "date": forms.DateInput(
+                attrs={
+                    "class": "form-control",
+                    "type": "date",
+                    "id": "purchase-date"
+                }
+            ),
+            "vendor": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "id": "vendor-select"
+                }
+            ),
+            "discount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "id": "discount-input",
+                    "step": "0.01"
+                }
+            ),
+            "payment_method": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "id": "payment-method"
+                }
+            ),
+            "status": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "id": "status-select"
+                }
+            )
+        }
+        labels = {
+            "date": "Purchase Date",
+            "vendor": "Vendor",
+            "discount": "Discount Amount",
+            "payment_method": "Payment Method",
+            "status": "Voucher Status"
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter vendors only
+        self.fields["vendor"].queryset = User.objects.filter(role="Vendor")
+        
+        # Set default date to today
+        self.fields["date"].initial = timezone.now().date()
+        
+        # Add payment status choices dynamically
+        self.fields["payment_method"].choices = PaymentMethodChoices.choices
+
+class PurchaseItemForm(forms.ModelForm):
+    # Add a field for new brand creation
+    new_brand = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter new brand name",
+            "id": "new-brand"
+        }),
+        label="Or Create New Brand"
+    )
+    
+    # Add a field for new category creation
+    new_category = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter new category name",
+            "id": "new-category"
+        }),
+        label="Or Create New Category"
+    )
+
+    class Meta:
+        model = PurchaseItem
+        fields = [
             "brand",
-            "categories",
+            "category",
             "product_name",
             "condition",
             "description",
-            "Imei",
+            "imei",
             "warranty",
             "image",
             "quantity",
             "price",
             "paid_amount",
-            "payment_method",
         ]
         widgets = {
-            "vendor": forms.Select(attrs={"class": "form-control", "id": "vendor"}),
             "brand": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "id": "brand",
+                    "id": "brand-select"
                 }
             ),
-            "categories": forms.Select(
+            "category": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "id": "categories",
+                    "id": "category-select"
                 }
             ),
             "product_name": forms.TextInput(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter Product Name",
-                    "id": "product_name",
+                    "id": "product-name"
                 }
             ),
             "condition": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "id": "condition",
+                    "id": "condition-select"
                 }
             ),
             "description": forms.Textarea(
@@ -92,82 +174,127 @@ class PurchaseForm(forms.ModelForm):
                     "class": "form-control",
                     "placeholder": "Enter Description",
                     "id": "description",
-                    "rows": 1,
+                    "rows": 2
+                }
+            ),
+            "imei": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter IMEI Number",
+                    "id": "imei-input"
                 }
             ),
             "warranty": forms.NumberInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Warranty",
-                    "id": "warranty",
+                    "placeholder": "Warranty in months",
+                    "id": "warranty-input"
                 }
             ),
-            "Imei": forms.TextInput(
+            "image": forms.ClearableFileInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter IMEI",
-                    "id": "Imei",
-                }
-            ),
-            "image": forms.FileInput(
-                attrs={
-                    "class": "form-control",
-                    "id": "image",
-                }
-            ),
-            "price": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Price",
-                    "id": "price",
+                    "id": "item-image"
                 }
             ),
             "quantity": forms.NumberInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Quantity",
-                    "id": "quantity",
+                    "placeholder": "Quantity",
+                    "id": "quantity-input",
+                    "min": 1
+                }
+            ),
+            "price": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Unit Price",
+                    "id": "price-input",
+                    "step": "0.01"
                 }
             ),
             "paid_amount": forms.NumberInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Paid Amount",
-                    "id": "paid_amount",
-                    "step": "0.01",
+                    "placeholder": "Amount Paid",
+                    "id": "paid-amount",
+                    "step": "0.01"
                 }
             ),
-            "payment_method": forms.Select(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Select Payment Method",
-                    "id": "payment_method",
-                }
-            ),
+    
         }
         labels = {
-            "vendor": "Vendor Name",
-            "brand": "Brand",
-            "categories": "Categories",
-            "product_name": "Product Name",
-            "condition": "Condition",
-            "description": "Description",
-            "Imei": "IMEI Number",
-            "warranty": "warranty",
-            "image": "Image",
-            "price": "Price",
-            "quantity": "Stock Quantity",
-            "paid_amount": "Paid Amount",
-            "payment_method": "Payment Method",
+            "imei": "IMEI/Serial Number",
+            "warranty": "Warranty (months)",
+            "paid_amount": "Amount Paid for Item"
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        vendors = User.objects.filter(role="Vendor")
-        self.fields["vendor"].queryset = vendors
+        
+        # Add condition choices
+        self.fields["condition"].choices = PurchaseItem.CONDITION_CHOICES
+
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Handle new brand creation
+        new_brand = cleaned_data.get("new_brand")
+        brand = cleaned_data.get("brand")
+        
+        if new_brand and not brand:
+            # Create new brand
+            brand, created = Brand.objects.get_or_create(name=new_brand.strip())
+            cleaned_data["brand"] = brand
+        
+        # Handle new category creation
+        new_category = cleaned_data.get("new_category")
+        category = cleaned_data.get("category")
+        
+        if new_category and not category:
+            # Create new category
+            category, created = Category.objects.get_or_create(name=new_category.strip())
+            cleaned_data["category"] = category
+        
+        # Validate IMEI
+        imei = cleaned_data.get("imei")
+        if imei == "":
+            cleaned_data["imei"] = None
+            
+        # Validate paid amount doesn't exceed total
+        quantity = cleaned_data.get("quantity", 0)
+        price = cleaned_data.get("price", 0)
+        paid_amount = cleaned_data.get("paid_amount", 0)
+        
+        total_price = quantity * price
+        if paid_amount > total_price:
+            raise ValidationError("Paid amount cannot exceed total price for this item")
+        
+        return cleaned_data
 
 
 class ProductForm(forms.ModelForm):
+    # Add fields for new brand/category creation
+    new_brand = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter new brand name",
+            "id": "new-brand"
+        }),
+        label="Or Create New Brand"
+    )
+    
+    new_category = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter new category name",
+            "id": "new-category"
+        }),
+        label="Or Create New Category"
+    )
+
     class Meta:
         model = Product
         fields = [
@@ -178,7 +305,7 @@ class ProductForm(forms.ModelForm):
             "warranty",
             "Imei",
             "image",
-            "categories",
+            "categories",  # Changed from 'categories' to match model
             "stock",
             "brand",
         ]
@@ -186,253 +313,277 @@ class ProductForm(forms.ModelForm):
             "vendor": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Vendor Name",
-                    "id": "vendor",
+                    "id": "product-vendor"
                 }
             ),
             "name": forms.TextInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Product Name",
-                    "id": "name",
+                    "placeholder": "Product Name",
+                    "id": "product-name"
                 }
             ),
             "description": forms.Textarea(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Description",
-                    "rows": 1,
-                    "id": "description",
+                    "placeholder": "Product Description",
+                    "rows": 2,
+                    "id": "product-description"
                 }
             ),
             "price": forms.NumberInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Price",
-                    "id": "price",
-                    "readonly": "readonly",
+                    "placeholder": "Selling Price",
+                    "id": "product-price",
+                    "step": "0.01"
                 }
             ),
             "warranty": forms.NumberInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Warranty",
-                    "id": "warranty",
+                    "placeholder": "Warranty in months",
+                    "id": "product-warranty"
                 }
             ),
             "Imei": forms.TextInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter IMEI",
-                    "id": "Imei",
+                    "placeholder": "IMEI/Serial Number",
+                    "id": "product-imei"
                 }
             ),
-            "image": forms.FileInput(
+            "image": forms.ClearableFileInput(
                 attrs={
                     "class": "form-control",
-                    "id": "image"
+                    "id": "product-image"
                 }
             ),
-            "categories": forms.Select(
+            "categories": forms.Select(  # Changed to match model field name
                 attrs={
                     "class": "form-control",
-                    "id": "categories"
+                    "id": "product-category"
                 }
             ),
             "stock": forms.NumberInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Stock Quantity",
-                    "id": "stock",
+                    "placeholder": "Stock Quantity",
+                    "id": "product-stock",
+                    "min": 0
                 }
             ),
-            "brand": forms.Select(attrs={
-                "class": "form-control",
-                "id": "brand"
+            "brand": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "id": "product-brand"
                 }
-        ),
+            ),
         }
         labels = {
-            "vendor": "Vendor Name",
-            "brand": "Brand",
-            "categories": "Categories",
-            "name": "Product Name",
-            "description": "Description",
-            "price": "Price",
-            "warranty": "warranty",
-            "Imei": "Imei Number",
-            "image": "Image",
-            "stock": "Stock Quantity",
+            "imei": "IMEI/Serial Number",
+            "categories": "Category",  # Updated label
+            "stock": "Stock Quantity"
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Filter vendors only
+        self.fields["vendor"].queryset = User.objects.filter(role="Vendor")
+        
+        # Make price editable for new products
+        if not self.instance.pk:
+            self.fields["price"].widget.attrs.pop("readonly", None)
 
-class SalesForm(forms.ModelForm):
-    user = forms.ModelChoiceField(
-        queryset=User.objects.all(),
-        required=False, 
-        widget=forms.Select(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Enter Customer Name",
-                "id": "user",
-            }
-        ),
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Handle new brand creation
+        new_brand = cleaned_data.get("new_brand")
+        brand = cleaned_data.get("brand")
+        
+        if new_brand and not brand:
+            brand, created = Brand.objects.get_or_create(name=new_brand.strip())
+            cleaned_data["brand"] = brand
+        
+        # Handle new category creation
+        new_category = cleaned_data.get("new_category")
+        category = cleaned_data.get("categories")
+        
+        if new_category and not category:
+            category, created = Category.objects.get_or_create(name=new_category.strip())
+            cleaned_data["categories"] = category
+        
+        # Validate IMEI
+        imei = cleaned_data.get("Imei")
+        if imei == "":
+            cleaned_data["Imei"] = None
+            
+        return cleaned_data
+
+
+class SalesVoucherForm(forms.ModelForm):
+    # Field for new customer creation
+    new_customer = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter customer name",
+            "id": "new-customer"
+        }),
+        label="Or Create New Customer"
     )
 
     class Meta:
-        model = Sales
+        model = SalesVoucher
         fields = [
-            "user",
-            "product",
-            "Imei",
-            "warranty",
-            "quantity",
-            "price",
+            "date",
+            "customer",
             "discount",
             "payment_method",
             "paid_amount",
-            "due_date",
-            "notes",
+            "status"
         ]
         widgets = {
-            "user": forms.Select(
+            "date": forms.DateInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Name",
-                    "id": "user",
+                    "type": "date",
+                    "id": "sales-date"
                 }
             ),
-            "product": forms.Select(
+            "customer": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Company Name",
-                    "id": "product",
-                }
-            ),
-            "Imei": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Imei",
-                    "id": "Imei",
-                }
-            ),
-            "warranty": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Warranty",
-                    "id": "warranty",
-                    "min": "0",
-                }
-            ),
-            "quantity": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Quantity",
-                    "id": "quantity",
-                    "min": "1",
-                }
-            ),
-            "price": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter Price",
-                    "id": "price",
+                    "id": "customer-select"
                 }
             ),
             "discount": forms.NumberInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Discount",
-                    "id": "discount",
+                    "id": "sales-discount",
+                    "step": "0.01"
                 }
             ),
             "payment_method": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Select Payment Method",
-                    "id": "payment_method",
+                    "id": "sales-payment-method"
                 }
             ),
             "paid_amount": forms.NumberInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter Paid Amount",
-                    "id": "paid_amount",
-                    "step": "0.01",
+                    "placeholder": "Amount Paid",
+                    "id": "sales-paid-amount",
+                    "step": "0.01"
                 }
             ),
-            "due_date": forms.DateTimeInput(
+            "status": forms.Select(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Select Due Date",
-                    "id": "due_date",
-                    "type": "datetime-local",
+                    "id": "sales-status"
                 }
-            ),
-            "notes": forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Add payment notes (e.g., 'Will pay 500 later')",
-                    "id": "notes",
-                    "rows": 3,
-                }
-            ),
+            )
         }
         labels = {
-            "name": "Customer Name",
-            "product": "Product Name",
-            "Imei": "Imei",
-            "warranty": "Warranty",
-            "quantity": "Quantity",
-            "price": "Price",
-            "discount": "Discount",
-            "payment_method": "Payment Method",
-            "paid_amount": "Paid Amount",
-            "due_date": "Due Date",
-            "notes": "Notes",
+            "customer": "Customer",
+            "paid_amount": "Amount Paid"
         }
 
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Handle new customer creation
+        new_customer = cleaned_data.get("new_customer")
+        customer = cleaned_data.get("customer")
+        
+        if new_customer and not customer:
+            # Create new customer
+            customer = Customer.objects.create(name=new_customer.strip())
+            cleaned_data["customer"] = customer
+            
+        return cleaned_data
+
+class SalesItemForm(forms.ModelForm):
+    class Meta:
+        model = SalesItem
+        fields = [
+            "product",
+            "quantity",
+            "price",
+            "warranty",
+            "condition",
+            "imei"
+        ]
+        widgets = {
+            "product": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "id": "sales-product"
+                }
+            ),
+            "quantity": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": 1,
+                    "id": "sales-quantity"
+                }
+            ),
+            "price": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "id": "sales-price"
+                }
+            ),
+            "warranty": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "id": "sales-warranty"
+                }
+            ),
+            "condition": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "id": "sales-condition"
+                }
+            ),
+            "imei": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "IMEI/Serial Number",
+                    "id": "sales-imei"
+                }
+            )
+        }
+        labels = {
+            "imei": "IMEI/Serial Number"
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add condition choices
+        self.fields["condition"].choices = SalesItem.CONDITION_CHOICES
 
     def clean(self):
         cleaned_data = super().clean()
         product = cleaned_data.get("product")
-        quantity = cleaned_data.get("quantity")
-
-        instance = getattr(self, 'instance', None)  # Get the Sales instance being updated (if any)
-
+        quantity = cleaned_data.get("quantity", 0)
+        imei = cleaned_data.get("imei")
+        
+        # Convert empty IMEI to None
+        if imei == "":
+            cleaned_data["imei"] = None
+        
+        # Stock validation
         if product and quantity:
-            available_stock = product.stock
-            if instance and instance.pk:  # This is an update
-                # Add back the original sales quantity to the available stock
-                available_stock += instance.quantity
-
-            if quantity > available_stock:
-                raise ValidationError(f"Insufficient stock. Only {available_stock} items available.")
-
+            if quantity > product.stock:
+                raise ValidationError(
+                    f"Insufficient stock. Only {product.stock} available."
+                )
+        
         return cleaned_data
-    
-    # Custom validation for quantity (should be at least 1)
-    def clean_quantity(self):
-        quantity = self.cleaned_data.get("quantity")
-        if quantity and quantity < 1:
-            raise ValidationError("Quantity must be at least 1.")
-        return quantity
-
-    # Custom validation for price (must be positive)
-    def clean_price(self):
-        price = self.cleaned_data.get("price")
-        if price and price <= 0:
-            raise ValidationError("Price must be greater than zero.")
-        return price
-
-
-
-    # Validate due date (must be in the future)
-    def clean_due_date(self):
-        due_date = self.cleaned_data.get("due_date")
-        if due_date and due_date < timezone.now():
-            raise ValidationError("Due date cannot be in the past.")
-        return due_date
 
 
 class RepairForm(forms.ModelForm):
@@ -670,7 +821,7 @@ class SalesInvoiceForm(forms.ModelForm):
     class Meta:
         model = SalesInvoice
         fields = [
-            "sales",
+            "sales_voucher",
             "product_name",
             "warranty",
             "customer_name",
@@ -683,7 +834,7 @@ class SalesInvoiceForm(forms.ModelForm):
             "notes",
         ]
         widgets = {
-            "sales": forms.Select(
+            "sales_voucher": forms.Select(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Select Sales",
@@ -766,7 +917,7 @@ class SalesInvoiceForm(forms.ModelForm):
             ),
         }
         labels = {
-            "sales": "Sales",
+            "sales_voucher": "Sales Voucher",
             "product_name": "Product Name",
             "warranty": "Warranty (in months)",
             "customer_name": "Customer Name",
@@ -1081,105 +1232,3 @@ class CashbookForm(forms.ModelForm):
         return cleaned_data
     
 
-class AccountForm(forms.ModelForm):
-    class Meta:
-        model = Account
-        fields = ['code', 'name', 'account_type', 'parent_account', 'is_active', 'description']
-        
-    def clean(self):
-        cleaned_data = super().clean()
-        parent_account = cleaned_data.get('parent_account')
-        
-        # Prevent circular references
-        if parent_account and parent_account.parent_account == self.instance:
-            raise ValidationError("Circular reference in parent accounts is not allowed.")
-        return cleaned_data
-
-class LedgerEntryForm(forms.ModelForm):
-    class Meta:
-        model = LedgerEntry
-        fields = ['date', 'account', 'debit_amount', 'credit_amount', 
-                 'reference', 'description', 'transaction_type', 'transaction_id']
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        debit_amount = cleaned_data.get('debit_amount', 0)
-        credit_amount = cleaned_data.get('credit_amount', 0)
-        
-        if debit_amount and credit_amount:
-            raise ValidationError("A ledger entry cannot have both debit and credit amounts.")
-        if not debit_amount and not credit_amount:
-            raise ValidationError("A ledger entry must have either a debit or credit amount.")
-        if debit_amount < 0 or credit_amount < 0:
-            raise ValidationError("Amounts cannot be negative.")
-        
-        return cleaned_data
-
-class BalanceSheetForm(forms.ModelForm):
-    class Meta:
-        model = BalanceSheet
-        fields = ['report_date', 'is_final', 'notes']
-
-class ProfitAndLossForm(forms.ModelForm):
-    class Meta:
-        model = ProfitAndLoss
-        fields = ['start_date', 'end_date', 'is_final', 'notes']
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        start_date = cleaned_data.get('start_date')
-        end_date = cleaned_data.get('end_date')
-        
-        if start_date and end_date and end_date < start_date:
-            raise ValidationError("End date must be after start date.")
-        
-        return cleaned_data
-
-class AccountForm(forms.ModelForm):
-    class Meta:
-        model = Account
-        fields = ['code', 'name', 'account_type', 'parent_account', 'description', 'is_active']
-        widgets = {
-            'code': forms.TextInput(attrs={
-                'class': 'form-control',
-                'pattern': '[A-Za-z0-9]+',
-                'title': 'Code must be alphanumeric',
-                'required': 'required',
-                'placeholder': 'Enter account code (e.g., 1001)'
-            }),
-            'name': forms.TextInput(attrs={
-                'class': 'form-control',
-                'required': 'required',
-                'placeholder': 'Enter account name'
-            }),
-            'account_type': forms.Select(attrs={
-                'class': 'form-select',
-                'required': 'required'
-            }),
-            'parent_account': forms.Select(attrs={
-                'class': 'form-select'
-            }),
-            'description': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 4,
-                'placeholder': 'Enter description (optional)'
-            }),
-            'is_active': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            }),
-        }
-
-    def clean_code(self):
-        code = self.cleaned_data['code']
-        if not code.isalnum():
-            raise forms.ValidationError("Code must be alphanumeric.")
-        return code
-
-    def __init__(self, *args, **kwargs):
-        instance = kwargs.get('instance')
-        super().__init__(*args, **kwargs)
-        # Exclude the current account from parent_account choices to prevent self-referencing
-        if instance:
-            self.fields['parent_account'].queryset = Account.objects.exclude(pk=instance.pk)
-        else:
-            self.fields['parent_account'].queryset = Account.objects.all()

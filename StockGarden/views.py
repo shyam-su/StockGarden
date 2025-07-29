@@ -2,6 +2,7 @@ import logging
 import json
 import openpyxl
 from django.shortcuts import HttpResponse,render, get_object_or_404, redirect
+from django.http import JsonResponse, HttpResponse
 from .models import *
 from .forms import *
 from django.core.paginator import Paginator
@@ -17,6 +18,9 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from user.permissions import role_required, admin_required
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+import csv
 
 
 
@@ -314,104 +318,464 @@ def CategoryDelete(request,pk):
         messages.error(request, 'An error occurred while processing the category.')
         return render(request, '404.html', {"message": "An error occurred."})
 
-
 @login_required
-def PurchaseList(request):
-    query = request.GET.get('q', '').strip()
-    date_from = request.GET.get('date_from', '')
-    date_to = request.GET.get('date_to', '')
-    purchases = Purchase.objects.all()
-
-    try:
-        if query:
-            purchases = purchases.filter(
-                Q(vendor__full_name__icontains=query) |  
-                Q(product_name__icontains=query) |       
-                Q(condition__icontains=query)           
-            ).order_by('-created_at')
-
-        if date_from:
-            naive_date = datetime.strptime(date_from, '%Y-%m-%d')
-            aware_date = timezone.make_aware(naive_date)
-            purchases = purchases.filter(created_at__gte=date_from)
-        if date_to:
-            naive_date = datetime.strptime(date_to, '%Y-%m-%d')
-            aware_date = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
-            purchases = purchases.filter(created_at__lt=aware_date)
-        purchases = purchases.order_by('-created_at')
-        paginator = Paginator(purchases, 10)
-        page_number = request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
-
-        context = {
-            'purchases': page_obj,
-            'query': query,
-            'date_from': date_from,
-            'date_to': date_to
-        }
-        return render(request, 'purchases.html', context)
-
-    except Exception as e:
-        logger.error(f"Error in PurchaseListView: {e}")
-        messages.error(request, 'An error occurred while loading the purchase list.')
-        return render(request, 'purchases.html', {'purchases': [], 'query': query})
-
-@login_required
-def PurchaseCreate(request,pruchase_id=None):
-    try:
-        if pruchase_id:
-            purchase=get_object_or_404(Purchase,id=pruchase_id)
-            form=PurchaseForm(request.POST or None,request.FILES or None,instance=purchase)
-            action='update'
-        else:
-            form=PurchaseForm(request.POST or None,request.FILES or None)
-            action='create'
-        if request.method == 'POST':
-            if form.is_valid():
-                form.save()
-                messages.success(request,f'Purchase {action.lower()}d successfully!')
-                return redirect('purchase')
-        return render(request, 'purchases_create.html',{'form':form,'action':action})
-    except Exception as e:
-        logger.error(f"Error in PurchaseCreateView: {e}")
-        messages.error(request, 'An error occurred while processing the purchase.')
-        return render(request, '404.html', {"message": "An error occurred."})
-
-
-@login_required
-def PurchaseUpdate(request,pk):
-    try:
-        purchase = get_object_or_404(Purchase,pk=pk)
-        if request.method == 'POST':
-            form= PurchaseForm(request.POST,instance=purchase)
-            if form.is_valid():
-                form.save()
-                messages.success(request,f'Purchase updated successfully!')
-                return redirect('purchase')
-        else:
-            form = PurchaseForm(instance=purchase)
-            return render(request, 'purchases_update.html',{'form':form,'purchase':purchase})
-    except Exception as e:
-        logger.error(request, 'An error occurred while processing the purchase.')
-        messages.error(request, 'An error occurred while processing the purchase.')
-        return render(request, '404.html', {"message": "An error occurred."})
-
-@login_required
-def PurchaseDelete(request,pk):
-    try:
-        purchase= get_object_or_404(Purchase,pk=pk)
-        if request.method == 'POST':
-            purchase_name=purchase.product_name
-            purchase.delete()
-            messages.success(request,f'Purchase {purchase_name} deleted successfully!')
-            return redirect('purchase')
-        return render(request, 'purchase_delete.html',{'purchase':purchase})
-    except Exception as e:
-        logger.error(f"Error in PurchaseDeleteView: {e}")
-        messages.error(request, 'An error occurred while processing the purchase.')
-        return render(request, '404.html', {"message": "An error occurred."})
+def purchase_items_list(request, voucher_pk):
+    """List all items for a specific voucher"""
+    voucher = get_object_or_404(PurchaseVoucher, pk=voucher_pk)
+    items = voucher.items.select_related('brand', 'category').all()
     
+    context = {
+        'voucher': voucher,
+        'items': items,
+        'title': f'Items for Voucher {voucher.voucher_number}'
+    }
+    
+    return render(request, 'purchases/purchase_items_list.html', context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def purchase_item_create(request, voucher_pk):
+    """Add a new item to an existing voucher"""
+    voucher = get_object_or_404(PurchaseVoucher, pk=voucher_pk)
+    
+    if request.method == 'POST':
+        form = PurchaseItemForm(request.POST, request.FILES)
         
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    item = form.save(commit=False)
+                    item.voucher = voucher
+                    item.save()
+                    
+                    # Update voucher totals
+                    voucher.update_totals()
+                    
+                    messages.success(request, 'Item added successfully!')
+                    return redirect('purchase_items_list', voucher_pk=voucher.pk)
+                    
+            except Exception as e:
+                messages.error(request, f'Error adding item: {str(e)}')
+    else:
+        form = PurchaseItemForm()
+    
+    context = {
+        'form': form,
+        'voucher': voucher,
+        'title': f'Add Item to Voucher {voucher.voucher_number}'
+    }
+    
+    return render(request, 'purchases/purchase_item_create.html', context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def purchase_item_update(request, voucher_pk, pk):
+    """Update an existing purchase item"""
+    voucher = get_object_or_404(PurchaseVoucher, pk=voucher_pk)
+    item = get_object_or_404(PurchaseItem, pk=pk, voucher=voucher)
+    
+    if request.method == 'POST':
+        form = PurchaseItemForm(request.POST, request.FILES, instance=item)
+        
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    form.save()
+                    
+                    # Update voucher totals
+                    voucher.update_totals()
+                    
+                    messages.success(request, 'Item updated successfully!')
+                    return redirect('purchase_items_list', voucher_pk=voucher.pk)
+                    
+            except Exception as e:
+                messages.error(request, f'Error updating item: {str(e)}')
+    else:
+        form = PurchaseItemForm(instance=item)
+    
+    context = {
+        'form': form,
+        'voucher': voucher,
+        'item': item,
+        'title': f'Update Item in Voucher {voucher.voucher_number}'
+    }
+    
+    return render(request, 'purchases/purchase_item_update.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def purchase_item_delete(request, voucher_pk, pk):
+    """Delete a purchase item"""
+    voucher = get_object_or_404(PurchaseVoucher, pk=voucher_pk)
+    item = get_object_or_404(PurchaseItem, pk=pk, voucher=voucher)
+    
+    try:
+        with transaction.atomic():
+            item.delete()
+            
+            # Update voucher totals
+            voucher.update_totals()
+            
+            messages.success(request, 'Item deleted successfully!')
+    except Exception as e:
+        messages.error(request, f'Error deleting item: {str(e)}')
+    
+    return redirect('purchase_items_list', voucher_pk=voucher.pk)
+
+@login_required
+def purchase_list(request):
+    """List all purchase vouchers with search and filter functionality"""
+    vouchers = PurchaseVoucher.objects.select_related('vendor').prefetch_related('items').all()
+    
+    # Search functionality
+    query = request.GET.get('q', '')
+    if query:
+        vouchers = vouchers.filter(
+            Q(voucher_number__icontains=query) |
+            Q(vendor__full_name__icontains=query) |
+            Q(vendor__username__icontains=query) |
+            Q(items__product_name__icontains=query)
+        ).distinct()
+    
+    # Date filtering
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    
+    if date_from:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            vouchers = vouchers.filter(date__gte=date_from_obj)
+        except ValueError:
+            pass
+    
+    if date_to:
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            vouchers = vouchers.filter(date__lte=date_to_obj)
+        except ValueError:
+            pass
+    
+    # Status filtering
+    status = request.GET.get('status')
+    if status:
+        vouchers = vouchers.filter(status=status)
+    
+    # Pagination
+    paginator = Paginator(vouchers, 25)  # 25 vouchers per page
+    page_number = request.GET.get('page')
+    vouchers = paginator.get_page(page_number)
+    
+    context = {
+        'vouchers': vouchers,
+        'query': query,
+        'date_from': date_from,
+        'date_to': date_to,
+        'status': status,
+    }
+    
+    return render(request, 'purchases.html', context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def purchase_create(request):
+    """Create a new purchase voucher with items"""
+    if request.method == 'POST':
+        voucher_form = PurchaseVoucherForm(request.POST)
+        item_form = PurchaseItemForm(request.POST, request.FILES)
+        
+        if voucher_form.is_valid() and item_form.is_valid():
+            try:
+                with transaction.atomic():
+                    # Save voucher
+                    voucher = voucher_form.save()
+                    
+                    # Save item and link to voucher
+                    item = item_form.save(commit=False)
+                    item.voucher = voucher
+                    item.save()
+                    
+                    # Update voucher totals
+                    voucher.update_totals()
+                    
+                    messages.success(request, f'Purchase voucher {voucher.voucher_number} created successfully!')
+                    return redirect('purchase_list')
+                    
+            except Exception as e:
+                messages.error(request, f'Error creating purchase voucher: {str(e)}')
+    else:
+        voucher_form = PurchaseVoucherForm()
+        item_form = PurchaseItemForm()
+    
+    context = {
+        'voucher_form': voucher_form,
+        'item_form': item_form,
+        'title': 'Create Purchase Voucher'
+    }
+    
+    return render(request, 'purchases/purchase_create.html', context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def purchase_update(request, pk):
+    """Update an existing purchase voucher"""
+    voucher = get_object_or_404(PurchaseVoucher, pk=pk)
+    
+    # Get the first item for editing (assuming single item per voucher for now)
+    item = voucher.items.first()
+    
+    if request.method == 'POST':
+        voucher_form = PurchaseVoucherForm(request.POST, instance=voucher)
+        item_form = PurchaseItemForm(request.POST, request.FILES, instance=item) if item else PurchaseItemForm(request.POST, request.FILES)
+        
+        if voucher_form.is_valid() and item_form.is_valid():
+            try:
+                with transaction.atomic():
+                    # Save voucher
+                    voucher = voucher_form.save()
+                    
+                    # Save or create item
+                    if item:
+                        item = item_form.save()
+                    else:
+                        item = item_form.save(commit=False)
+                        item.voucher = voucher
+                        item.save()
+                    
+                    # Update voucher totals
+                    voucher.update_totals()
+                    
+                    messages.success(request, f'Purchase voucher {voucher.voucher_number} updated successfully!')
+                    return redirect('purchase_list')
+                    
+            except Exception as e:
+                messages.error(request, f'Error updating purchase voucher: {str(e)}')
+    else:
+        voucher_form = PurchaseVoucherForm(instance=voucher)
+        item_form = PurchaseItemForm(instance=item) if item else PurchaseItemForm()
+    
+    context = {
+        'voucher_form': voucher_form,
+        'item_form': item_form,
+        'voucher': voucher,
+        'item': item,
+        'title': f'Update Purchase Voucher {voucher.voucher_number}'
+    }
+    
+    return render(request, 'purchases/purchase_update.html', context)
+
+
+@login_required
+def purchase_detail(request, pk):
+    """View purchase voucher details"""
+    voucher = get_object_or_404(
+        PurchaseVoucher.objects.select_related('vendor').prefetch_related('items__brand', 'items__category'),
+        pk=pk
+    )
+    
+    context = {
+        'voucher': voucher,
+        'items': voucher.items.all(),
+        'title': f'Purchase Voucher {voucher.voucher_number}'
+    }
+    
+    return render(request, 'purchases/purchase_detail.html', context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def purchase_delete(request, pk):
+    """Delete a purchase voucher"""
+    voucher = get_object_or_404(PurchaseVoucher, pk=pk)
+    
+    if request.method == 'POST':
+        voucher_number = voucher.voucher_number
+        try:
+            voucher.delete()
+            messages.success(request, f'Purchase voucher {voucher_number} deleted successfully!')
+        except Exception as e:
+            messages.error(request, f'Error deleting purchase voucher: {str(e)}')
+        
+        return redirect('purchase_list')
+    
+    context = {
+        'voucher': voucher,
+        'title': f'Delete Purchase Voucher {voucher.voucher_number}'
+    }
+    
+    return render(request, 'purchases/purchase_delete.html', context)
+    
+
+@login_required
+def purchase_reports(request):
+    """Generate purchase reports"""
+    # Date filtering
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    
+    vouchers = PurchaseVoucher.objects.select_related('vendor').prefetch_related('items')
+    
+    if date_from:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            vouchers = vouchers.filter(date__gte=date_from_obj)
+        except ValueError:
+            pass
+    
+    if date_to:
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            vouchers = vouchers.filter(date__lte=date_to_obj)
+        except ValueError:
+            pass
+    
+    # Calculate statistics
+    stats = vouchers.aggregate(
+        total_vouchers=Count('id'),
+        total_amount=Sum('total_amount'),
+        total_cost=Sum('cost'),
+        total_discount=Sum('discount')
+    )
+    
+    # Top vendors
+    top_vendors = User.objects.filter(
+        role='Vendor',
+        purchase_vouchers__in=vouchers
+    ).annotate(
+        voucher_count=Count('purchase_vouchers'),
+        total_spent=Sum('purchase_vouchers__total_amount')
+    ).order_by('-total_spent')[:10]
+    
+    context = {
+        'stats': stats,
+        'top_vendors': top_vendors,
+        'date_from': date_from,
+        'date_to': date_to,
+        'title': 'Purchase Reports'
+    }
+    
+    return render(request, 'purchases/purchase_reports.html', context)
+
+
+@login_required
+def purchase_export(request):
+    """Export purchase data to CSV"""
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="purchases.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        'Voucher Number', 'Date', 'Vendor', 'Total Amount', 'Discount',
+        'Cost', 'Payment Method', 'Payment Status', 'Status'
+    ])
+    
+    vouchers = PurchaseVoucher.objects.select_related('vendor').all()
+    
+    for voucher in vouchers:
+        writer.writerow([
+            voucher.voucher_number,
+            voucher.date,
+            voucher.vendor.full_name if voucher.vendor else 'N/A',
+            voucher.total_amount,
+            voucher.discount,
+            voucher.cost,
+            voucher.get_payment_method_display(),
+            voucher.get_payment_status_display(),
+            voucher.get_status_display()
+        ])
+    
+    return response
+
+# AJAX API Views
+
+@login_required
+def update_voucher_totals(request, pk):
+    """AJAX endpoint to update voucher totals"""
+    if request.method == 'POST':
+        voucher = get_object_or_404(PurchaseVoucher, pk=pk)
+        voucher.update_totals()
+        
+        return JsonResponse({
+            'success': True,
+            'total_amount': float(voucher.total_amount),
+            'cost': float(voucher.cost)
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+@login_required
+def vendor_search(request):
+    """AJAX endpoint for vendor search"""
+    query = request.GET.get('q', '')
+    vendors = User.objects.filter(
+        role='Vendor',
+        full_name__icontains=query
+    )[:10]  # Limit to 10 results
+    
+    results = [
+        {
+            'id': vendor.id,
+            'text': vendor.full_name,
+            'username': vendor.username
+        }
+        for vendor in vendors
+    ]
+    
+    return JsonResponse({'results': results})
+
+
+@login_required
+@csrf_exempt
+def create_brand_ajax(request):
+    """AJAX endpoint to create new brand"""
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        brand_name = data.get('name', '').strip()
+        
+        if brand_name:
+            brand, created = Brand.objects.get_or_create(name=brand_name)
+            return JsonResponse({
+                'success': True,
+                'brand': {
+                    'id': brand.id,
+                    'name': brand.name
+                },
+                'created': created
+            })
+        
+        return JsonResponse({'success': False, 'error': 'Brand name is required'})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+@login_required
+@csrf_exempt
+def create_category_ajax(request):
+    """AJAX endpoint to create new category"""
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        category_name = data.get('name', '').strip()
+        
+        if category_name:
+            category, created = Category.objects.get_or_create(name=category_name)
+            return JsonResponse({
+                'success': True,
+                'category': {
+                    'id': category.id,
+                    'name': category.name
+                },
+                'created': created
+            })
+        
+        return JsonResponse({'success': False, 'error': 'Category name is required'})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
 @login_required
 def ProductList(request):
     try:
@@ -495,115 +859,551 @@ def ProductDelete(request,pk):
         return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-def SalesList(request):
-    try:
-        query = request.GET.get('q', '')
-        date_from = request.GET.get('date_from', '')
-        date_to = request.GET.get('date_to', '')
-        payment_status = request.GET.get('payment_status', '')
+def sales_list(request):
+    """List all sales vouchers with search and filter functionality"""
+    vouchers = SalesVoucher.objects.select_related('customer').prefetch_related('items').all()
+    
+    # Search functionality
+    query = request.GET.get('q', '')
+    if query:
+        vouchers = vouchers.filter(
+            Q(voucher_number__icontains=query) |
+            Q(customer__name__icontains=query) |
+            Q(items__product__name__icontains=query)
+        ).distinct()
+    
+    # Date filtering
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    
+    if date_from:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            vouchers = vouchers.filter(date__gte=date_from_obj)
+        except ValueError:
+            pass
+    
+    if date_to:
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            vouchers = vouchers.filter(date__lte=date_to_obj)
+        except ValueError:
+            pass
+    
+    # Payment status filtering
+    payment_status = request.GET.get('payment_status')
+    if payment_status:
+        vouchers = vouchers.filter(payment_status=payment_status)
+    
+    # Status filtering
+    status = request.GET.get('status')
+    if status:
+        vouchers = vouchers.filter(status=status)
+    
+    # Pagination
+    paginator = Paginator(vouchers, 25)  # 25 vouchers per page
+    page_number = request.GET.get('page')
+    vouchers = paginator.get_page(page_number)
+    
+    # Get payment status choices for filter dropdown
+    status_choices = PaymentStatusChoices.choices
+    
+    context = {
+        'vouchers': vouchers,
+        'query': query,
+        'date_from': date_from,
+        'date_to': date_to,
+        'payment_status': payment_status,
+        'status': status,
+        'status_choices': status_choices,
+    }
+    
+    return render(request, 'sales.html', context)
 
-        sales = Sales.objects.all().order_by('-id')
 
-        if query:
-            sales = sales.filter(
-                Q(user__full_name__icontains=query) | 
-                Q(product__name__icontains=query) 
-                 
-            )
-
-        if date_from:
-            naive_date = datetime.strptime(date_from, '%Y-%m-%d')
-            aware_date = timezone.make_aware(naive_date)
-            sales = sales.filter(created_at__gte=aware_date)
+@login_required
+@require_http_methods(["GET", "POST"])
+def sales_create(request):
+    """Create a new sales voucher with items"""
+    if request.method == 'POST':
+        voucher_form = SalesVoucherForm(request.POST)
+        item_form = SalesItemForm(request.POST)
         
-        if date_to:
-            naive_date = datetime.strptime(date_to, '%Y-%m-%d')
-            aware_date = timezone.make_aware(naive_date) + timedelta(days=1)
-            sales = sales.filter(created_at__lt=aware_date)
+        if voucher_form.is_valid() and item_form.is_valid():
+            try:
+                with transaction.atomic():
+                    # Save voucher
+                    voucher = voucher_form.save()
+                    
+                    # Save item and link to voucher
+                    item = item_form.save(commit=False)
+                    item.voucher = voucher
+                    item.save()
+                    
+                    # Update stock
+                    product = item.product
+                    if product.stock >= item.quantity:
+                        product.stock -= item.quantity
+                        product.save()
+                    else:
+                        raise ValueError(f"Insufficient stock for {product.name}")
+                    
+                    messages.success(request, f'Sales voucher {voucher.voucher_number} created successfully!')
+                    return redirect('sales_list')
+                    
+            except Exception as e:
+                messages.error(request, f'Error creating sales voucher: {str(e)}')
+    else:
+        voucher_form = SalesVoucherForm()
+        item_form = SalesItemForm()
+    
+    context = {
+        'voucher_form': voucher_form,
+        'item_form': item_form,
+        'title': 'Create Sales Voucher'
+    }
+    
+    return render(request, 'sales/sales_create.html', context)
 
-        if payment_status:
-            sales = sales.filter(payment_status=payment_status)
 
-        paginator = Paginator(sales, 10) 
-        page_number = request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
-        context={
-            "sales":page_obj,
-            "query": query,
-            "date_from": date_from,
-            "date_to": date_to,
-            "payment_status": payment_status,
-            "status_choices": PaymentStatusChoices.choices
+@login_required
+@require_http_methods(["GET", "POST"])
+def sales_update(request, pk):
+    """Update an existing sales voucher"""
+    voucher = get_object_or_404(SalesVoucher, pk=pk)
+    
+    # Get the first item for editing (assuming single item per voucher for now)
+    item = voucher.items.first()
+    original_quantity = item.quantity if item else 0
+    
+    if request.method == 'POST':
+        voucher_form = SalesVoucherForm(request.POST, instance=voucher)
+        item_form = SalesItemForm(request.POST, instance=item) if item else SalesItemForm(request.POST)
+        
+        if voucher_form.is_valid() and item_form.is_valid():
+            try:
+                with transaction.atomic():
+                    # Save voucher
+                    voucher = voucher_form.save()
+                    
+                    # Handle item updates
+                    if item:
+                        # Restore original stock
+                        product = item.product
+                        product.stock += original_quantity
+                        
+                        # Update item
+                        item = item_form.save()
+                        
+                        # Deduct new quantity from stock
+                        if product.stock >= item.quantity:
+                            product.stock -= item.quantity
+                            product.save()
+                        else:
+                            raise ValueError(f"Insufficient stock for {product.name}")
+                    else:
+                        # Create new item
+                        item = item_form.save(commit=False)
+                        item.voucher = voucher
+                        item.save()
+                        
+                        # Update stock
+                        product = item.product
+                        if product.stock >= item.quantity:
+                            product.stock -= item.quantity
+                            product.save()
+                        else:
+                            raise ValueError(f"Insufficient stock for {product.name}")
+                    
+                    messages.success(request, f'Sales voucher {voucher.voucher_number} updated successfully!')
+                    return redirect('sales_list')
+                    
+            except Exception as e:
+                messages.error(request, f'Error updating sales voucher: {str(e)}')
+    else:
+        voucher_form = SalesVoucherForm(instance=voucher)
+        item_form = SalesItemForm(instance=item) if item else SalesItemForm()
+    
+    context = {
+        'voucher_form': voucher_form,
+        'item_form': item_form,
+        'voucher': voucher,
+        'item': item,
+        'title': f'Update Sales Voucher {voucher.voucher_number}'
+    }
+    
+    return render(request, 'sales/sales_update.html', context)
+
+
+@login_required
+def sales_detail(request, pk):
+    """View sales voucher details"""
+    voucher = get_object_or_404(
+        SalesVoucher.objects.select_related('customer').prefetch_related('items__product'),
+        pk=pk
+    )
+    
+    context = {
+        'voucher': voucher,
+        'items': voucher.items.all(),
+        'title': f'Sales Voucher {voucher.voucher_number}'
+    }
+    
+    return render(request, 'sales/sales_detail.html', context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def sales_delete(request, pk):
+    """Delete a sales voucher"""
+    voucher = get_object_or_404(SalesVoucher, pk=pk)
+    
+    if request.method == 'POST':
+        voucher_number = voucher.voucher_number
+        try:
+            with transaction.atomic():
+                # Restore stock for all items
+                for item in voucher.items.all():
+                    product = item.product
+                    product.stock += item.quantity
+                    product.save()
+                
+                voucher.delete()
+                messages.success(request, f'Sales voucher {voucher_number} deleted successfully!')
+        except Exception as e:
+            messages.error(request, f'Error deleting sales voucher: {str(e)}')
+        
+        return redirect('sales_list')
+    
+    context = {
+        'voucher': voucher,
+        'title': f'Delete Sales Voucher {voucher.voucher_number}'
+    }
+    
+    return render(request, 'sales/sales_delete.html', context)
+
+
+# Sales Item Management Views
+
+@login_required
+def sales_items_list(request, voucher_pk):
+    """List all items for a specific sales voucher"""
+    voucher = get_object_or_404(SalesVoucher, pk=voucher_pk)
+    items = voucher.items.select_related('product').all()
+    
+    context = {
+        'voucher': voucher,
+        'items': items,
+        'title': f'Items for Sales Voucher {voucher.voucher_number}'
+    }
+    
+    return render(request, 'sales/sales_items_list.html', context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def sales_item_create(request, voucher_pk):
+    """Add a new item to an existing sales voucher"""
+    voucher = get_object_or_404(SalesVoucher, pk=voucher_pk)
+    
+    if request.method == 'POST':
+        form = SalesItemForm(request.POST)
+        
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    item = form.save(commit=False)
+                    item.voucher = voucher
+                    item.save()
+                    
+                    # Update stock
+                    product = item.product
+                    if product.stock >= item.quantity:
+                        product.stock -= item.quantity
+                        product.save()
+                    else:
+                        raise ValueError(f"Insufficient stock for {product.name}")
+                    
+                    # Recalculate voucher totals
+                    voucher.save()
+                    
+                    messages.success(request, 'Item added successfully!')
+                    return redirect('sales_items_list', voucher_pk=voucher.pk)
+                    
+            except Exception as e:
+                messages.error(request, f'Error adding item: {str(e)}')
+    else:
+        form = SalesItemForm()
+    
+    context = {
+        'form': form,
+        'voucher': voucher,
+        'title': f'Add Item to Sales Voucher {voucher.voucher_number}'
+    }
+    
+    return render(request, 'sales/sales_item_create.html', context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def sales_item_update(request, voucher_pk, pk):
+    """Update an existing sales item"""
+    voucher = get_object_or_404(SalesVoucher, pk=voucher_pk)
+    item = get_object_or_404(SalesItem, pk=pk, voucher=voucher)
+    original_quantity = item.quantity
+    original_product = item.product
+    
+    if request.method == 'POST':
+        form = SalesItemForm(request.POST, instance=item)
+        
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    # Restore original stock
+                    original_product.stock += original_quantity
+                    original_product.save()
+                    
+                    # Save updated item
+                    item = form.save()
+                    
+                    # Deduct new quantity from stock
+                    product = item.product
+                    if product.stock >= item.quantity:
+                        product.stock -= item.quantity
+                        product.save()
+                    else:
+                        raise ValueError(f"Insufficient stock for {product.name}")
+                    
+                    # Recalculate voucher totals
+                    voucher.save()
+                    
+                    messages.success(request, 'Item updated successfully!')
+                    return redirect('sales_items_list', voucher_pk=voucher.pk)
+                    
+            except Exception as e:
+                messages.error(request, f'Error updating item: {str(e)}')
+    else:
+        form = SalesItemForm(instance=item)
+    
+    context = {
+        'form': form,
+        'voucher': voucher,
+        'item': item,
+        'title': f'Update Item in Sales Voucher {voucher.voucher_number}'
+    }
+    
+    return render(request, 'sales/sales_item_update.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def sales_item_delete(request, voucher_pk, pk):
+    """Delete a sales item"""
+    voucher = get_object_or_404(SalesVoucher, pk=voucher_pk)
+    item = get_object_or_404(SalesItem, pk=pk, voucher=voucher)
+    
+    try:
+        with transaction.atomic():
+            # Restore stock
+            product = item.product
+            product.stock += item.quantity
+            product.save()
+            
+            item.delete()
+            
+            # Recalculate voucher totals
+            voucher.save()
+            
+            messages.success(request, 'Item deleted successfully!')
+    except Exception as e:
+        messages.error(request, f'Error deleting item: {str(e)}')
+    
+    return redirect('sales_items_list', voucher_pk=voucher.pk)
+
+
+# AJAX API Views
+
+@login_required
+def customer_search(request):
+    """AJAX endpoint for customer search"""
+    query = request.GET.get('q', '')
+    customers = Customer.objects.filter(
+        name__icontains=query
+    )[:10]  # Limit to 10 results
+    
+    results = [
+        {
+            'id': customer.id,
+            'text': customer.name,
+            'phone': getattr(customer, 'phone', ''),
+            'email': getattr(customer, 'email', '')
         }
-        return render(request, 'sales.html',context)
-    except Exception as e:
-        logger.error(f"Error in SalesListView: {e}")
-        return render(request, '404.html', {"message": "An error occurred."})
-
-@login_required
-def SalesCreate(request,sales_id=None):
-    try:
-        if sales_id:
-            sales = get_object_or_404(Sales,id = sales_id)
-            form = SalesForm(request.POST or None,instance=sales)
-            action = 'Update'
-        else:
-            form = SalesForm(request.POST or None)
-            action ='Create'
-        if request.method == 'POST':
-            if form.is_valid():
-                form.save()
-                messages.success(request, f" Sales {action.lower()}d successfully!")
-                return redirect('sales')
-        return render(request, 'sales_create.html',{'form':form,'action':action})
-    except Exception as e:
-        logger.error(f"Error in SalesCreateView: {e}")
-        messages.error(request, 'An error occurred while processing the sales.')
-        return render(request, '404.html', {"message": "An error occurred."})
+        for customer in customers
+    ]
     
-    
-@login_required
-@admin_required
-def SalesUpdate(request, pk):
-    try:
-        sales = get_object_or_404(Sales, pk=pk)
+    return JsonResponse({'results': results})
 
-        if request.method == 'POST': 
-            form = SalesForm(request.POST, instance=sales) 
-            if form.is_valid():
-                form.save()
-                messages.success(request, f'Sales updated successfully!')
-                return redirect('sales') 
-        else:
-            form = SalesForm(instance=sales)
-
-        return render(request, 'sales_update.html', {'form': form, 'sales': sales})
-    except Exception as e:
-        logger.error(f"Error in SalesUpdateView: {e}")
-        messages.error(request, 'An error occurred while processing the sales.')
-        return render(request, '404.html', {"message": "An error occurred."})
 
 @login_required
-@admin_required
-def SalesDelete(request, pk):
-    try:
-        sales = get_object_or_404(Sales, pk=pk)
-        product_name = sales.product.name if sales.product else 'Unknown Product'
+@csrf_exempt
+def create_customer_ajax(request):
+    """AJAX endpoint to create new customer"""
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        customer_name = data.get('name', '').strip()
         
-        if request.method == 'POST':
-            # Check if the product is already deleted (None)
-            sales_name = product_name  # Use the safe product name
-            sales.delete()
-            messages.success(request, f'Sales {sales_name} deleted successfully!')
-            return redirect('sales')
+        if customer_name:
+            customer, created = Customer.objects.get_or_create(name=customer_name)
+            return JsonResponse({
+                'success': True,
+                'customer': {
+                    'id': customer.id,
+                    'name': customer.name
+                },
+                'created': created
+            })
+        
+        return JsonResponse({'success': False, 'error': 'Customer name is required'})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
-        return render(request, 'sales_delete.html', {'sales': sales})
 
-    except Exception as e:
-        logger.error(f"Error in SalesDeleteView: {e}")
-        messages.error(request, 'An error occurred while processing the sales.')
-        return render(request, '404.html', {"message": "An error occurred."})
+@login_required
+def product_search(request):
+    """AJAX endpoint for product search with stock info"""
+    query = request.GET.get('q', '')
+    products = Product.objects.filter(
+        Q(name__icontains=query) |
+        Q(brand__name__icontains=query)
+    ).select_related('brand', 'category')[:10]
+    
+    results = [
+        {
+            'id': product.id,
+            'text': f"{product.name} - {product.brand.name if product.brand else 'No Brand'}",
+            'stock': product.stock,
+            'price': float(product.price),
+            'brand': product.brand.name if product.brand else '',
+            'category': product.category.name if product.category else ''
+        }
+        for product in products
+    ]
+    
+    return JsonResponse({'results': results})
 
+
+@login_required
+def get_product_details(request, pk):
+    """AJAX endpoint to get product details"""
+    try:
+        product = Product.objects.select_related('brand', 'category').get(pk=pk)
+        return JsonResponse({
+            'success': True,
+            'product': {
+                'id': product.id,
+                'name': product.name,
+                'price': float(product.price),
+                'stock': product.stock,
+                'warranty': product.warranty,
+                'brand': product.brand.name if product.brand else '',
+                'category': product.category.name if product.category else ''
+            }
+        })
+    except Product.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Product not found'})
+
+
+# Reports and Export Views
+
+@login_required
+def sales_reports(request):
+    """Generate sales reports"""
+    # Date filtering
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    
+    vouchers = SalesVoucher.objects.select_related('customer').prefetch_related('items')
+    
+    if date_from:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            vouchers = vouchers.filter(date__gte=date_from_obj)
+        except ValueError:
+            pass
+    
+    if date_to:
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            vouchers = vouchers.filter(date__lte=date_to_obj)
+        except ValueError:
+            pass
+    
+    # Calculate statistics
+    stats = vouchers.aggregate(
+        total_vouchers=Count('id'),
+        total_amount=Sum('total_amount'),
+        total_paid=Sum('paid_amount'),
+        total_remaining=Sum('remaining_amount'),
+        total_discount=Sum('discount')
+    )
+    
+    # Top customers
+    top_customers = Customer.objects.filter(
+        sales_vouchers__in=vouchers
+    ).annotate(
+        voucher_count=Count('sales_vouchers'),
+        total_spent=Sum('sales_vouchers__total_amount')
+    ).order_by('-total_spent')[:10]
+    
+    # Top products
+    top_products = Product.objects.filter(
+        sales_items__voucher__in=vouchers
+    ).annotate(
+        quantity_sold=Sum('sales_items__quantity'),
+        revenue=Sum('sales_items__total_price')
+    ).order_by('-revenue')[:10]
+    
+    context = {
+        'stats': stats,
+        'top_customers': top_customers,
+        'top_products': top_products,
+        'date_from': date_from,
+        'date_to': date_to,
+        'title': 'Sales Reports'
+    }
+    
+    return render(request, 'sales/sales_reports.html', context)
+
+
+@login_required
+def sales_export(request):
+    """Export sales data to CSV"""
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="sales.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        'Voucher Number', 'Date', 'Customer', 'Total Amount', 'Discount',
+        'Paid Amount', 'Remaining Amount', 'Payment Method', 'Payment Status', 'Status'
+    ])
+    
+    vouchers = SalesVoucher.objects.select_related('customer').all()
+    
+    for voucher in vouchers:
+        writer.writerow([
+            voucher.voucher_number,
+            voucher.date,
+            voucher.customer.name if voucher.customer else 'N/A',
+            voucher.total_amount,
+            voucher.discount,
+            voucher.paid_amount,
+            voucher.remaining_amount,
+            voucher.get_payment_method_display(),
+            voucher.get_payment_status_display(),
+            voucher.get_status_display()
+        ])
+    
+    return response
 
 
 @login_required
@@ -1740,216 +2540,4 @@ def cashbook_delete(request, pk):
     
     except Exception as e:
         messages.error(request, f"An error occurred while deleting cashbook entry: {str(e)}")
-        return redirect('cashbook_list')\
-            
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib import messages
-from django.http import JsonResponse
-from django.core.exceptions import ValidationError
-from django.db import transaction
-from django.utils import timezone
-import logging
-from decimal import Decimal
-from .models import Account, LedgerEntry, BalanceSheet, ProfitAndLoss
-
-logger = logging.getLogger(__name__)
-
-# Account Views
-def account_list(request):
-    try:
-        accounts = Account.objects.filter(is_active=True).select_related('parent_account')
-        return render(request, 'account_list.html', {'accounts': accounts})
-    except Exception as e:
-        logger.error(f"Error in account_list: {str(e)}")
-        messages.error(request, "Failed to retrieve accounts.")
-        return render(request, 'account_list.html', {'accounts': []})
-
-def account_detail(request, pk):
-    try:
-        account = get_object_or_404(Account, pk=pk)
-        ledger_entries = account.ledger_entries.order_by('-date')[:50]
-        balance = account.get_balance()
-        return render(request, 'account_detail.html', {
-            'account': account,
-            'ledger_entries': ledger_entries,
-            'balance': balance
-        })
-    except Exception as e:
-        logger.error(f"Error in account_detail for pk {pk}: {str(e)}")
-        messages.error(request, "Failed to retrieve account details.")
-        return redirect('account_list')
-
-def account_create(request):
-    if request.method == 'POST':
-        form = AccountForm(request.POST)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    account = form.save()
-                    messages.success(request, f"Account {account.name} created successfully.")
-                    return redirect('account_detail', pk=account.pk)
-            except ValidationError as e:
-                logger.error(f"Validation error in account_create: {str(e)}")
-                messages.error(request, f"Failed to create account: {str(e)}")
-            except Exception as e:
-                logger.error(f"Error in account_create: {str(e)}")
-                messages.error(request, "Failed to create account.")
-        else:
-            messages.error(request, "Please correct the errors below.")
-    else:
-        form = AccountForm()
-    
-    return render(request, 'account_form.html', {
-        'form': form,
-        'account_types': AccountType.choices,
-        'accounts': Account.objects.all()
-    })
-    
-def account_update(request, pk):
-    account = get_object_or_404(Account, pk=pk)
-
-    if request.method == 'POST':
-        form = AccountForm(request.POST, instance=account)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    form.save()
-                    messages.success(request, f"Account {account.name} updated successfully.")
-                    return redirect('account_detail', pk=account.pk)
-            except ValidationError as e:
-                logger.error(f"Validation error in account_update for pk {pk}: {str(e)}")
-                messages.error(request, f"Failed to update account: {str(e)}")
-            except Exception as e:
-                logger.error(f"Error in account_update for pk {pk}: {str(e)}")
-                messages.error(request, "Failed to update account.")
-        else:
-            messages.error(request, "Please correct the errors below.")
-    else:
-        form = AccountForm(instance=account)
-
-    return render(request, 'account_form.html', {
-        'form': form,
-        'account': account,
-        'account_types': AccountType.choices,
-        'accounts': Account.objects.exclude(pk=pk)
-    })
-
-
-# LedgerEntry Views
-def ledger_entry_create(request):
-    if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                ledger_entry = LedgerEntry(
-                    date=request.POST['date'],
-                    account_id=request.POST['account'],
-                    debit_amount=Decimal(request.POST.get('debit_amount', '0.00')),
-                    credit_amount=Decimal(request.POST.get('credit_amount', '0.00')),
-                    description=request.POST['description'],
-                    transaction_type=request.POST['transaction_type'],
-                    transaction_id=request.POST['transaction_id'],
-                    created_by=request.user if request.user.is_authenticated else None
-                )
-                ledger_entry.full_clean()
-                ledger_entry.save()
-                messages.success(request, "Ledger entry created successfully.")
-                return redirect('account_detail', pk=ledger_entry.account_id)
-        except ValidationError as e:
-            logger.error(f"Validation error in ledger_entry_create: {str(e)}")
-            messages.error(request, f"Failed to create ledger entry: {str(e)}")
-        except Exception as e:
-            logger.error(f"Error in ledger_entry_create: {str(e)}")
-            messages.error(request, "Failed to create ledger entry.")
-    
-    return render(request, 'ledger_entry_form.html', {
-        'accounts': Account.objects.filter(is_active=True)
-    })
-
-# BalanceSheet Views
-def balance_sheet_list(request):
-    try:
-        balance_sheets = BalanceSheet.objects.all().order_by('-report_date')
-        return render(request, 'balance_sheet_list.html', {'balance_sheets': balance_sheets})
-    except Exception as e:
-        logger.error(f"Error in balance_sheet_list: {str(e)}")
-        messages.error(request, "Failed to retrieve balance sheets.")
-        return render(request, 'balance_sheet_list.html', {'balance_sheets': []})
-
-def balance_sheet_detail(request, pk):
-    try:
-        balance_sheet = get_object_or_404(BalanceSheet, pk=pk)
-        is_balanced = balance_sheet.validate_balances()
-        return render(request, 'balance_sheet_detail.html', {
-            'balance_sheet': balance_sheet,
-            'is_balanced': is_balanced
-        })
-    except Exception as e:
-        logger.error(f"Error in balance_sheet_detail for pk {pk}: {str(e)}")
-        messages.error(request, "Failed to retrieve balance sheet details.")
-        return redirect('balance_sheet_list')
-
-def balance_sheet_create(request):
-    if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                balance_sheet = BalanceSheet(
-                    report_date=request.POST['report_date'],
-                    is_final=request.POST.get('is_final', False) == 'on',
-                    notes=request.POST.get('notes', ''),
-                    created_by=request.user if request.user.is_authenticated else None
-                )
-                balance_sheet.full_clean()
-                balance_sheet.save()
-                messages.success(request, "Balance sheet created successfully.")
-                return redirect('balance_sheet_detail', pk=balance_sheet.pk)
-        except ValidationError as e:
-            logger.error(f"Validation error in balance_sheet_create: {str(e)}")
-            messages.error(request, f"Failed to create balance sheet: {str(e)}")
-        except Exception as e:
-            logger.error(f"Error in balance_sheet_create: {str(e)}")
-            messages.error(request, "Failed to create balance sheet.")
-    
-    return render(request, 'balance_sheet_form.html')
-
-# ProfitAndLoss Views
-def profit_and_loss_list(request):
-    try:
-        pl_statements = ProfitAndLoss.objects.all().order_by('-end_date')
-        return render(request, 'profit_and_loss_list.html', {'pl_statements': pl_statements})
-    except Exception as e:
-        logger.error(f"Error in profit_and_loss_list: {str(e)}")
-        messages.error(request, "Failed to retrieve profit and loss statements.")
-        return render(request, 'profit_and_loss_list.html', {'pl_statements': []})
-
-def profit_and_loss_detail(request, pk):
-    try:
-        pl_statement = get_object_or_404(ProfitAndLoss, pk=pk)
-        return render(request, 'profit_and_loss_detail.html', {'pl_statement': pl_statement})
-    except Exception as e:
-        logger.error(f"Error in profit_and_loss_detail for pk {pk}: {str(e)}")
-        messages.error(request, "Failed to retrieve profit and loss details.")
-        return redirect('profit_and_loss_list')
-
-def profit_and_loss_create(request):
-    if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                pl_statement = ProfitAndLoss(
-                    start_date=request.POST['start_date'],
-                    end_date=request.POST['end_date'],
-                    is_final=request.POST.get('is_final', False) == 'on',
-                    notes=request.POST.get('notes', ''),
-                    created_by=request.user if request.user.is_authenticated else None
-                )
-                pl_statement.full_clean()
-                pl_statement.save()
-                messages.success(request, "Profit and loss statement created successfully.")
-                return redirect('profit_and_loss_detail', pk=pl_statement.pk)
-        except ValidationError as e:
-            logger.error(f"Validation error in profit_and_loss_create: {str(e)}")
-            messages.error(request, f"Failed to create profit and loss statement: {str(e)}")
-        except Exception as e:
-            logger.error(f"Error in profit_and_loss_create: {str(e)}")
-            messages.error(request, "Failed to create profit and loss statement.")
-    
-    return render(request, 'profit_and_loss_form.html')
+        return redirect('cashbook_list')

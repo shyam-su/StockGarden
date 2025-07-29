@@ -1,791 +1,600 @@
-from django.db.models.signals import post_save, pre_save, post_delete
+from django.db.models.signals import post_save, pre_save, post_delete, pre_delete
 from django.dispatch import receiver
-from .models import *
 from django.db import transaction
 from django.utils import timezone
-
+from django.core.exceptions import ValidationError
+from decimal import Decimal
 import logging
+from .models import *
 
 logger = logging.getLogger(__name__)
 
-@receiver(pre_save, sender=Purchase)
-def adjust_stock_on_purchase_update(sender, instance, **kwargs):
-    """Adjust Product stock before saving a Purchase (create or update)."""
-    if not instance.product_name:
-        logger.warning(f"Purchase {instance.pk or 'new'} has no product_name, skipping stock adjustment.")
-        return
+# Global flag to prevent infinite loops
+_signal_processing = set()
 
-    if instance.quantity < 0:
-        logger.error(f"Purchase {instance.pk or 'new'} has negative quantity: {instance.quantity}")
-        raise ValueError("Purchase quantity cannot be negative.")
-
-    try:
-        with transaction.atomic():
-            # Lock the product to prevent race conditions
-            existing_product = Product.objects.select_for_update().filter(
-                vendor=instance.vendor,
-                name=instance.product_name,
-                brand=instance.brand
-            ).first()
-
-            if instance.pk:  # Updating an existing purchase
-                try:
-                    old_purchase = Purchase.objects.get(pk=instance.pk)
-                    if old_purchase.quantity != instance.quantity:
-                        quantity_diff = instance.quantity - old_purchase.quantity
-                        if existing_product:
-                            existing_product.stock = (existing_product.stock or 0) + quantity_diff
-                            existing_product.save()
-                            logger.info(f"Adjusted Product {existing_product.pk} stock by {quantity_diff} to {existing_product.stock} for Purchase {instance.pk}")
-                        else:
-                            logger.warning(f"No existing Product found for Purchase {instance.pk} during update, stock not adjusted.")
-                    else:
-                        logger.info(f"No quantity change for Purchase {instance.pk}, skipping stock adjustment.")
-                except Purchase.DoesNotExist:
-                    logger.error(f"Old Purchase {instance.pk} not found during update.")
-                    raise ValueError("Cannot update purchase: Original purchase not found.")
-            else:  # Creating a new purchase
-                if existing_product:
-                    existing_product.stock = (existing_product.stock or 0) + instance.quantity
-                    existing_product.save()
-                    logger.info(f"Incremented Product {existing_product.pk} stock by {instance.quantity} to {existing_product.stock} for new Purchase")
-                # Stock for new product will be set in post_save
-    except Exception as e:
-        logger.error(f"Error in adjust_stock_on_purchase_update for Purchase {instance.pk or 'new'}: {e}", exc_info=True)
-        raise
-
-@receiver(post_save, sender=Purchase)
-def create_or_update_product_from_purchase(sender, instance, created, **kwargs):
-    """Create or update a Product based on a Purchase, handling non-stock fields and new product creation."""
-    if not instance.product_name:
-        logger.warning(f"Purchase {instance.pk} has no product_name, skipping product creation/update.")
-        return
-
-    try:
-        with transaction.atomic():
-            # Lock the product to prevent race conditions
-            existing_product = Product.objects.select_for_update().filter(
-                vendor=instance.vendor,
-                name=instance.product_name,
-                brand=instance.brand
-            ).first()
-
-            if existing_product:
-                # Update non-stock fields
-                existing_product.description = instance.description if instance.description is not None else existing_product.description
-                existing_product.price = instance.price if instance.price is not None else existing_product.price
-                existing_product.warranty = instance.warranty if instance.warranty is not None else existing_product.warranty
-                existing_product.Imei = instance.Imei if instance.Imei is not None else existing_product.Imei
-                existing_product.image = instance.image if instance.image is not None else existing_product.image
-                existing_product.categories = instance.categories if instance.categories is not None else existing_product.categories
-                existing_product.brand = instance.brand if instance.brand is not None else existing_product.brand
-                existing_product.save()
-                logger.info(f"Updated Product {existing_product.pk} non-stock fields for Purchase {instance.pk}")
-            elif created:
-                # Create new product with stock equal to purchase quantity
-                new_product = Product.objects.create(
-                    vendor=instance.vendor,
-                    name=instance.product_name,
-                    description=instance.description,
-                    price=instance.price,
-                    warranty=instance.warranty,
-                    Imei=instance.Imei,
-                    image=instance.image,
-                    categories=instance.categories,
-                    stock=instance.quantity,  # Set stock to purchase quantity
-                    brand=instance.brand,
-                )
-                logger.info(f"Created new Product {new_product.pk} for Purchase {instance.pk} with stock {new_product.stock}")
-    except Exception as e:
-        logger.error(f"Error in create_or_update_product_from_purchase for Purchase {instance.pk}: {e}", exc_info=True)
-        raise
-
-@receiver(post_delete, sender=Purchase)
-def remove_stock_on_purchase_delete(sender, instance, **kwargs):
-    """Remove stock from Product when a Purchase is deleted."""
-    if not instance.product_name:
-        logger.warning(f"Deleted Purchase {instance.pk} has no product_name, skipping stock adjustment.")
-        return
-
-    try:
-        with transaction.atomic():
-            # Lock the product to prevent race conditions
-            product = Product.objects.select_for_update().filter(
-                vendor=instance.vendor,
-                name=instance.product_name,
-                brand=instance.brand
-            ).first()
-
-            if product:
-                product.stock = (product.stock or 0) - instance.quantity
-                product.save()
-                logger.info(f"Reduced Product {product.pk} stock by {instance.quantity} to {product.stock} after Purchase {instance.pk} deletion")
-            else:
-                logger.warning(f"No Product found for deleted Purchase {instance.pk}, no stock adjustment made.")
-    except Exception as e:
-        logger.error(f"Error in remove_stock_on_purchase_delete for Purchase {instance.pk}: {e}", exc_info=True)
-        raise
-
-@receiver(pre_save, sender=Sales)
-def adjust_stock_on_sales_update(sender, instance, **kwargs):
-    if not instance.product or instance.quantity is None:
-        logger.warning(f"Sales {instance.pk or 'new'} missing product or quantity.")
-        return
-
-    try:
-        with transaction.atomic():
-            # Lock the product row for safe concurrent access
-            product = Product.objects.select_for_update().get(pk=instance.product.pk)
-
-            # If updating an existing sale (instance.pk is not None)
-            if instance.pk:
-                try:
-                    old_sale = Sales.objects.get(pk=instance.pk)
-                except Sales.DoesNotExist:
-                    logger.error(f"Sales record with ID {instance.pk} not found for update.")
-                    raise ValueError("Original sale record not found.")
-
-                old_quantity = old_sale.quantity
-                new_quantity = instance.quantity
-                quantity_diff = old_quantity - new_quantity  # Positive if reducing sale, negative if increasing sale
-
-                # Check for sufficient stock when increasing quantity
-                if quantity_diff < 0 and product.stock < abs(quantity_diff):
-                    raise ValueError("Insufficient stock to increase sale quantity.")
-
-                # Apply the stock adjustment
-                product.stock += quantity_diff
-                logger.info(f"Adjusted stock by {quantity_diff}, new stock: {product.stock}")
-
-            else:
-                # If this is a new sale, check if there is enough stock
-                if product.stock < instance.quantity:
-                    raise ValueError("Insufficient stock to create sale.")
-
-                # Reduce stock for the new sale
-                product.stock -= instance.quantity
-                logger.info(f"Created new sale, reduced stock by {instance.quantity}, new stock: {product.stock}")
-
-            # Handle negative stock
-            if product.stock < 0:
-                # If stock goes negative, raise an error
-                raise ValueError(f"Stock for {product.name} went negative, which is invalid.")
-
-            # Save the product after adjusting the stock
-            product.save()
-
-    except Exception as e:
-        # Log and re-raise the error if something goes wrong
-        logger.error(f"Error adjusting stock for Sales {instance.pk or 'new'}: {e}", exc_info=True)
-        raise
-
-@receiver(post_delete, sender=Sales)
-def restore_stock_on_sales_delete(sender, instance, **kwargs):
-    """Restore Product stock when a Sales instance is deleted."""
-    if not instance.product or instance.quantity is None:
-        logger.warning(f"Deleted Sales {instance.pk} missing product or quantity, skipping stock adjustment.")
-        return
-
-    try:
-        with transaction.atomic():
-            # Lock the product to prevent race conditions
-            product = Product.objects.select_for_update().get(pk=instance.product.pk)
-            product.stock += instance.quantity
-            product.save()
-            logger.info(f"Restored Product {product.pk} stock by {instance.quantity} to {product.stock} after Sales {instance.pk} deletion")
-    except Exception as e:
-        logger.error(f"Error in restore_stock_on_sales_delete for Sales {instance.pk}: {e}", exc_info=True)
-        raise
-
-@receiver(pre_save, sender=Return)
-def adjust_stock_on_return_update(sender, instance, **kwargs):
-    if not instance.product or instance.quantity_returned is None:
-        logger.warning(f"Return {instance.pk or 'new'} missing product or quantity.")
-        return
-    try:
-        with transaction.atomic():
-            product = Product.objects.select_for_update().get(pk=instance.product.pk)
-            if instance.pk:  # Updating an existing return
-                try:
-                    old_return = Return.objects.get(pk=instance.pk)
-                    old_quantity = old_return.quantity_returned
-                    new_quantity = instance.quantity_returned
-                    quantity_diff = new_quantity - old_quantity
-                    product.stock += quantity_diff
-                    logger.info(f"Adjusted stock by {quantity_diff} for Return {instance.pk}, new stock: {product.stock}")
-                except Return.DoesNotExist:
-                    logger.error(f"Return record with ID {instance.pk} not found for update.")
-                    return
-            else:  # Creating a new return
-                product.stock += instance.quantity_returned
-                logger.info(f"Created new return, increased stock by {instance.quantity_returned}, new stock: {product.stock}")
-            product.save()
-    except Exception as e:
-        logger.error(f"Error adjusting stock for Return {instance.pk or 'new'}: {e}", exc_info=True)
-        raise
-
-@receiver(post_delete, sender=Return)
-def remove_stock_on_return_delete(sender, instance, **kwargs):
-    if not instance.product or instance.quantity_returned is None:
-        logger.warning(f"Deleted Return {instance.pk} missing product or quantity, skipping stock adjustment.")
-        return
-    try:
-        with transaction.atomic():
-            product = Product.objects.select_for_update().get(pk=instance.product.pk)
-            product.stock -= instance.quantity_returned
-            product.save()
-            logger.info(f"Reduced Product {product.pk} stock by {instance.quantity_returned} to {product.stock} after Return {instance.pk} deletion")
-    except Exception as e:
-        logger.error(f"Error in remove_stock_on_return_delete for Return {instance.pk}: {e}", exc_info=True)
-        raise
-
-
-
-@receiver(post_save, sender=Sales)
-def create_or_update_sales_invoice(sender, instance, created, **kwargs):
-    SalesInvoice.objects.update_or_create(
-        sales=instance,
-        defaults={
-            "product_name": instance.product.name,
-            "warranty": instance.warranty,
-            "customer_name": getattr(instance.user, "full_name", None),
-            "customer_number": getattr(instance.user, "phone", None),
-            "customer_address": getattr(instance.user, "address", None),
-            "payment_method": instance.payment_method,
-            "quantity": instance.quantity,
-            "subtotal": instance.total_amount - instance.discount,  # Ensure correct subtotal
-            "discount_amount": instance.discount,
-            "paid_amount": instance.paid_amount,
-            "remaining_amount": instance.remaining_amount,
-            "payment_status": instance.payment_status,
-            "due_date": instance.due_date,
-            "created_at": instance.created_at,
-            "updated_at": instance.updated_at,
-        },
-    )
-
-@receiver(post_save, sender=Repair)
-def create_or_update_repair_details_and_invoice(sender, instance, created, **kwargs):
-    RepairDetail.objects.update_or_create(
-        repair_order=instance,
-        defaults={
-            "product_name": instance.product_name,
-            "device_model": instance.device_model,
-            "repair_cost": instance.total_amount,
-            "issue_description": instance.issue_description,
-            "created_at": instance.created_at,
-        },
-    )
-
-    RepairInvoice.objects.update_or_create(
-        repair=instance,
-        defaults={
-            "product_name": instance.product_name,
-            "customer_name": instance.user.full_name,
-            "customer_number": instance.user.phone if instance.user.phone else None,
-            "customer_address": instance.user.address if instance.user.address else None,
-            "payment_method": instance.payment_method,
-            "total_amount": instance.total_amount,
-            "discount_amount": instance.discount_amount,
-            "paid_amount": instance.paid_amount,
-            "remaining_amount": instance.remaining_amount,
-            "payment_status": instance.payment_status,
-            "created_at": instance.created_at,
-        },
-    )
-
-
-@receiver(post_save, sender=Sales)
-def create_sales_daybook_entry(sender, instance, created, **kwargs):
-    if created:
-        Daybook.objects.create(
-            transaction_type='sale',
-            reference_id=instance.id,
-            reference_model='Sales',
-            description=f"Sale of {instance.product.name} (Qty: {instance.quantity})",
-            debit_amount=instance.total_amount,
-            credit_amount=0,
-            balance=instance.total_amount,
-            payment_method=instance.payment_method,
-            payment_status=instance.payment_status,
-            created_by=instance.user
-        )
-
-@receiver(post_save, sender=Purchase)
-def create_purchase_daybook_entry(sender, instance, created, **kwargs):
-    if created:
-        Daybook.objects.create(
-            transaction_type='purchase',
-            reference_id=instance.id,
-            reference_model='Purchase',
-            description=f"Purchase of {instance.product_name} from {instance.vendor.full_name}",
-            debit_amount=0,
-            credit_amount=instance.total_price,
-            balance=-instance.total_price,
-            payment_method=instance.payment_method,
-            payment_status=instance.payment_status,
-            created_by=instance.vendor
-        )
-
-@receiver(post_save, sender=Expense)
-def create_expense_daybook_entry(sender, instance, created, **kwargs):
-    if created:
-        Daybook.objects.create(
-            transaction_type='expense',
-            reference_id=instance.id,
-            reference_model='Expense',
-            description=f"Expense: {instance.get_category_type_display()}",
-            debit_amount=0,
-            credit_amount=instance.amount,
-            balance=-instance.amount,
-            payment_method=instance.payment_method,
-            payment_status=instance.payment_status,
-            created_by=None  # Can be set to the user who created the expense if available
-        )
-
-@receiver(post_save, sender=Repair)
-def create_repair_daybook_entry(sender, instance, created, **kwargs):
-    if created and instance.total_amount:
-        Daybook.objects.create(
-            transaction_type='repair',
-            reference_id=instance.id,
-            reference_model='Repair',
-            description=f"Repair service for {instance.device_model}",
-            debit_amount=instance.total_amount,
-            credit_amount=0,
-            balance=instance.total_amount,
-            payment_method=instance.payment_method,
-            payment_status=instance.payment_status,
-            created_by=instance.user
-        )
-
-@receiver(post_save, sender=Return)
-def create_return_daybook_entry(sender, instance, created, **kwargs):
-    if created:
-        Daybook.objects.create(
-            transaction_type='return',
-            reference_id=instance.id,
-            reference_model='Return',
-            description=f"Return of {instance.product.name} (Qty: {instance.quantity_returned})",
-            debit_amount=0,
-            credit_amount=instance.refund_amount,
-            balance=-instance.refund_amount,
-            payment_method=None,
-            payment_status='Full Payment',
-            created_by=None
-        )
-
-@receiver(post_save, sender=Sales)
-def create_sales_cashbook_entry(sender, instance, created, **kwargs):
-    if created and instance.payment_method in ['cash', 'bank_transfer', 'mobile_payment']:
-        Cashbook.objects.create(
-            entry_type='receipt',
-            source_type='sale',
-            reference_id=instance.id,
-            reference_model='Sales',
-            description=f"Payment for sale of {instance.product.name}",
-            amount=instance.paid_amount,
-            payment_method=instance.payment_method,
-            is_bank=instance.payment_method != 'cash',
-            transaction_date=instance.created_at.date(),
-            recorded_by=instance.user
-        )
-
-@receiver(post_save, sender=Purchase)
-def create_purchase_cashbook_entry(sender, instance, created, **kwargs):
-    if created and instance.payment_method in ['cash', 'bank_transfer', 'mobile_payment'] and instance.paid_amount > 0:
-        Cashbook.objects.create(
-            entry_type='payment',
-            source_type='purchase',
-            reference_id=instance.id,
-            reference_model='Purchase',
-            description=f"Payment for purchase of {instance.product_name}",
-            amount=instance.paid_amount,
-            payment_method=instance.payment_method,
-            is_bank=instance.payment_method != 'cash',
-            transaction_date=instance.created_at.date(),
-            recorded_by=instance.vendor
-        )
-
-@receiver(post_save, sender=Expense)
-def create_expense_cashbook_entry(sender, instance, created, **kwargs):
-    if created and instance.payment_method in ['cash', 'bank_transfer', 'mobile_payment']:
-        Cashbook.objects.create(
-            entry_type='payment',
-            source_type='expense',
-            reference_id=instance.id,
-            reference_model='Expense',
-            description=f"Payment for expense: {instance.get_category_type_display()}",
-            amount=instance.amount,
-            payment_method=instance.payment_method,
-            is_bank=instance.payment_method != 'cash',
-            transaction_date=instance.created_at.date(),
-            recorded_by=None  # Can be set to the user who created the expense
-        )
-
-@receiver(post_save, sender=Repair)
-def create_repair_cashbook_entry(sender, instance, created, **kwargs):
-    if created and instance.payment_method in ['cash', 'bank_transfer', 'mobile_payment'] and instance.paid_amount > 0:
-        Cashbook.objects.create(
-            entry_type='receipt',
-            source_type='repair',
-            reference_id=instance.id,
-            reference_model='Repair',
-            description=f"Payment for repair of {instance.device_model}",
-            amount=instance.paid_amount,
-            payment_method=instance.payment_method,
-            is_bank=instance.payment_method != 'cash',
-            transaction_date=instance.created_at.date(),
-            recorded_by=instance.user
-        )
-
-@receiver(post_save, sender=Return)
-def create_return_cashbook_entry(sender, instance, created, **kwargs):
-    if created and instance.refund_amount > 0:
-        # Assuming returns are always cash payments (adjust if you have other methods)
-        Cashbook.objects.create(
-            entry_type='payment',
-            source_type='return',
-            reference_id=instance.id,
-            reference_model='Return',
-            description=f"Refund for return of {instance.product.name}",
-            amount=instance.refund_amount,
-            payment_method='cash',
-            is_bank=False,
-            transaction_date=instance.return_date.date(),
-            recorded_by=None  # Can be set to the user who processed the return
-        )
-        
-def create_stock_ledger_entry(instance, transaction_type, quantity, unit_cost, reference_model):
-    """
-    Creates a stock ledger entry for inventory tracking
-    Handles both Purchase (which uses product_name) and Sales/Return (which use product FK)
-    """
-    try:
-        with transaction.atomic():
-            # Determine the product based on the model type
-            if reference_model == 'Purchase':
-                # For Purchase model, we need to find the product by name
-                try:
-                    product = Product.objects.get(
-                        name=instance.product_name,
-                        brand=instance.brand,
-                        vendor=instance.vendor
-                    )
-                except Product.DoesNotExist:
-                    logger.error(f"Product {instance.product_name} not found for purchase {instance.id}")
-                    return
-            else:
-                # For Sales and Return models, we can use the product FK directly
-                product = instance.product
+def prevent_infinite_loop(signal_name, instance_id):
+    """Decorator to prevent infinite signal loops"""
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            key = f"{signal_name}_{instance_id}"
+            if key in _signal_processing:
+                logger.debug(f"Preventing infinite loop for {key}")
+                return
             
-            # Create the ledger entry
-            StockLedger.objects.create(
-                product=product,
-                transaction_type=transaction_type,
-                reference_id=instance.id,
-                reference_model=reference_model,
-                quantity=quantity,
-                unit_cost=unit_cost,
-                created_by=getattr(instance, 'user', None) or getattr(instance, 'vendor', None)
-            )
+            _signal_processing.add(key)
+            try:
+                return func(*args, **kwargs)
+            finally:
+                _signal_processing.discard(key)
+        return wrapper
+    return decorator
+
+# ==================== VOUCHER NUMBER GENERATION ====================
+
+@receiver(pre_save, sender=PurchaseVoucher)
+def generate_purchase_voucher_number(sender, instance, **kwargs):
+    """Generate unique voucher number with proper error handling"""
+    if instance.voucher_number:
+        return  # Already has a number
+        
+    try:
+        # The model's save method handles voucher number generation
+        # Signal just ensures it happens
+        pass
     except Exception as e:
-        logger.error(f"Error creating stock ledger entry: {e}", exc_info=True)
-        raise
+        logger.error(f"Error in purchase voucher number generation: {e}")
+        raise ValidationError(f"Failed to generate voucher number: {e}")
 
-@receiver(post_save, sender=Purchase)
-def create_purchase_ledger_entry(sender, instance, created, **kwargs):
-    """
-    Creates ledger entry when a new purchase is made
-    Only triggers for new purchases (created=True)
-    """
-    if created:
-        create_stock_ledger_entry(
-            instance=instance,
-            transaction_type='purchase',
-            quantity=instance.quantity,
-            unit_cost=instance.price,
-            reference_model='Purchase'
-        )
+@receiver(pre_save, sender=SalesVoucher)
+def generate_sales_voucher_number(sender, instance, **kwargs):
+    """Generate unique voucher number with proper error handling"""
+    if instance.voucher_number:
+        return  # Already has a number
+        
+    try:
+        # The model's save method handles voucher number generation
+        # Signal just ensures it happens
+        pass
+    except Exception as e:
+        logger.error(f"Error in sales voucher number generation: {e}")
+        raise ValidationError(f"Failed to generate voucher number: {e}")
 
-@receiver(post_save, sender=Sales)
-def create_sale_ledger_entry(sender, instance, created, **kwargs):
-    """
-    Creates ledger entry when a new sale is made
-    Only triggers for new sales (created=True)
-    Uses negative quantity to indicate stock reduction
-    """
-    if created:
-        create_stock_ledger_entry(
-            instance=instance,
-            transaction_type='sale',
-            quantity=-instance.quantity,  # Negative for outgoing stock
-            unit_cost=instance.price,
-            reference_model='Sales'
-        )
+# ==================== STOCK MANAGEMENT SIGNALS ====================
 
-@receiver(post_save, sender=Return)
-def create_return_ledger_entry(sender, instance, created, **kwargs):
-    """
-    Creates ledger entry when a product is returned
-    Only triggers for new returns (created=True)
-    """
-    if created:
-        create_stock_ledger_entry(
-            instance=instance,
-            transaction_type='return',
-            quantity=instance.quantity_returned,
-            unit_cost=instance.product.price,
-            reference_model='Return'
-        )
-
-@receiver(post_delete, sender=Purchase)
-def reverse_purchase_ledger_entry(sender, instance, **kwargs):
-    """
-    Creates reversal entry when a purchase is deleted
-    Uses negative quantity to reverse the original entry
-    """
-    create_stock_ledger_entry(
-        instance=instance,
-        transaction_type='purchase',
-        quantity=-instance.quantity,  # Reverse the original entry
-        unit_cost=instance.price,
-        reference_model='Purchase'
-    )
-
-@receiver(post_delete, sender=Sales)
-def reverse_sale_ledger_entry(sender, instance, **kwargs):
-    """
-    Creates reversal entry when a sale is deleted
-    Uses positive quantity to reverse the original negative entry
-    """
-    create_stock_ledger_entry(
-        instance=instance,
-        transaction_type='sale',
-        quantity=instance.quantity,  # Reverse the original entry
-        unit_cost=instance.price,
-        reference_model='Sales'
-    )
-
-@receiver(post_delete, sender=Return)
-def reverse_return_ledger_entry(sender, instance, **kwargs):
-    """
-    Creates reversal entry when a return is deleted
-    Uses negative quantity to reverse the original entry
-    """
-    create_stock_ledger_entry(
-        instance=instance,
-        transaction_type='return',
-        quantity=-instance.quantity_returned,  # Reverse the original entry
-        unit_cost=instance.product.price,
-        reference_model='Return'
-    )
+@receiver(post_save, sender=PurchaseItem)
+def handle_purchase_item_stock(sender, instance, created, **kwargs):
+    """Handle stock updates for purchase items using StockLedger"""
+    if not created:
+        return  # Only handle new items to avoid complications
     
-@receiver(pre_save, sender=Sales)
-def validate_sales_transaction(sender, instance, **kwargs):
-    """Validate sales data before saving"""
+    signal_key = f"purchase_stock_{instance.pk}"
+    if signal_key in _signal_processing:
+        return
+    
+    _signal_processing.add(signal_key)
     try:
-        if instance.quantity <= 0:
-            raise ValidationError("Quantity must be greater than zero")
-        if instance.price <= 0:
-            raise ValidationError("Price must be greater than zero")
+        with transaction.atomic():
+            # Get or create product
+            product, product_created = Product.objects.get_or_create(
+                name=instance.product_name,
+                defaults={
+                    'vendor': instance.voucher.vendor,
+                    'price': instance.price,
+                    'brand': instance.brand,
+                    'categories': instance.category,
+                    'warranty': instance.warranty,
+                    'stock': 0,
+                    'description': instance.description or ''
+                }
+            )
+            
+            # Update product details if it already existed
+            if not product_created:
+                updated_fields = []
+                if product.price != instance.price:
+                    product.price = instance.price
+                    updated_fields.append('price')
+                if instance.warranty and product.warranty != instance.warranty:
+                    product.warranty = instance.warranty
+                    updated_fields.append('warranty')
+                if instance.brand and product.brand != instance.brand:
+                    product.brand = instance.brand
+                    updated_fields.append('brand')
+                if instance.category and product.categories != instance.category:
+                    product.categories = instance.category
+                    updated_fields.append('categories')
+                
+                if updated_fields:
+                    product.save(update_fields=updated_fields)
+            
+            # Create stock ledger entry (this updates product stock automatically)
+            StockLedger.create_entry(
+                product=product,
+                transaction_type='purchase',
+                reference_id=instance.voucher.id,
+                reference_model='PurchaseVoucher',
+                quantity=instance.quantity,
+                unit_cost=instance.price,
+                created_by=instance.voucher.vendor,
+                notes=f"Purchase item from voucher {instance.voucher.voucher_number}"
+            )
+            
+            logger.info(f"Stock updated for product {product.name}: +{instance.quantity}")
+            
     except Exception as e:
-        logger.error(f"Sales validation error: {str(e)}")
-        raise ValidationError(str(e))
+        logger.error(f"Error handling purchase item stock for item {instance.pk}: {e}")
+        raise
+    finally:
+        _signal_processing.discard(signal_key)
 
-@receiver(post_save, sender=Sales)
-def create_sales_ledger_entries(sender, instance, created, **kwargs):
-    """Create ledger entries when a sale is made"""
+@receiver(post_save, sender=SalesItem)
+def handle_sales_item_stock(sender, instance, created, **kwargs):
+    """Handle stock updates for sales items using StockLedger"""
+    if not created:
+        return  # Only handle new items
+    
+    signal_key = f"sales_stock_{instance.pk}"
+    if signal_key in _signal_processing:
+        return
+    
+    _signal_processing.add(signal_key)
     try:
-        if created or instance.total_amount_changed():
-            # Get or create relevant accounts
-            sales_account, _ = Account.objects.get_or_create(
-                code='4000',
-                defaults={
-                    'name': 'Sales Revenue',
-                    'account_type': AccountType.INCOME
-                }
-            )
-            
-            cash_account, _ = Account.objects.get_or_create(
-                code='1000',
-                defaults={
-                    'name': 'Cash',
-                    'account_type': AccountType.ASSET
-                }
-            )
-            
-            accounts_receivable, _ = Account.objects.get_or_create(
-                code='1100',
-                defaults={
-                    'name': 'Accounts Receivable',
-                    'account_type': AccountType.ASSET
-                }
-            )
-            
-            # Create ledger entries
-            if instance.payment_method == PaymentMethodChoices.CASH:
-                LedgerEntry.objects.create(
-                    date=instance.created_at,
-                    account=cash_account,
-                    debit_amount=instance.total_amount,
-                    description=f"Cash sale of {instance.product.name}",
-                    transaction_type='sale',
-                    transaction_id=instance.id,
-                    created_by=instance.user
-                )
-            else:
-                LedgerEntry.objects.create(
-                    date=instance.created_at,
-                    account=accounts_receivable,
-                    debit_amount=instance.total_amount,
-                    description=f"Credit sale of {instance.product.name}",
-                    transaction_type='sale',
-                    transaction_id=instance.id,
-                    created_by=instance.user
-                )
-            
-            LedgerEntry.objects.create(
-                date=instance.created_at,
-                account=sales_account,
-                credit_amount=instance.total_amount,
-                description=f"Sale of {instance.product.name}",
+        with transaction.atomic():
+            # Create stock ledger entry (negative quantity for sale)
+            StockLedger.create_entry(
+                product=instance.product,
                 transaction_type='sale',
-                transaction_id=instance.id,
-                created_by=instance.user
+                reference_id=instance.voucher.id,
+                reference_model='SalesVoucher',
+                quantity=-instance.quantity,  # Negative for outgoing stock
+                unit_cost=instance.product.price,  # Use product's cost price
+                created_by=getattr(instance.voucher, 'created_by', None),
+                notes=f"Sale item from voucher {instance.voucher.voucher_number}"
             )
+            
+            logger.info(f"Stock updated for product {instance.product.name}: -{instance.quantity}")
+            
+    except ValidationError as e:
+        logger.error(f"Stock validation error for sales item {instance.pk}: {e}")
+        raise
     except Exception as e:
-        logger.error(f"Error creating ledger entries for sale {instance.id}: {str(e)}")
-        # Optionally, you could send an alert to admins here
-        
-        
-@receiver(post_save, sender=Purchase)
-def create_purchase_ledger_entries(sender, instance, created, **kwargs):
-    """Create ledger entries when a purchase is made"""
+        logger.error(f"Error handling sales item stock for item {instance.pk}: {e}")
+        raise
+    finally:
+        _signal_processing.discard(signal_key)
+
+@receiver(pre_delete, sender=PurchaseItem)
+def handle_purchase_item_delete(sender, instance, **kwargs):
+    """Handle stock restoration when purchase items are deleted"""
+    signal_key = f"purchase_delete_{instance.pk}"
+    if signal_key in _signal_processing:
+        return
+    
+    _signal_processing.add(signal_key)
     try:
-        if created or instance.total_price_changed():
-            # Get or create relevant accounts
-            inventory_account, _ = Account.objects.get_or_create(
-                code='1200',
-                defaults={
-                    'name': 'Inventory',
-                    'account_type': AccountType.ASSET
-                }
+        # Find the corresponding product
+        products = Product.objects.filter(name=instance.product_name)
+        if not products.exists():
+            logger.warning(f"No product found for deleted purchase item: {instance.product_name}")
+            return
+        
+        product = products.first()
+        
+        with transaction.atomic():
+            # Create negative stock ledger entry to reverse the purchase
+            StockLedger.create_entry(
+                product=product,
+                transaction_type='adjustment',
+                reference_id=instance.voucher.id,
+                reference_model='PurchaseVoucher',
+                quantity=-instance.quantity,  # Negative to reduce stock
+                unit_cost=instance.price,
+                created_by=instance.voucher.vendor,
+                notes=f"Reversal: Purchase item deleted from voucher {instance.voucher.voucher_number}"
             )
             
-            accounts_payable, _ = Account.objects.get_or_create(
-                code='2000',
-                defaults={
-                    'name': 'Accounts Payable',
-                    'account_type': AccountType.LIABILITY
-                }
-            )
+            logger.info(f"Stock restored for product {product.name}: -{instance.quantity}")
             
-            cash_account, _ = Account.objects.get_or_create(
-                code='1000',
-                defaults={
-                    'name': 'Cash',
-                    'account_type': AccountType.ASSET
-                }
-            )
-            
-            # Create ledger entries
-            if instance.payment_method == PaymentMethodChoices.CASH:
-                LedgerEntry.objects.create(
-                    date=instance.created_at,
-                    account=inventory_account,
-                    debit_amount=instance.total_price,
-                    description=f"Cash purchase of {instance.product_name}",
-                    transaction_type='purchase',
-                    transaction_id=instance.id,
-                    created_by=instance.vendor
-                )
-                
-                LedgerEntry.objects.create(
-                    date=instance.created_at,
-                    account=cash_account,
-                    credit_amount=instance.total_price,
-                    description=f"Cash payment for {instance.product_name}",
-                    transaction_type='purchase',
-                    transaction_id=instance.id,
-                    created_by=instance.vendor
-                )
-            else:
-                LedgerEntry.objects.create(
-                    date=instance.created_at,
-                    account=inventory_account,
-                    debit_amount=instance.total_price,
-                    description=f"Credit purchase of {instance.product_name}",
-                    transaction_type='purchase',
-                    transaction_id=instance.id,
-                    created_by=instance.vendor
-                )
-                
-                LedgerEntry.objects.create(
-                    date=instance.created_at,
-                    account=accounts_payable,
-                    credit_amount=instance.total_price,
-                    description=f"Credit purchase of {instance.product_name}",
-                    transaction_type='purchase',
-                    transaction_id=instance.id,
-                    created_by=instance.vendor
-                )
     except Exception as e:
-        logger.error(f"Error creating ledger entries for purchase {instance.id}: {str(e)}")
+        logger.error(f"Error handling purchase item deletion for item {instance.pk}: {e}")
+        # Don't raise here as it would prevent deletion
+    finally:
+        _signal_processing.discard(signal_key)
+
+@receiver(pre_delete, sender=SalesItem)
+def handle_sales_item_delete(sender, instance, **kwargs):
+    """Handle stock restoration when sales items are deleted"""
+    signal_key = f"sales_delete_{instance.pk}"
+    if signal_key in _signal_processing:
+        return
+    
+    _signal_processing.add(signal_key)
+    try:
+        with transaction.atomic():
+            # Create positive stock ledger entry to restore the stock
+            StockLedger.create_entry(
+                product=instance.product,
+                transaction_type='adjustment',
+                reference_id=instance.voucher.id,
+                reference_model='SalesVoucher',
+                quantity=instance.quantity,  # Positive to restore stock
+                unit_cost=instance.product.price,
+                created_by=getattr(instance.voucher, 'created_by', None),
+                notes=f"Reversal: Sales item deleted from voucher {instance.voucher.voucher_number}"
+            )
+            
+            logger.info(f"Stock restored for product {instance.product.name}: +{instance.quantity}")
+            
+    except Exception as e:
+        logger.error(f"Error handling sales item deletion for item {instance.pk}: {e}")
+        # Don't raise here as it would prevent deletion
+    finally:
+        _signal_processing.discard(signal_key)
+
+# ==================== VOUCHER TOTALS UPDATE ====================
+
+@receiver([post_save, post_delete], sender=PurchaseItem)
+def update_purchase_voucher_totals_signal(sender, instance, **kwargs):
+    """Update purchase voucher totals when items change"""
+    if not hasattr(instance, 'voucher') or not instance.voucher:
+        return
+    
+    signal_key = f"purchase_totals_{instance.voucher.pk}"
+    if signal_key in _signal_processing:
+        return
+    
+    _signal_processing.add(signal_key)
+    try:
+        # Use the model's update_totals method
+        instance.voucher.update_totals()
+        logger.debug(f"Updated totals for purchase voucher {instance.voucher.voucher_number}")
+    except Exception as e:
+        logger.error(f"Error updating purchase voucher totals: {e}")
+    finally:
+        _signal_processing.discard(signal_key)
+
+@receiver([post_save, post_delete], sender=SalesItem)
+def update_sales_voucher_totals_signal(sender, instance, **kwargs):
+    """Update sales voucher totals when items change"""
+    if not hasattr(instance, 'voucher') or not instance.voucher:
+        return
+    
+    signal_key = f"sales_totals_{instance.voucher.pk}"
+    if signal_key in _signal_processing:
+        return
+    
+    _signal_processing.add(signal_key)
+    try:
+        # Trigger the voucher's save method to recalculate totals
+        instance.voucher.save()
+        logger.debug(f"Updated totals for sales voucher {instance.voucher.voucher_number}")
+    except Exception as e:
+        logger.error(f"Error updating sales voucher totals: {e}")
+    finally:
+        _signal_processing.discard(signal_key)
+
+# ==================== FINANCIAL RECORD SIGNALS ====================
+
+@receiver(post_save, sender=PurchaseVoucher)
+def create_purchase_financial_records(sender, instance, created, **kwargs):
+    """Create financial records for purchase vouchers"""
+    if not created or instance.status != PurchaseVoucher.Status.COMPLETED:
+        return
+    
+    signal_key = f"purchase_financial_{instance.pk}"
+    if signal_key in _signal_processing:
+        return
+    
+    _signal_processing.add(signal_key)
+    try:
+        with transaction.atomic():
+            # Create daybook entry
+            daybook_entry = Daybook.objects.create(
+                transaction_type='purchase',
+                reference_id=str(instance.id),
+                reference_model='PurchaseVoucher',
+                description=f"Purchase Voucher {instance.voucher_number} - {instance.vendor.username if instance.vendor else 'Unknown Vendor'}",
+                debit_amount=instance.total_amount,  # Purchase is a debit (asset increase)
+                credit_amount=Decimal('0.00'),
+                balance=instance.total_amount,
+                payment_method=instance.payment_method,
+                payment_status=instance.payment_status,
+                created_by=instance.vendor
+            )
+            
+            # Create cashbook entry if there's any cost (after discount)
+            if instance.cost > 0:
+                Cashbook.create_entry(
+                    entry_type='payment',
+                    source_type='purchase',
+                    reference_id=instance.voucher_number,
+                    reference_model='PurchaseVoucher',
+                    description=f"Payment for Purchase Voucher {instance.voucher_number}",
+                    amount=instance.cost,
+                    payment_method=instance.payment_method,
+                    transaction_date=instance.date,
+                    is_bank=(instance.payment_method == PaymentMethodChoices.BANK_TRANSFER),
+                    recorded_by=instance.vendor,
+                    notes=f"Total: {instance.total_amount}, Discount: {instance.discount}"
+                )
+            
+            logger.info(f"Created financial records for purchase voucher {instance.voucher_number}")
+            
+    except Exception as e:
+        logger.error(f"Error creating financial records for purchase voucher {instance.pk}: {e}")
+        # Don't raise as it would prevent voucher creation
+    finally:
+        _signal_processing.discard(signal_key)
+
+@receiver(post_save, sender=SalesVoucher)
+def create_sales_financial_records(sender, instance, created, **kwargs):
+    """Create financial records for sales vouchers"""
+    if not created or instance.status != SalesVoucher.Status.COMPLETED:
+        return
+    
+    signal_key = f"sales_financial_{instance.pk}"
+    if signal_key in _signal_processing:
+        return
+    
+    _signal_processing.add(signal_key)
+    try:
+        with transaction.atomic():
+            # Create daybook entry
+            net_amount = instance.total_amount - instance.discount
+            
+            daybook_entry = Daybook.objects.create(
+                transaction_type='sale',
+                reference_id=str(instance.id),
+                reference_model='SalesVoucher',
+                description=f"Sales Voucher {instance.voucher_number} - {instance.customer.name if instance.customer else 'Walk-in Customer'}",
+                debit_amount=Decimal('0.00'),
+                credit_amount=net_amount,  # Sale is a credit (revenue)
+                balance=-net_amount,  # Negative balance for credit
+                payment_method=instance.payment_method,
+                payment_status=instance.payment_status,
+                created_by=None  # Sales don't have a created_by user typically
+            )
+            
+            # Create cashbook entry for received payments
+            if instance.paid_amount > 0:
+                Cashbook.create_entry(
+                    entry_type='receipt',
+                    source_type='sale',
+                    reference_id=instance.voucher_number,
+                    reference_model='SalesVoucher',
+                    description=f"Payment received for Sales Voucher {instance.voucher_number}",
+                    amount=instance.paid_amount,
+                    payment_method=instance.payment_method,
+                    transaction_date=instance.date,
+                    is_bank=(instance.payment_method == PaymentMethodChoices.BANK_TRANSFER),
+                    recorded_by=None,
+                    notes=f"Total: {instance.total_amount}, Discount: {instance.discount}, Remaining: {instance.remaining_amount}"
+                )
+            
+            logger.info(f"Created financial records for sales voucher {instance.voucher_number}")
+            
+    except Exception as e:
+        logger.error(f"Error creating financial records for sales voucher {instance.pk}: {e}")
+        # Don't raise as it would prevent voucher creation
+    finally:
+        _signal_processing.discard(signal_key)
+
+# ==================== INVOICE GENERATION ====================
+
+@receiver(post_save, sender=SalesVoucher)
+def create_sales_invoice_signal(sender, instance, created, **kwargs):
+    """Create sales invoice when sales voucher is completed"""
+    if not created or instance.status != SalesVoucher.Status.COMPLETED:
+        return
+    
+    signal_key = f"sales_invoice_{instance.pk}"
+    if signal_key in _signal_processing:
+        return
+    
+    _signal_processing.add(signal_key)
+    try:
+        # Get the first item for invoice (you might want to handle multiple items differently)
+        first_item = instance.items.first()
+        if not first_item:
+            logger.warning(f"No items found for sales voucher {instance.voucher_number}")
+            return
         
-        
-@receiver(post_save, sender=Sales)
-def create_sales_ledger_entries(sender, instance, created, **kwargs):
-    """Create accounting ledger entries for Sales"""
+        with transaction.atomic():
+            # Create invoice with data from voucher and first item
+            invoice = SalesInvoice.objects.create(
+                sales_voucher=instance,
+                product_name=first_item.product.name,
+                quantity=first_item.quantity,
+                unit_price=first_item.price,
+                warranty=first_item.warranty,
+                customer_name=instance.customer.name if instance.customer else 'Walk-in Customer',
+                customer_number=instance.customer.phone if instance.customer else '',
+                customer_address=instance.customer.address if instance.customer else '',
+                discount_amount=instance.discount,
+                paid_amount=instance.paid_amount,
+                payment_method=instance.payment_method,
+                notes=f"Generated from sales voucher {instance.voucher_number}"
+            )
+            
+            logger.info(f"Created sales invoice {invoice.invoice_number} for voucher {instance.voucher_number}")
+            
+    except Exception as e:
+        logger.error(f"Error creating sales invoice for voucher {instance.pk}: {e}")
+        # Don't raise as it would prevent voucher creation
+    finally:
+        _signal_processing.discard(signal_key)
+
+@receiver(post_save, sender=Repair)
+def create_repair_invoice_signal(sender, instance, created, **kwargs):
+    """Create repair invoice when repair is completed"""
+    if not created or instance.status != 'completed':
+        return
+    
+    signal_key = f"repair_invoice_{instance.pk}"
+    if signal_key in _signal_processing:
+        return
+    
+    _signal_processing.add(signal_key)
+    try:
+        with transaction.atomic():
+            invoice = RepairInvoice.objects.create(
+                repair=instance,
+                product_name=instance.product_name,
+                customer_name=instance.user.username if instance.user else 'Unknown Customer',
+                customer_number=getattr(instance.user, 'phone', '') if instance.user else '',
+                customer_address=getattr(instance.user, 'address', '') if instance.user else '',
+                total_amount=instance.total_amount,
+                discount_amount=instance.discount_amount or Decimal('0.00'),
+                paid_amount=instance.paid_amount,
+                payment_method=instance.payment_method,
+                notes=f"Generated from repair order {instance.id}"
+            )
+            
+            logger.info(f"Created repair invoice {invoice.invoice_number} for repair {instance.id}")
+            
+    except Exception as e:
+        logger.error(f"Error creating repair invoice for repair {instance.pk}: {e}")
+        # Don't raise as it would prevent repair creation
+    finally:
+        _signal_processing.discard(signal_key)
+
+# ==================== RETURN MANAGEMENT ====================
+
+@receiver(post_save, sender=Return)
+def handle_return_stock_signal(sender, instance, created, **kwargs):
+    """Handle stock updates for returns"""
+    if not created:
+        return
+    
+    signal_key = f"return_stock_{instance.pk}"
+    if signal_key in _signal_processing:
+        return
+    
+    _signal_processing.add(signal_key)
+    try:
+        with transaction.atomic():
+            # Create stock ledger entry for return (positive quantity)
+            StockLedger.create_entry(
+                product=instance.product,
+                transaction_type='return',
+                reference_id=instance.id,
+                reference_model='Return',
+                quantity=instance.quantity_returned,  # Positive for incoming stock
+                unit_cost=instance.product.price,
+                created_by=None,
+                notes=f"Product return - {instance.reason[:50] if instance.reason else 'No reason provided'}"
+            )
+            
+            # Create financial records for return
+            if instance.refund_amount and instance.refund_amount > 0:
+                # Daybook entry
+                Daybook.objects.create(
+                    transaction_type='return',
+                    reference_id=str(instance.id),
+                    reference_model='Return',
+                    description=f"Product return - {instance.product.name}",
+                    debit_amount=instance.refund_amount,  # Refund is a debit (cash decrease)
+                    credit_amount=Decimal('0.00'),
+                    balance=instance.refund_amount,
+                    payment_method=PaymentMethodChoices.CASH,  # Default for returns
+                    payment_status=PaymentStatusChoices.FULL_PAYMENT,
+                    created_by=None
+                )
+                
+                # Cashbook entry
+                Cashbook.create_entry(
+                    entry_type='payment',
+                    source_type='return',
+                    reference_id=str(instance.id),
+                    reference_model='Return',
+                    description=f"Refund for returned product - {instance.product.name}",
+                    amount=instance.refund_amount,
+                    payment_method=PaymentMethodChoices.CASH,
+                    transaction_date=instance.return_date.date(),
+                    is_bank=False,
+                    recorded_by=None,
+                    notes=f"Return quantity: {instance.quantity_returned}"
+                )
+            
+            logger.info(f"Processed return for product {instance.product.name}: +{instance.quantity_returned}")
+            
+    except Exception as e:
+        logger.error(f"Error handling return for return {instance.pk}: {e}")
+        # Don't raise as it would prevent return creation
+    finally:
+        _signal_processing.discard(signal_key)
+
+# ==================== EXPENSE MANAGEMENT ====================
+
+@receiver(post_save, sender=Expense)
+def create_expense_records_signal(sender, instance, created, **kwargs):
+    """Create financial records for expenses"""
+    if not created:
+        return
+    
+    signal_key = f"expense_records_{instance.pk}"
+    if signal_key in _signal_processing:
+        return
+    
+    _signal_processing.add(signal_key)
+    try:
+        with transaction.atomic():
+            # Create daybook entry
+            Daybook.objects.create(
+                transaction_type='expense',
+                reference_id=str(instance.id),
+                reference_model='Expense',
+                description=f"Expense: {instance.get_category_type_display()} - {instance.description[:50] if instance.description else 'No description'}",
+                debit_amount=instance.amount,  # Expense is a debit
+                credit_amount=Decimal('0.00'),
+                balance=instance.amount,
+                payment_method=instance.payment_method,
+                payment_status=instance.payment_status,
+                created_by=None  # Expenses don't have created_by field
+            )
+            
+            # Create cashbook entry if payment is completed
+            if instance.payment_status == PaymentStatusChoices.FULL_PAYMENT:
+                Cashbook.create_entry(
+                    entry_type='payment',
+                    source_type='expense',
+                    reference_id=str(instance.id),
+                    reference_model='Expense',
+                    description=f"Expense payment: {instance.get_category_type_display()}",
+                    amount=instance.amount,
+                    payment_method=instance.payment_method,
+                    transaction_date=timezone.now().date(),
+                    is_bank=(instance.payment_method == PaymentMethodChoices.BANK_TRANSFER),
+                    recorded_by=None,
+                    notes=instance.description
+                )
+            
+            logger.info(f"Created financial records for expense {instance.id}: {instance.amount}")
+            
+    except Exception as e:
+        logger.error(f"Error creating expense records for expense {instance.pk}: {e}")
+        # Don't raise as it would prevent expense creation
+    finally:
+        _signal_processing.discard(signal_key)
+
+# ==================== CLEANUP AND MONITORING ====================
+
+@receiver(post_save, sender=Product)
+def log_product_changes(sender, instance, created, **kwargs):
+    """Log significant product changes for monitoring"""
     if created:
-        try:
-            # Get or create accounts
-            sales_account = Account.objects.get_or_create(
-                code='4000',
-                defaults={'name': 'Sales Revenue', 'account_type': AccountType.INCOME}
-            )[0]
-            
-            cash_account = Account.objects.get_or_create(
-                code='1000',
-                defaults={'name': 'Cash', 'account_type': AccountType.ASSET}
-            )[0]
-            
-            accounts_receivable = Account.objects.get_or_create(
-                code='1100',
-                defaults={'name': 'Accounts Receivable', 'account_type': AccountType.ASSET}
-            )[0]
-            
-            # Create ledger entries
-            if instance.payment_method == PaymentMethodChoices.CASH:
-                LedgerEntry.objects.create(
-                    date=instance.created_at,
-                    account=cash_account,
-                    debit_amount=instance.total_amount,
-                    description=f"Cash sale of {instance.product.name}",
-                    transaction_type='sale',
-                    transaction_id=instance.id,
-                    created_by=instance.user
-                )
-            else:
-                LedgerEntry.objects.create(
-                    date=instance.created_at,
-                    account=accounts_receivable,
-                    debit_amount=instance.total_amount,
-                    description=f"Credit sale of {instance.product.name}",
-                    transaction_type='sale',
-                    transaction_id=instance.id,
-                    created_by=instance.user
-                )
-            
-            LedgerEntry.objects.create(
-                date=instance.created_at,
-                account=sales_account,
-                credit_amount=instance.total_amount,
-                description=f"Sale of {instance.product.name}",
-                transaction_type='sale',
-                transaction_id=instance.id,
-                created_by=instance.user
-            )
-        except Exception as e:
-            logger.error(f"Error creating ledger entries for sale {instance.id}: {str(e)}")
+        logger.info(f"New product created: {instance.name} (ID: {instance.id}) with stock: {instance.stock}")
+    else:
+        # You could add logic here to compare with previous values if needed
+        logger.debug(f"Product updated: {instance.name} (ID: {instance.id}) current stock: {instance.stock}")
 
+# Signal to clean up processing flags periodically (optional)
+from django.core.management.base import BaseCommand
+
+def cleanup_signal_flags():
+    """Clean up any stuck signal processing flags"""
+    global _signal_processing
+    _signal_processing.clear()
+    logger.info("Cleaned up signal processing flags")
+
+# You can call this from a management command or periodic task

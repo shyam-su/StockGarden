@@ -1,15 +1,15 @@
-from django.db import models
+from django.db import models,transaction
 from user.models import User
 from django.utils.text import slugify
 import uuid
 from decimal import Decimal
-from PIL import Image
-from django.db.models import Sum, Q, F, Case, When, Subquery, OuterRef
+from django.db.models import Sum, Q, F
 from django.db.models.functions import Coalesce
 from django.core.exceptions import ValidationError
 import logging
-
-
+from django.core.validators import MinValueValidator
+from django.utils import timezone
+import decimal
 
 logger = logging.getLogger(__name__)
 
@@ -42,18 +42,10 @@ class Company(models.Model):
         
 class Brand(models.Model):
     name=models.CharField(max_length=191,unique=True,verbose_name="Brand Name",db_index=True)
-    image = models.ImageField(upload_to='media/brands_imgs/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         verbose_name = "Brand"
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        if self.image:
-            img_path = self.image.path
-            img = Image.open(img_path)
-            img = img.resize((90, 25), Image.Resampling.LANCZOS)
-            img.save(img_path)
+        indexes = [models.Index(fields=['name'])]
     
     def __str__(self):
         return self.name
@@ -68,51 +60,129 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
-    
-class Purchase(models.Model):
+
+class PurchaseVoucher(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = 'draft', 'Draft'
+        COMPLETED = 'completed', 'Completed'
+        CANCELLED = 'cancelled', 'Cancelled'
+
+    voucher_number = models.CharField(max_length=50, unique=True, editable=False)
+    date = models.DateField(default=timezone.now)  # Added missing date field
+    cost = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    discount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
+    payment_method = models.CharField(max_length=20,choices=PaymentMethodChoices.choices,default=PaymentMethodChoices.CASH)
+    payment_status = models.CharField(max_length=20,choices=PaymentStatusChoices.choices,default=PaymentStatusChoices.PENDING)
+    status = models.CharField(max_length=20,choices=Status.choices,default=Status.DRAFT)
+    vendor = models.ForeignKey(User,on_delete=models.SET_NULL,null=True,related_name="purchase_vouchers")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Purchase Voucher"
+        ordering = ['-date']  # Now references the actual date field
+        indexes = [
+            models.Index(fields=['voucher_number']),
+            models.Index(fields=['date']),
+        ]
+
+    def save(self, *args, **kwargs):
+        # Generate voucher number only once
+        if not self.voucher_number:
+            with transaction.atomic():
+                last_voucher = PurchaseVoucher.objects.select_for_update().filter(
+                    voucher_number__startswith="PV"
+                ).order_by('-voucher_number').first()
+                
+                if last_voucher:
+                    try:
+                        last_num = int(last_voucher.voucher_number[2:])
+                        self.voucher_number = f"PV{last_num + 1:06d}"
+                    except (ValueError, IndexError):
+                        self.voucher_number = "PV000001"
+                else:
+                    self.voucher_number = "PV000001"
+        
+        # Single save operation
+        super().save(*args, **kwargs)
+
+    def update_totals(self):
+        """Calculate and update voucher totals - called by signal"""
+        items = self.items.all()
+        if items.exists():
+            total = sum(item.total_price for item in items)
+            cost = total - self.discount
+            
+            # Update without triggering save again
+            PurchaseVoucher.objects.filter(pk=self.pk).update(
+                total_amount=total,
+                cost=cost
+            )
+
+    def __str__(self):
+        return f"Purchase Voucher {self.voucher_number}"
+
+
+class PurchaseItem(models.Model):
     CONDITION_CHOICES = [
         ('new', 'New'),
         ('like_new', 'Like New'),
         ('good', 'Good'),
         ('needs_repair', 'Needs Repair'),
     ]
-    vendor = models.ForeignKey(User, on_delete=models.SET_NULL,null=True, related_name="purchases") 
-    brand = models.ForeignKey('Brand', on_delete=models.SET_NULL,null=True, related_name="purchases") 
-    categories = models.ForeignKey(Category, on_delete=models.SET_NULL,null=True, related_name="purchased_categories")
+    ITEM_TYPE_CHOICES = [
+        ('sales', 'Sales'),
+        ('repair', 'Repair'),
+        ('other', 'Other'),
+    ]
+    voucher = models.ForeignKey(PurchaseVoucher,on_delete=models.CASCADE,related_name="items")
+    brand = models.ForeignKey('Brand',on_delete=models.SET_NULL,null=True,related_name="purchased_items") 
+    category = models.ForeignKey(Category,on_delete=models.SET_NULL,null=True,related_name="purchased_items")
     product_name = models.CharField(max_length=191,verbose_name="Product Name",db_index=True)
-    warranty = models.IntegerField(null=True, blank=True,)
-    condition = models.CharField(max_length=20, choices=CONDITION_CHOICES, default='new')
-    description = models.TextField(max_length=191, blank=True, null=True)
-    Imei = models.CharField(max_length=100,unique=True, blank=True, null=True)
-    image = models.ImageField(upload_to='media/products_imgs/',null=True, blank=True)
-    quantity = models.IntegerField()
-    price = models.IntegerField()
-    total_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00) 
-    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    payment_method = models.CharField(max_length=20,choices=PaymentMethodChoices.choices,default=PaymentMethodChoices.CASH,db_index=True)
-    payment_status=models.CharField(max_length=191,choices=PaymentStatusChoices, default='Pending',db_index=True,null=True,blank=True)
-    remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
-    created_at=models.DateTimeField(auto_now_add=True)
+    item_type= models.CharField(max_length=50,choices=ITEM_TYPE_CHOICES,default='sales')
+    warranty = models.IntegerField(null=True,blank=True,validators=[MinValueValidator(0)])
+    condition = models.CharField(max_length=20,choices=CONDITION_CHOICES,default='new')
+    description = models.CharField(max_length=191,blank=True,null=True)
+    model_number = models.CharField(max_length=100,unique=True,blank=True,null=True)
+    quantity = models.IntegerField(validators=[MinValueValidator(1)])
+    price = models.DecimalField(max_digits=12,decimal_places=2,validators=[MinValueValidator(0)])
+    total_price = models.DecimalField(max_digits=12,decimal_places=2,default=0.00,editable=False) 
+    paid_amount = models.DecimalField(max_digits=10,decimal_places=2,default=0.00,validators=[MinValueValidator(0)])
+    remaining_amount = models.DecimalField(max_digits=10,decimal_places=2,default=0.00,editable=False) 
+    created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        verbose_name = "Purchase"
-        indexes = [models.Index(fields=['product_name',])]
+        verbose_name = "Purchase Item" 
+        verbose_name_plural = "Purchase Items"
+        indexes = [
+            models.Index(fields=['product_name']),
+            models.Index(fields=['imei']),
+        ]
         
-        
+
+    def clean(self):
+        # Convert empty IMEI to None for uniqueness
+        if self.imei == "":
+            self.imei = None
+            
+        # Ensure paid amount doesn't exceed total
+        if self.paid_amount and self.total_price and self.paid_amount > self.total_price:
+            raise ValidationError("Paid amount cannot exceed total price")
+
     def save(self, *args, **kwargs):
-        self.total_price = self.quantity * self.price 
-        self.remaining_amount = self.total_price - self.paid_amount
-        if self.remaining_amount <= 0:
-            self.payment_status = PaymentStatusChoices.FULL_PAYMENT
-        elif self.paid_amount > 0:
-            self.payment_status = PaymentStatusChoices.PARTIAL_PAYMENT
-        else:
-            self.payment_status = PaymentStatusChoices.PENDING
+        # Calculate financial fields
+        self.total_price = Decimal(self.quantity) * Decimal(self.price)
+        self.remaining_amount = max(
+            self.total_price - (self.paid_amount or Decimal('0.00')), 
+            Decimal('0.00')
+        )
         super().save(*args, **kwargs)
-       
+        # Note: Voucher totals updated via signal, not direct save call
 
     def __str__(self):
-        return self.vendor.full_name
+        return f"{self.product_name} (Voucher: {self.voucher.voucher_number})"
         
         
 class Product(models.Model):
@@ -121,8 +191,7 @@ class Product(models.Model):
     description = models.TextField(max_length=191,null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2,null=False, blank=False,verbose_name="Product Price",db_index=True)
     warranty = models.IntegerField(null=True, blank=True)
-    Imei = models.CharField(max_length=100,null=True, blank=True)
-    image = models.ImageField(upload_to='media/products_imgs/',null=True, blank=True)
+    model_number = models.CharField(max_length=100,null=True, blank=True)
     categories = models.ForeignKey(Category, on_delete=models.SET_NULL,null=True, related_name="products") 
     stock=models.IntegerField(null=True, blank=True,db_index=True)
     brand = models.ForeignKey('Brand', on_delete=models.SET_NULL,null=True, related_name="products") 
@@ -138,57 +207,118 @@ class Product(models.Model):
             unique_id = str(uuid.uuid4())[:8]
             self.slug = slugify(f"{self.name}-{unique_id}")
         super().save(*args, **kwargs)
-        if self.image:
-            img_path = self.image.path
-            img = Image.open(img_path)
-            img = img.resize((90, 25), Image.Resampling.LANCZOS)
-            img.save(img_path)
 
 
     def __str__(self):
         return self.name
     
-
-class Sales(models.Model):
-    user = models.ForeignKey(User, on_delete=models.SET_NULL,null=True,blank=True)  
-    product = models.ForeignKey(Product, on_delete=models.PROTECT, null=False, blank=False)
-    Imei = models.CharField(max_length=100,unique=True, blank=True, null=True,db_index=True)
-    warranty = models.IntegerField(null=True, blank=True)
-    quantity = models.IntegerField(default=1)
-    price = models.IntegerField(blank=True, null=True)
-    discount=models.IntegerField(null=True, blank=True, default=0)
-    payment_method = models.CharField(max_length=20,choices=PaymentMethodChoices.choices,default=PaymentMethodChoices.CASH,db_index=True)
-    payment_status=models.CharField(max_length=191,choices=PaymentStatusChoices, default='Pending',db_index=True,null=True,blank=True)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    paid_amount = models.IntegerField()
-    remaining_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
-    due_date = models.DateTimeField(null=True, blank=True) 
-    notes = models.TextField(null=True, blank=True) 
-    created_at=models.DateTimeField(auto_now_add=True,verbose_name="Sale Date")
-    updated_at=models.DateTimeField(auto_now=True)
     
+class SalesVoucher(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = 'draft', 'Draft'
+        COMPLETED = 'completed', 'Completed'
+        CANCELLED = 'cancelled', 'Cancelled'
+
+    voucher_number = models.CharField(max_length=50, unique=True, editable=False)
+    customer_name = models.CharField(max_length=191, blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)    
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    discount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    remaining_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, editable=False)
+    payment_method = models.CharField(max_length=20,choices=PaymentMethodChoices.choices,default=PaymentMethodChoices.CASH)
+    payment_status = models.CharField(max_length=20,choices=PaymentStatusChoices.choices,default=PaymentStatusChoices.PENDING)
+    status = models.CharField(max_length=20,choices=Status.choices,default=Status.DRAFT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Sales Voucher"
+        ordering = ['-date']
+        indexes = [
+            models.Index(fields=['voucher_number']),
+            models.Index(fields=['date']),
+        ]
+
     def save(self, *args, **kwargs):
-        self.price = self.price if self.price is not None else self.product.price
-        self.warranty = self.product.warranty  
-        self.total_amount = Decimal(self.quantity) * Decimal(self.price)
-        self.paid_amount = Decimal(self.paid_amount)
-        self.discount = Decimal(self.discount or 0) 
-        self.remaining_amount = self.total_amount - self.paid_amount - self.discount
+        # Generate voucher number
+        if not self.voucher_number:
+            prefix = "SV"
+            with transaction.atomic():
+                last_voucher = SalesVoucher.objects.select_for_update() \
+                    .filter(voucher_number__startswith=prefix) \
+                    .order_by('-voucher_number').first()
+                if last_voucher:
+                    last_num = int(last_voucher.voucher_number[len(prefix):])
+                    self.voucher_number = f"{prefix}{last_num + 1:06d}"
+                else:
+                    self.voucher_number = f"{prefix}000001"
+        
+        # Calculate totals from items
+        items = self.items.all()
+        if items.exists():
+            self.total_amount = sum(item.total_price for item in items)
+        
+        # Calculate financials
+        net_total = self.total_amount - self.discount
+        self.remaining_amount = net_total - self.paid_amount
+        
+        # Update payment status
         if self.remaining_amount <= 0:
             self.payment_status = PaymentStatusChoices.FULL_PAYMENT
         elif self.paid_amount > 0:
             self.payment_status = PaymentStatusChoices.PARTIAL_PAYMENT
         else:
             self.payment_status = PaymentStatusChoices.PENDING
+        
         super().save(*args, **kwargs)
-            
-    class Meta:
-        verbose_name = "Sells"
-        indexes = [models.Index(fields=['user',])]
-    
 
     def __str__(self):
-       return f"{self.user} - {self.product} - Quantity: {self.quantity} - Price: {self.price}"
+        return f"Sales Voucher {self.voucher_number}"
+
+
+class SalesItem(models.Model):
+    CONDITION_CHOICES = [
+        ('new', 'New'),
+        ('like_new', 'Like New'),
+        ('good', 'Good'),
+        ('needs_repair', 'Needs Repair'),
+    ]
+
+    voucher = models.ForeignKey(SalesVoucher,on_delete=models.CASCADE,related_name="items")
+    product = models.ForeignKey(Product,on_delete=models.PROTECT,related_name="sales_items")
+    quantity = models.IntegerField(validators=[MinValueValidator(1)])
+    price = models.DecimalField(max_digits=12,decimal_places=2,validators=[MinValueValidator(0)])
+    total_price = models.DecimalField(max_digits=12,decimal_places=2,default=0.00,editable=False)
+    warranty = models.IntegerField(null=True, blank=True)
+    condition = models.CharField(max_length=20,choices=CONDITION_CHOICES,default='new')
+    imei = models.CharField(max_length=100, blank=True, null=True, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Sales Item"
+        verbose_name_plural = "Sales Items"
+        indexes = [
+            models.Index(fields=['imei']),
+        ]
+
+    def clean(self):
+        if self.imei == "":
+            self.imei = None
+            
+        # Set warranty from product if not specified
+        if self.warranty is None and self.product.warranty:
+            self.warranty = self.product.warranty
+
+    def save(self, *args, **kwargs):
+        self.total_price = self.quantity * self.price
+        super().save(*args, **kwargs)
+        # Update parent voucher totals
+        self.voucher.save()
+
+    def __str__(self):
+        return f"{self.product.name} (Voucher: {self.voucher.voucher_number})"
  
 class Repair(models.Model):
     STATUS_CHOICES = [
@@ -204,6 +334,8 @@ class Repair(models.Model):
     issue_description = models.TextField() 
     payment_method = models.CharField(max_length=20,choices=PaymentMethodChoices.choices,default=PaymentMethodChoices.CASH,db_index=True)
     payment_status=models.CharField(max_length=191,choices=PaymentStatusChoices, default='Pending',db_index=True,null=True,blank=True)
+    materials_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, editable=False)
+    labour_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
@@ -224,6 +356,22 @@ class Repair(models.Model):
             self.payment_status = PaymentStatusChoices.PENDING
         super().save(*args, **kwargs)
     
+    def save(self, *args, **kwargs):
+        # Calculate materials cost from repair items
+        materials_total = self.repair_items.aggregate(
+            total=models.Sum('total_cost')
+        )['total'] or Decimal('0.00')
+        self.materials_cost = materials_total
+        
+        # Calculate total repair cost
+        self.total_amount = self.materials_cost + self.labour_cost
+        
+        # Update payment amounts (existing logic)
+        self.paid_amount = Decimal(self.paid_amount)
+        self.discount_amount = Decimal(self.discount_amount or 0)
+        
+        super().save(*args, **kwargs)
+    
     class Meta:
         verbose_name = "Repair"
         indexes = [models.Index(fields=['product_name',])]
@@ -241,6 +389,8 @@ class RepairDetail(models.Model):
     repair_order = models.ForeignKey(Repair, on_delete=models.SET_NULL,null=True, related_name="details")  
     product_name=models.CharField(max_length=100)
     device_model=models.CharField(max_length=100)
+    materials_used = models.ManyToManyField(RepairItem, related_name='repair_details', blank=True)
+    cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     repair_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     repair_detail_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     issue_description = models.TextField() 
@@ -252,6 +402,12 @@ class RepairDetail(models.Model):
     class Meta:
         verbose_name = "Repair Detail"
         indexes = [models.Index(fields=['product_name',])]
+        
+    def save(self, *args, **kwargs):
+        if self.materials_used.exists():
+            self.cost = sum(item.total_cost for item in self.materials_used.all())
+        super().save(*args, **kwargs)
+
     
     def __str__(self):
         return f"{self.device_model}"
@@ -277,73 +433,166 @@ class Expense(models.Model):
 
     def __str__(self):
         return f"{self.category_type} - {self.amount}"
+    
+class RepairItem(models.Model):
+    """
+    Tracks individual items/materials used in a repair
+    """
+    repair = models.ForeignKey(Repair, on_delete=models.CASCADE, related_name='repair_items')
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='repair_usage')
+    quantity_used = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    total_cost = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
+    notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Repair Material"
+        verbose_name_plural = "Repair Materials"
+        indexes = [
+            models.Index(fields=['repair', 'product']),
+            models.Index(fields=['created_at']),
+        ]
+    
+    def clean(self):
+        # Validate sufficient stock exists
+        if self.product and self.quantity_used:
+            if self.product.stock < self.quantity_used:
+                raise ValidationError(
+                    f"Insufficient stock for {self.product.name}. "
+                    f"Available: {self.product.stock}, Required: {self.quantity_used}"
+                )
+    
+    def save(self, *args, **kwargs):
+        # Get current product price as unit cost if not specified
+        if not self.unit_cost and self.product:
+            self.unit_cost = self.product.price
+        
+        # Calculate total cost
+        self.total_cost = self.quantity_used * self.unit_cost
+        
+        # Deduct from stock
+        if self.pk is None:  # New entry
+            with transaction.atomic():
+                product = Product.objects.select_for_update().get(pk=self.product.pk)
+                if product.stock < self.quantity_used:
+                    raise ValidationError(
+                        f"Insufficient stock for {product.name}. "
+                        f"Available: {product.stock}, Required: {self.quantity_used}"
+                    )
+                
+                # Update product stock
+                product.stock -= self.quantity_used
+                product.save(update_fields=['stock'])
+                
+                # Create stock ledger entry
+                StockLedger.create_entry(
+                    product=self.product,
+                    transaction_type='adjustment',
+                    reference_id=self.repair.id,
+                    reference_model='Repair',
+                    quantity=-self.quantity_used,
+                    unit_cost=self.unit_cost,
+                    notes=f"Used in repair #{self.repair.id}",
+                    created_by=None  # Pass appropriate user here
+                )
+                
+                super().save(*args, **kwargs)
+                
+                # Update repair total cost
+                self.repair.save(update_fields=['total_amount'])
+        else:
+            super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.product.name} x{self.quantity_used} (Repair #{self.repair.id})"
  
 class SalesInvoice(models.Model):
     invoice_number = models.CharField(max_length=50, unique=True, editable=False)
-    sales = models.ForeignKey(Sales, on_delete=models.SET_NULL,related_name="salesinvoice", null=True, blank=True)  
+    sales_voucher = models.ForeignKey(SalesVoucher, on_delete=models.SET_NULL, related_name="sales_invoices", null=True, blank=True)
+    # Store product info directly instead of relying on relations
     product_name = models.CharField(max_length=255)
-    quantity=models.IntegerField(null=True, blank=True)
+    quantity = models.IntegerField(validators=[MinValueValidator(1)], default=1)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
     warranty = models.IntegerField(null=True, blank=True)
+    
+    # Customer information
     customer_name = models.CharField(max_length=255, null=True, blank=True)
-    customer_number = models.BigIntegerField(null=True, blank=True)
+    customer_number = models.CharField(max_length=20, null=True, blank=True)  # Changed to CharField
     customer_address = models.TextField(null=True, blank=True)
-    payment_method = models.CharField(max_length=20, choices=PaymentMethodChoices.choices, default=PaymentMethodChoices.CASH,db_index=True)
-    subtotal=models.IntegerField( null=True, blank=True)
-    discount_amount = models.IntegerField( null=True, blank=True)
-    total_amount = models.IntegerField( null=True, blank=True)
-    paid_amount = models.IntegerField(default=0.00,null=True, blank=True)
-    remaining_amount = models.IntegerField(default=0.00)
-    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices, default='Pending',db_index=True,null=True,blank=True)
+    
+    # Financial fields - all DecimalField for consistency
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, editable=False)
+    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, editable=False)
+    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
+    remaining_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, editable=False)
+    
+    # Payment information
+    payment_method = models.CharField(max_length=20, choices=PaymentMethodChoices.choices, default=PaymentMethodChoices.CASH)
+    payment_status = models.CharField(max_length=20, choices=PaymentStatusChoices.choices, default=PaymentStatusChoices.PENDING)
+    
+    # Additional fields
     due_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
-    def save(self, *args, **kwargs):
-        if not self.pk:
-            # Ensure invoice number is correctly generated
-            last_invoice = SalesInvoice.objects.order_by('-invoice_number').first()
-            if last_invoice and last_invoice.invoice_number.startswith("SINV"):
-                try:
-                    last_invoice_number = int(last_invoice.invoice_number.replace("SINV", ""))
-                    self.invoice_number = f"SINV{last_invoice_number + 1:06d}"
-                except ValueError:
-                    self.invoice_number = "SINV000001"
-            else:
-                self.invoice_number = "SINV000001"
-
-        if self.sales and self.sales.product:
-            product_price = round(self.sales.product.price)
-            self.product_name = self.sales.product.name
-            self.subtotal = (self.quantity or 0) * product_price
-
-            self.discount_amount = min(self.discount_amount or 0, self.subtotal)  # Prevent discount > subtotal
-            self.total_amount = self.subtotal - self.discount_amount
-            self.remaining_amount = self.total_amount - (self.paid_amount or 0)
-
-            # Ensure payment status is correct
-            if self.remaining_amount <= 0:
-                self.payment_status = 'Paid'
-                self.remaining_amount = 0
-            elif self.paid_amount > 0:
-                self.payment_status = 'Partial'
-            else:
-                self.payment_status = 'Pending'
-
-        # Ensure paid_amount does not exceed total_amount
-        if self.paid_amount > self.total_amount:
-            self.paid_amount = self.total_amount
-            self.remaining_amount = 0
-
-        super(SalesInvoice, self).save(*args, **kwargs)
-    
-    
     class Meta:
         verbose_name = "Sales Invoice"
-        indexes = [models.Index(fields=['invoice_number',])]
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['invoice_number']),
+            models.Index(fields=['created_at']),
+        ]
+    
+    def clean(self):
+        # Validate discount doesn't exceed subtotal
+        subtotal = Decimal(self.quantity) * Decimal(self.unit_price or 0)
+        if self.discount_amount > subtotal:
+            raise ValidationError("Discount amount cannot exceed subtotal")
+        
+        # Validate paid amount doesn't exceed total
+        total = subtotal - self.discount_amount
+        if self.paid_amount > total:
+            raise ValidationError("Paid amount cannot exceed total amount")
+    
+    def save(self, *args, **kwargs):
+        # Generate invoice number
+        if not self.invoice_number:
+            with transaction.atomic():
+                last_invoice = SalesInvoice.objects.select_for_update().filter(
+                    invoice_number__startswith="SINV"
+                ).order_by('-invoice_number').first()
+                
+                if last_invoice:
+                    try:
+                        last_num = int(last_invoice.invoice_number[4:])  # Remove "SINV" prefix
+                        self.invoice_number = f"SINV{last_num + 1:06d}"
+                    except (ValueError, IndexError):
+                        self.invoice_number = "SINV000001"
+                else:
+                    self.invoice_number = "SINV000001"
+        
+        # Calculate financial fields
+        self.subtotal = Decimal(self.quantity) * Decimal(self.unit_price or 0)
+        self.discount_amount = min(self.discount_amount or Decimal('0.00'), self.subtotal)
+        self.total_amount = self.subtotal - self.discount_amount
+        self.remaining_amount = self.total_amount - (self.paid_amount or Decimal('0.00'))
+        
+        # Update payment status
+        if self.remaining_amount <= 0:
+            self.payment_status = PaymentStatusChoices.FULL_PAYMENT
+            self.remaining_amount = Decimal('0.00')
+        elif self.paid_amount > 0:
+            self.payment_status = PaymentStatusChoices.PARTIAL_PAYMENT
+        else:
+            self.payment_status = PaymentStatusChoices.PENDING
+        
+        super().save(*args, **kwargs)
     
     def __str__(self):
-        return f"Sales Invoice {self.invoice_number} for Sale {self.customer_name}"
+        return f"Sales Invoice {self.invoice_number} - {self.customer_name or 'No Customer'}"
 
 
 class RepairInvoice(models.Model):
@@ -474,53 +723,121 @@ class StockLedger(models.Model):
         if self.unit_cost < 0:
             raise ValidationError("Unit cost cannot be negative")
     
+    def clean(self):
+        if self.quantity == 0:
+            raise ValidationError("Quantity cannot be zero")
+        if self.unit_cost < 0:
+            raise ValidationError("Unit cost cannot be negative")
+    
+    @classmethod
+    def create_entry(cls, product, transaction_type, reference_id, reference_model, 
+                    quantity, unit_cost, created_by=None, notes=None):
+        """
+        Thread-safe method to create stock ledger entry
+        """
+        with transaction.atomic():
+            # Lock the product to prevent concurrent stock updates
+            product = Product.objects.select_for_update().get(pk=product.pk)
+            
+            # Get the latest balance for this product
+            latest_entry = cls.objects.filter(product=product).first()
+            
+            # Calculate new values
+            total_value = Decimal(quantity) * Decimal(unit_cost)
+            
+            if latest_entry:
+                new_balance_qty = latest_entry.balance_quantity + quantity
+                new_balance_value = latest_entry.balance_value + total_value
+            else:
+                new_balance_qty = quantity
+                new_balance_value = total_value
+            
+            # Validate stock won't go negative
+            if new_balance_qty < 0:
+                raise ValidationError(
+                    f"Insufficient stock for {product.name}. "
+                    f"Available: {latest_entry.balance_quantity if latest_entry else 0}, "
+                    f"Requested: {abs(quantity)}"
+                )
+            
+            # Create the entry
+            entry = cls.objects.create(
+                product=product,
+                transaction_type=transaction_type,
+                reference_id=reference_id,
+                reference_model=reference_model,
+                quantity=quantity,
+                unit_cost=unit_cost,
+                total_value=total_value,
+                balance_quantity=new_balance_qty,
+                balance_value=new_balance_value,
+                created_by=created_by,
+                notes=notes
+            )
+            
+            # Update product stock
+            product.stock = new_balance_qty
+            product.save(update_fields=['stock'])
+            
+            return entry
+    
     def save(self, *args, **kwargs):
-        # Calculate total value
-        self.total_value = Decimal(self.quantity) * Decimal(self.unit_cost)
-        
-        # Get previous balance for this product
-        previous_entry = StockLedger.objects.filter(
-            product=self.product
-        ).exclude(id=self.id).order_by('-transaction_date', '-id').first()
-        
-        # Calculate running balances
-        if previous_entry:
-            self.balance_quantity = previous_entry.balance_quantity + self.quantity
-            self.balance_value = previous_entry.balance_value + self.total_value
-        else:
-            self.balance_quantity = self.quantity
-            self.balance_value = self.total_value
-        
-        # Validate balances won't go negative
-        if self.balance_quantity < 0:
-            raise ValidationError(f"This transaction would make stock negative for {self.product.name}")
-        
+        # This should not be called directly - use create_entry instead
+        if not self.pk:
+            raise ValidationError("Use StockLedger.create_entry() method instead of direct save()")
         super().save(*args, **kwargs)
-        
-        # Update product stock
-        self.product.stock = self.balance_quantity
-        self.product.save(update_fields=['stock'])
+    
+    def __str__(self):
+        return f"{self.product.name} - {self.get_transaction_type_display()} - {self.quantity} units"
+
+
         
         
 class Report(models.Model):
-    Total_sells = models.IntegerField(null=True, blank=True,db_index=True)
-    Total_purchase = models.IntegerField(null=True, blank=True,db_index=True)
-    Total_Stock=models.IntegerField(null=True, blank=True,db_index=True)
-    Low_Stock=models.IntegerField(null=True, blank=True,db_index=True)
-    Empty_Stock=models.IntegerField(null=True, blank=True,db_index=True)
-    created_at=models.DateTimeField(auto_now_add=True)
-    updated_at=models.DateTimeField(auto_now=True)
-    
-    def save(self, *args, **kwargs):
-        self.Total_Stock = Product.objects.aggregate(total=models.Sum('stock'))['total'] or 0
-        self.Low_Stock = Product.objects.filter(stock__lte=5).count()
-        self.Empty_Stock = Product.objects.filter(stock=0).count()
-        super(Report, self).save(*args, **kwargs)
-
+    total_sales = models.IntegerField(null=True, blank=True, db_index=True)
+    total_purchases = models.IntegerField(null=True, blank=True, db_index=True)
+    total_stock = models.IntegerField(null=True, blank=True, db_index=True)
+    low_stock_count = models.IntegerField(null=True, blank=True, db_index=True)
+    empty_stock_count = models.IntegerField(null=True, blank=True, db_index=True)
+    total_stock_value = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
         verbose_name = "Report"
-        indexes = [models.Index(fields=['Total_sells',])]    
+        ordering = ['-created_at']
+    
+    @classmethod
+    def generate_report(cls):
+        """
+        Generate a new report with current data
+        """
+        # Use efficient aggregation queries
+        stock_data = Product.objects.aggregate(
+            total_stock=models.Sum('stock'),
+            low_stock=models.Count('id', filter=models.Q(stock__lte=5, stock__gt=0)),
+            empty_stock=models.Count('id', filter=models.Q(stock=0)),
+            total_value=models.Sum(models.F('stock') * models.F('price'))
+        )
+        
+        sales_count = SalesVoucher.objects.filter(status='completed').count()
+        purchase_count = PurchaseVoucher.objects.filter(status='completed').count()
+        
+        return cls.objects.create(
+            total_sales=sales_count,
+            total_purchases=purchase_count,
+            total_stock=stock_data['total_stock'] or 0,
+            low_stock_count=stock_data['low_stock'] or 0,
+            empty_stock_count=stock_data['empty_stock'] or 0,
+            total_stock_value=stock_data['total_value'] or Decimal('0.00')
+        )
+    
+    def save(self, *args, **kwargs):
+        # Only allow updates, not automatic calculations on save
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"Report - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
 
 
 class Daybook(models.Model):
@@ -563,9 +880,6 @@ class Daybook(models.Model):
     
 
 class Cashbook(models.Model):
-    """
-    Records all cash and bank transactions (actual money movements)
-    """
     ENTRY_TYPES = [
         ('receipt', 'Receipt'),
         ('payment', 'Payment'),
@@ -583,21 +897,21 @@ class Cashbook(models.Model):
     date = models.DateTimeField(auto_now_add=True, db_index=True)
     entry_type = models.CharField(max_length=10, choices=ENTRY_TYPES)
     source_type = models.CharField(max_length=10, choices=SOURCE_TYPES)
-    reference_id = models.CharField(max_length=50)  # ID of the related transaction
-    reference_model = models.CharField(max_length=50)  # Model name (e.g., 'Sales', 'Purchase')
+    reference_id = models.CharField(max_length=50)
+    reference_model = models.CharField(max_length=50)
     description = models.TextField()
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
     payment_method = models.CharField(max_length=20, choices=PaymentMethodChoices.choices)
-    is_bank = models.BooleanField(default=False)  # True for bank transactions, False for cash
+    is_bank = models.BooleanField(default=False)
     bank_name = models.CharField(max_length=100, blank=True, null=True)
     cheque_number = models.CharField(max_length=50, blank=True, null=True)
-    transaction_date = models.DateField()  # Date when the transaction actually occurred
+    transaction_date = models.DateField()
     recorded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     notes = models.TextField(blank=True, null=True)
     
-    # Balance fields (calculated on save)
-    cash_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    bank_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    # Balance fields
+    cash_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, editable=False)
+    bank_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, editable=False)
     
     class Meta:
         ordering = ['-transaction_date', '-date']
@@ -605,46 +919,88 @@ class Cashbook(models.Model):
         indexes = [
             models.Index(fields=['transaction_date']),
             models.Index(fields=['entry_type']),
-            models.Index(fields=['payment_method']),
             models.Index(fields=['is_bank']),
         ]
     
-    def __str__(self):
-        return f"{self.transaction_date.strftime('%Y-%m-%d')} - {self.get_entry_type_display()} - {self.amount}"
+    @classmethod
+    def create_entry(cls, entry_type, source_type, reference_id, reference_model,
+                    description, amount, payment_method, transaction_date,
+                    is_bank=False, bank_name=None, cheque_number=None,
+                    recorded_by=None, notes=None):
+        """
+        Thread-safe method to create cashbook entry with proper balance calculation
+        """
+        with transaction.atomic():
+            # Get the latest balances
+            latest_entry = cls.objects.select_for_update().order_by('-transaction_date', '-id').first()
+            
+            if latest_entry:
+                prev_cash = latest_entry.cash_balance
+                prev_bank = latest_entry.bank_balance
+            else:
+                prev_cash = prev_bank = Decimal('0.00')
+            
+            # Calculate new balances
+            if is_bank:
+                new_cash = prev_cash
+                if entry_type == 'receipt':
+                    new_bank = prev_bank + amount
+                else:
+                    new_bank = prev_bank - amount
+            else:
+                new_bank = prev_bank
+                if entry_type == 'receipt':
+                    new_cash = prev_cash + amount
+                else:
+                    new_cash = prev_cash - amount
+            
+            # Validate balances don't go negative
+            if new_cash < 0:
+                raise ValidationError("Insufficient cash balance")
+            if new_bank < 0:
+                raise ValidationError("Insufficient bank balance")
+            
+            # Create entry
+            entry = cls.objects.create(
+                entry_type=entry_type,
+                source_type=source_type,
+                reference_id=reference_id,
+                reference_model=reference_model,
+                description=description,
+                amount=amount,
+                payment_method=payment_method,
+                is_bank=is_bank,
+                bank_name=bank_name,
+                cheque_number=cheque_number,
+                transaction_date=transaction_date,
+                recorded_by=recorded_by,
+                notes=notes,
+                cash_balance=new_cash,
+                bank_balance=new_bank
+            )
+            
+            return entry
     
     def save(self, *args, **kwargs):
-        # Calculate balances
-        if not self.pk:  # Only for new entries
-            previous_entry = Cashbook.objects.filter(
-                transaction_date__lte=self.transaction_date
-            ).order_by('-transaction_date', '-id').first()
-            
-            if self.is_bank:
-                prev_balance = previous_entry.bank_balance if previous_entry else Decimal('0.00')
-                if self.entry_type == 'receipt':
-                    self.bank_balance = prev_balance + self.amount
-                    self.cash_balance = previous_entry.cash_balance if previous_entry else Decimal('0.00')
-                else:
-                    self.bank_balance = prev_balance - self.amount
-                    self.cash_balance = previous_entry.cash_balance if previous_entry else Decimal('0.00')
-            else:
-                prev_balance = previous_entry.cash_balance if previous_entry else Decimal('0.00')
-                if self.entry_type == 'receipt':
-                    self.cash_balance = prev_balance + self.amount
-                    self.bank_balance = previous_entry.bank_balance if previous_entry else Decimal('0.00')
-                else:
-                    self.cash_balance = prev_balance - self.amount
-                    self.bank_balance = previous_entry.bank_balance if previous_entry else Decimal('0.00')
-        
+        # Prevent direct save - use create_entry method
+        if not self.pk:
+            raise ValidationError("Use Cashbook.create_entry() method instead of direct save()")
         super().save(*args, **kwargs)
-        
+    
+    def __str__(self):
+        return f"{self.transaction_date} - {self.get_entry_type_display()} - {self.amount}"
+    
 class AccountType(models.TextChoices):
     ASSET = 'asset', 'Asset'
     LIABILITY = 'liability', 'Liability'
-    EQUITY = 'equity', 'Equity'
     INCOME = 'income', 'Income'
     EXPENSE = 'expense', 'Expense'
-
+    CAPITAL = 'capital', 'Capital'
+    SUNDRY_DEBTORS = 'sundry_debtors', 'Sundry Debtors'
+    SUNDRY_CREDITORS = 'sundry_creditors', 'Sundry Creditors'
+    CASH_IN_HAND = 'cash_in_hand', 'Cash-in-Hand'
+    
+    
 class Account(models.Model):
     code = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=100)

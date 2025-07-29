@@ -4,6 +4,8 @@ from django.urls import path
 from .views import *
 
 
+# purchase_voucher_list
+# sales_voucher_list
 urlpatterns = [
     path('', home, name='home'),
     
@@ -21,16 +23,29 @@ urlpatterns = [
     path('product/<int:pk>/update/', ProductUpdate,name='product_update'),
     path('product/<int:pk>/delete/', ProductDelete,name='product_delete'),
     
-    path('sales/', SalesList, name='sales'),
-    path('sales/create/', SalesCreate,name='sales_create'),
-    path('sales/<int:pk>/update/', SalesUpdate,name='sales_update'),
-    path('sales/<int:pk>/delete/', SalesDelete,name='sales_delete'),
     
     
-    path('purchase/', PurchaseList, name='purchase'),
-    path('purchase/create/', PurchaseCreate,name='purchase_create'),
-    path('purchase/<int:pk>/update/', PurchaseUpdate,name='purchase_update'),
-    path('purchase/<int:pk>/delete/', PurchaseDelete,name='purchase_delete'),
+    path('purchase/', purchase_list, name='purchase_list'),
+    path('purchase/create/', purchase_create, name='purchase_create'),
+    path('purchase/<int:pk>/update/', purchase_update, name='purchase_update'),
+    path('purchase/<int:pk>/delete/', purchase_delete, name='purchase_delete'),
+    path('purchase/<int:pk>/detail/', purchase_detail, name='purchase_detail'),
+    
+    # Purchase Item Management URLs
+    path('purchase/<int:voucher_pk>/items/', purchase_items_list, name='purchase_items_list'),
+    path('purchase/<int:voucher_pk>/items/add/', purchase_item_create, name='purchase_item_create'),
+    path('purchase/<int:voucher_pk>/items/<int:pk>/update/', purchase_item_update, name='purchase_item_update'),
+    path('purchase/<int:voucher_pk>/items/<int:pk>/delete/', purchase_item_delete, name='purchase_item_delete'),
+    
+    # Purchase AJAX API endpoints
+    path('api/purchase/<int:pk>/totals/', update_voucher_totals, name='update_voucher_totals'),
+    path('api/vendors/search/', vendor_search, name='vendor_search'),
+    path('api/brands/create/', create_brand_ajax, name='create_brand_ajax'),
+    path('api/categories/create/', create_category_ajax, name='create_category_ajax'),
+    
+    # Purchase Reports
+    path('purchase/reports/', purchase_reports, name='purchase_reports'),
+    path('purchase/export/', purchase_export, name='purchase_export'),
     
     path('repair/', RepairList, name='repair'),
     path('repair/create/', RepairCreate,name='repair_create'),
@@ -51,8 +66,28 @@ urlpatterns = [
     path('stock_ledger/update/<int:pk>/', stock_ledger_update, name='stock_ledger_update'),
     path('stock_ledger/delete/<int:pk>/', stock_ledger_delete, name='stock_ledger_delete'),
     
-    path('salesinvoice/', SalesInvoiceList, name='salesinvoice'),
-    path('salesinvoice/<int:pk>/update/', SalesInvoiceUpdate,name='salesinvoice_update'),
+        # Sales Voucher URLs - Updated with voucher system
+    path('sales/', sales_list, name='sales_list'),  # Alternative name for consistency
+    path('sales/create/', sales_create, name='sales_create'),
+    path('sales/<int:pk>/update/', sales_update, name='sales_update'),
+    path('sales/<int:pk>/delete/', sales_delete, name='sales_delete'),
+    path('sales/<int:pk>/detail/', sales_detail, name='sales_detail'),
+    
+    # Sales Item Management URLs
+    path('sales/<int:voucher_pk>/items/', sales_items_list, name='sales_items_list'),
+    path('sales/<int:voucher_pk>/items/add/', sales_item_create, name='sales_item_create'),
+    path('sales/<int:voucher_pk>/items/<int:pk>/update/', sales_item_update, name='sales_item_update'),
+    path('sales/<int:voucher_pk>/items/<int:pk>/delete/', sales_item_delete, name='sales_item_delete'),
+    
+    # Sales AJAX API endpoints
+    path('api/sales/customers/search/', customer_search, name='customer_search'),
+    path('api/sales/customers/create/', create_customer_ajax, name='create_customer_ajax'),
+    path('api/sales/products/search/', product_search, name='product_search'),
+    path('api/sales/products/<int:pk>/', get_product_details, name='get_product_details'),
+    
+    # Sales Reports
+    path('sales/reports/', sales_reports, name='sales_reports'),
+    path('sales/export/', sales_export, name='sales_export'),
     
     path('repairinvoice/', RepairInvoiceList, name='repairinvoice'),
     path('repairinvoice/<int:pk>/update/', RepairInvoiceUpdate,name='repairinvoice_update'),
@@ -81,34 +116,10 @@ urlpatterns = [
     path('cashbook/update/<int:pk>/', cashbook_update, name='cashbook_update'),
     path('cashbook/delete/<int:pk>/', cashbook_delete, name='cashbook_delete'),
     
-    
-        # Account URLs
-    path('accounts/', account_list, name='account_list'),
-    path('accounts/<int:pk>/', account_detail, name='account_detail'),
-    path('accounts/create/', account_create, name='account_create'),
-    path('accounts/<int:pk>/update/', account_update, name='account_update'),
-    
-    # LedgerEntry URLs
-    path('ledger-entries/create/', ledger_entry_create, name='ledger_entry_create'),
-    
-    # BalanceSheet URLs
-    path('balance-sheets/', balance_sheet_list, name='balance_sheet_list'),
-    path('balance-sheets/<int:pk>/', balance_sheet_detail, name='balance_sheet_detail'),
-    path('balance-sheets/create/', balance_sheet_create, name='balance_sheet_create'),
-    
-    # ProfitAndLoss URLs
-    path('profit-and-loss/', profit_and_loss_list, name='profit_and_loss_list'),
-    path('profit-and-loss/<int:pk>/', profit_and_loss_detail, name='profit_and_loss_detail'),
-    path('profit-and-loss/create/', profit_and_loss_create, name='profit_and_loss_create'),
-
-    
     path('stock_report/', StockReportList, name='stock_report'),
     path('stock_excel/', stock_excel, name='stock_excel'),
     path('sales_excel/', sales_excel, name='sales_excel'),
     path('search/', global_search, name='global_search'),
-
-
-
 
 ]
 if settings.DEBUG:

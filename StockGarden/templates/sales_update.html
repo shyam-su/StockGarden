@@ -1,4 +1,23 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .section-title {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 8px;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -6,152 +25,208 @@
         <div class="col-12">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Edit Sales</h5>
+                    <h5 class="mb-0">{{ title }}</h5>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'sales_items_list' voucher_pk=voucher.id %}" class="btn btn-info btn-sm">
+                            <i class="fas fa-list"></i> Manage Items
+                        </a>
+                        <a href="{% url 'sales_list' %}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back to List
+                        </a>
+                    </div>
                 </div>
                 <div class="card-body">
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-
-                    <form method="POST" enctype="multipart/form-data" id="salesForm">
+                    <form method="post" id="sales-form">
                         {% csrf_token %}
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.user.id_for_label }}">Customer Name</label>
-                                {{ form.user }}
-                                {% if form.user.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.user.errors }}
+                        
+                        <!-- Sales Voucher Information -->
+                        <div class="form-section">
+                            <h6 class="section-title">Voucher Information</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Voucher Number</label>
+                                        <input type="text" class="form-control" value="{{ voucher.voucher_number }}" readonly>
                                     </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.product.id_for_label }}">Product</label>
-                                {{ form.product }}
-                                {% if form.product.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.product.errors }}
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ voucher_form.date.id_for_label }}" class="form-label">{{ voucher_form.date.label }}</label>
+                                        {{ voucher_form.date }}
+                                        {% if voucher_form.date.errors %}
+                                            <div class="text-danger small">{{ voucher_form.date.errors }}</div>
+                                        {% endif %}
                                     </div>
-                                {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ voucher_form.status.id_for_label }}" class="form-label">{{ voucher_form.status.label }}</label>
+                                        {{ voucher_form.status }}
+                                        {% if voucher_form.status.errors %}
+                                            <div class="text-danger small">{{ voucher_form.status.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.Imei.id_for_label }}">IMEI</label>
-                                {{ form.Imei }}
-                                {% if form.Imei.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.Imei.errors }}
+                        <!-- Customer Information -->
+                        <div class="form-section">
+                            <h6 class="section-title">Customer Information</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ voucher_form.customer.id_for_label }}" class="form-label">{{ voucher_form.customer.label }}</label>
+                                        {{ voucher_form.customer }}
+                                        {% if voucher_form.customer.errors %}
+                                            <div class="text-danger small">{{ voucher_form.customer.errors }}</div>
+                                        {% endif %}
                                     </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.warranty.id_for_label }}">Warranty (Months)</label>
-                                {{ form.warranty }}
-                                {% if form.warranty.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.warranty.errors }}
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ voucher_form.new_customer.id_for_label }}" class="form-label">{{ voucher_form.new_customer.label }}</label>
+                                        {{ voucher_form.new_customer }}
+                                        {% if voucher_form.new_customer.errors %}
+                                            <div class="text-danger small">{{ voucher_form.new_customer.errors }}</div>
+                                        {% endif %}
                                     </div>
-                                {% endif %}
+                                </div>
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.quantity.id_for_label }}">Quantity</label>
-                                {{ form.quantity }}
-                                {% if form.quantity.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.quantity.errors }}
+                        {% if item %}
+                        <!-- Product Information -->
+                        <div class="form-section">
+                            <h6 class="section-title">Product Information</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ item_form.product.id_for_label }}" class="form-label">{{ item_form.product.label }}</label>
+                                        {{ item_form.product }}
+                                        {% if item_form.product.errors %}
+                                            <div class="text-danger small">{{ item_form.product.errors }}</div>
+                                        {% endif %}
                                     </div>
-                                {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="{{ item_form.quantity.id_for_label }}" class="form-label">{{ item_form.quantity.label }}</label>
+                                        {{ item_form.quantity }}
+                                        {% if item_form.quantity.errors %}
+                                            <div class="text-danger small">{{ item_form.quantity.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        <label for="{{ item_form.price.id_for_label }}" class="form-label">{{ item_form.price.label }}</label>
+                                        {{ item_form.price }}
+                                        {% if item_form.price.errors %}
+                                            <div class="text-danger small">{{ item_form.price.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.price.id_for_label }}">Price</label>
-                                {{ form.price }}
-                                {% if form.price.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.price.errors }}
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ item_form.warranty.id_for_label }}" class="form-label">{{ item_form.warranty.label }} (months)</label>
+                                        {{ item_form.warranty }}
+                                        {% if item_form.warranty.errors %}
+                                            <div class="text-danger small">{{ item_form.warranty.errors }}</div>
+                                        {% endif %}
                                     </div>
-                                {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ item_form.condition.id_for_label }}" class="form-label">{{ item_form.condition.label }}</label>
+                                        {{ item_form.condition }}
+                                        {% if item_form.condition.errors %}
+                                            <div class="text-danger small">{{ item_form.condition.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ item_form.imei.id_for_label }}" class="form-label">{{ item_form.imei.label }}</label>
+                                        {{ item_form.imei }}
+                                        {% if item_form.imei.errors %}
+                                            <div class="text-danger small">{{ item_form.imei.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Payment Information -->
+                        <div class="form-section">
+                            <h6 class="section-title">Payment Information</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ voucher_form.discount.id_for_label }}" class="form-label">{{ voucher_form.discount.label }}</label>
+                                        {{ voucher_form.discount }}
+                                        {% if voucher_form.discount.errors %}
+                                            <div class="text-danger small">{{ voucher_form.discount.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ voucher_form.payment_method.id_for_label }}" class="form-label">{{ voucher_form.payment_method.label }}</label>
+                                        {{ voucher_form.payment_method }}
+                                        {% if voucher_form.payment_method.errors %}
+                                            <div class="text-danger small">{{ voucher_form.payment_method.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ voucher_form.paid_amount.id_for_label }}" class="form-label">{{ voucher_form.paid_amount.label }}</label>
+                                        {{ voucher_form.paid_amount }}
+                                        {% if voucher_form.paid_amount.errors %}
+                                            <div class="text-danger small">{{ voucher_form.paid_amount.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.discount.id_for_label }}">Discount</label>
-                                {{ form.discount }}
-                                {% if form.discount.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.discount.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.payment_method.id_for_label }}">Payment Method</label>
-                                {{ form.payment_method }}
-                                {% if form.payment_method.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.payment_method.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
+                        <!-- Submit Buttons -->
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            {% if item %}
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Item
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Update Sales Voucher
+                                </button>
+                            {% endif %}
                         </div>
-
-                        <!-- Modified section - removed total_amount and adjusted layout -->
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.paid_amount.id_for_label }}">Paid Amount</label>
-                                {{ form.paid_amount }}
-                                {% if form.paid_amount.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.paid_amount.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.due_date.id_for_label }}">Due Date</label>
-                                {{ form.due_date }}
-                                {% if form.due_date.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.due_date.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <label for="{{ form.notes.id_for_label }}">Notes</label>
-                                {{ form.notes }}
-                                {% if form.notes.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.notes.errors }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-primary">Save Changes</button>
-                                <a href="{% url 'sales' %}" class="btn btn-secondary">Cancel</a>
-                            </div>
-                        </div>
-
                     </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock content %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize select2 for dropdowns if needed
+        $('.select2').select2({
+            theme: 'bootstrap4',
+            width: '100%'
+        });
+
+        // Auto-calculate remaining fields if needed
+        $('#id_quantity, #id_price, #id_discount').on('input', function() {
+            // Add your calculation logic here
+        });
+    });
+</script>
+{% endblock %}

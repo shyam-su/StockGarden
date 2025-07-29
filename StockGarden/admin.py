@@ -27,11 +27,37 @@ class BrandAdmin(ImportExportModelAdmin, admin.ModelAdmin):
 class CategoryAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     list_display=('name','created_at',)
     
+@admin.register(PurchaseVoucher)
+class PurchaseVoucherAdmin(admin.ModelAdmin):
+    list_display = (
+        'voucher_number', 'date', 'vendor', 'total_amount',
+        'discount', 'cost', 'payment_status', 'status'
+    )
+    list_filter = ('status', 'payment_status', 'date', 'vendor')
+    search_fields = ('voucher_number', 'vendor__username')
+    readonly_fields = ('voucher_number', 'total_amount', 'cost')
+    fields = (
+        'voucher_number', 'date', 'vendor', 'total_amount',
+        'discount', 'cost', 'payment_method', 'payment_status', 'status'
+    )
+    ordering = ('-date',)
     
-@admin.register(Purchase)
-class PurchaseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
-    list_display=('vendor','brand','categories','product_name','warranty','description','Imei','image','price','quantity','total_price','paid_amount','payment_method','payment_status','remaining_amount','created_at',)
-    search_fields = ('vendor',)
+@admin.register(PurchaseItem)
+class PurchaseItemAdmin(admin.ModelAdmin):
+    list_display = (
+        'product_name', 'voucher', 'brand', 'category',
+        'quantity', 'price', 'total_price', 'paid_amount',
+        'remaining_amount'
+    )
+    list_filter = ('brand', 'category', 'condition')
+    search_fields = ('product_name', 'imei', 'voucher__voucher_number')
+    readonly_fields = ('total_price', 'remaining_amount')
+    fields = (
+        'voucher', 'brand', 'category', 'product_name',
+        'warranty', 'condition', 'description', 'imei',
+        'image', 'quantity', 'price', 'total_price',
+        'paid_amount', 'remaining_amount'
+    )
     
 @admin.register(Product)
 class ProductAdmin(ImportExportModelAdmin, admin.ModelAdmin): 
@@ -40,19 +66,56 @@ class ProductAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     search_fields = ('name','price',)
     list_filter = ('categories', 'brand','price','stock',)
 
-@admin.register(Sales)
-class SalesAdmin(admin.ModelAdmin):
-    list_display = ('user', 'product', 'quantity', 'price', 'total_amount', 'payment_status', 'created_at')
-    search_fields = ('user__full_name', 'product__name', 'Imei')
-    list_filter = ('payment_status', 'payment_method', ('created_at', DateFieldListFilter))
-    readonly_fields = ('total_amount', 'remaining_amount', 'created_at', 'updated_at')
-    autocomplete_fields = ('user', 'product')
+@admin.register(Customer)
+class CustomerAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'phone', 'created_at')
+    search_fields = ('name', 'email', 'phone')
+    list_filter = ('created_at',)
+    ordering = ('-created_at',)
+
+
+@admin.register(SalesVoucher)
+class SalesVoucherAdmin(admin.ModelAdmin):
+    list_display = (
+        'voucher_number', 'date', 'customer', 'total_amount',
+        'discount', 'paid_amount', 'remaining_amount',
+        'payment_status', 'status'
+    )
+    list_filter = ('status', 'payment_status', 'date', 'customer')
+    search_fields = ('voucher_number', 'customer__username')
+    readonly_fields = (
+        'voucher_number', 'total_amount', 'remaining_amount'
+    )
+    fields = (
+        'voucher_number', 'date', 'customer', 'total_amount',
+        'discount', 'paid_amount', 'remaining_amount',
+        'payment_method', 'payment_status', 'status'
+    )
+    ordering = ('-date',)
     
-    def save_model(self, request, obj, form, change):
-        # Ensure price is set from product if not provided
-        if not obj.price and obj.product:
-            obj.price = obj.product.price
-        super().save_model(request, obj, form, change)
+@admin.register(SalesItem)
+class SalesItemAdmin(admin.ModelAdmin):
+    list_display = (
+        'product', 'voucher', 'quantity', 'price', 'total_price',
+        'warranty', 'condition', 'imei', 'created_at'
+    )
+    list_filter = ('condition', 'created_at', 'product')
+    search_fields = ('product__name', 'voucher__voucher_number', 'imei')
+    readonly_fields = ('total_price', 'created_at')
+    ordering = ('-created_at',)
+    autocomplete_fields = ('product', 'voucher')
+    fieldsets = (
+        (None, {
+            'fields': (
+                'voucher', 'product', 'quantity', 'price', 'total_price',
+                'warranty', 'condition', 'imei'
+            )
+        }),
+        ('Timestamps', {
+            'classes': ('collapse',),
+            'fields': ('created_at',)
+        }),
+    )
      
 @admin.register(Repair)
 class RepairOrderAdmin(ImportExportModelAdmin, admin.ModelAdmin):
@@ -73,7 +136,7 @@ class ExpenseAdmin(ImportExportModelAdmin, admin.ModelAdmin):
     
 @admin.register(SalesInvoice)
 class SalesInvoiceAdmin(ImportExportModelAdmin, admin.ModelAdmin):  
-    list_display=('invoice_number','sales','customer_name','product_name','customer_number','customer_address','payment_method','discount_amount','subtotal','total_amount','payment_status','due_date','created_at')
+    list_display=('invoice_number','customer_name','product_name','customer_number','customer_address','payment_method','discount_amount','subtotal','total_amount','payment_status','due_date','created_at')
     list_filter=('invoice_number','customer_name',)
     
 @admin.register(RepairInvoice)
@@ -117,8 +180,7 @@ class StockLedgerAdmin(admin.ModelAdmin):
 
 @admin.register(Report)
 class ReportAdmin(admin.ModelAdmin):
-    list_display=('Total_sells','Total_purchase','Total_Stock','Low_Stock','Empty_Stock','created_at','updated_at',)
-    list_filter = ('Total_sells', 'Total_purchase','Low_Stock',)
+    list_display = ('total_sales','total_purchases','total_stock','low_stock_count','empty_stock_count','total_stock_value','created_at','updated_at')
 
 @admin.register(Daybook)
 class DaybookAdmin(admin.ModelAdmin):
@@ -156,108 +218,3 @@ class CashbookAdmin(admin.ModelAdmin):
         }),
     )
 
-@admin.register(Account)
-class AccountAdmin(ImportExportModelAdmin):
-    list_display = ('code', 'name', 'account_type', 'is_active', 'created_at')
-    search_fields = ('code', 'name', 'description')
-    list_filter = ('account_type', 'is_active', ('created_at', DateFieldListFilter))
-    list_select_related = ('parent_account',)
-    ordering = ('code',)
-    raw_id_fields = ('parent_account',)
-
-    def save_model(self, request, obj, form, change):
-        try:
-            with transaction.atomic():
-                super().save_model(request, obj, form, change)
-        except Exception as e:
-            logger.error(f"Error saving Account {obj.code}: {str(e)}")
-            messages.error(request, f"Error saving account: {str(e)}")
-
-@admin.register(LedgerEntry)
-class LedgerEntryAdmin(ImportExportModelAdmin):
-    list_display = (
-        'date', 'account', 'debit_amount', 'credit_amount',
-        'balance', 'transaction_type'
-    )
-    search_fields = ('description', 'reference')
-    list_filter = ('transaction_type', 'account', ('date', DateFieldListFilter))
-    list_select_related = ('account', 'created_by')
-    readonly_fields = ('balance', 'created_at')
-    ordering = ('-date',)
-    date_hierarchy = 'date'
-    raw_id_fields = ('account', 'created_by')
-
-    def save_model(self, request, obj, form, change):
-        try:
-            with transaction.atomic():
-                if obj.debit_amount and obj.credit_amount:
-                    raise ValidationError("Cannot have both debit and credit amounts")
-                if not obj.debit_amount and not obj.credit_amount:
-                    raise ValidationError("Must have either debit or credit amount")
-                super().save_model(request, obj, form, change)
-        except Exception as e:
-            logger.error(f"Error saving LedgerEntry {obj.id}: {str(e)}")
-            messages.error(request, f"Error saving ledger entry: {str(e)}")
-
-@admin.register(BalanceSheet)
-class BalanceSheetAdmin(ImportExportModelAdmin):
-    list_display = (
-        'report_date', 'current_assets', 'fixed_assets', 'current_liabilities',
-        'long_term_liabilities', 'equity', 'retained_earnings', 'is_final'
-    )
-    search_fields = ('notes',)
-    list_filter = ('is_final', ('report_date', DateFieldListFilter))
-    readonly_fields = (
-        'current_assets', 'fixed_assets', 'other_assets', 'current_liabilities',
-        'long_term_liabilities', 'equity', 'retained_earnings', 'created_at', 'updated_at'
-    )
-    ordering = ('-report_date',)
-    date_hierarchy = 'report_date'
-    raw_id_fields = ('created_by',)
-    actions = ['validate_balance_sheet']
-
-    def validate_balance_sheet(self, request, queryset):
-        for bs in queryset:
-            try:
-                if not bs.validate_balances():
-                    messages.warning(request, f"Balance Sheet {bs.report_date} does not balance!")
-                else:
-                    messages.success(request, f"Balance Sheet {bs.report_date} is balanced")
-            except Exception as e:
-                logger.error(f"Error validating BalanceSheet {bs.report_date}: {str(e)}")
-                messages.error(request, f"Error validating balance sheet: {str(e)}")
-
-    validate_balance_sheet.short_description = "Validate selected balance sheets"
-
-    def save_model(self, request, obj, form, change):
-        try:
-            with transaction.atomic():
-                super().save_model(request, obj, form, change)
-        except Exception as e:
-            logger.error(f"Error saving BalanceSheet {obj.report_date}: {str(e)}")
-            messages.error(request, f"Error saving balance sheet: {str(e)}")
-
-@admin.register(ProfitAndLoss)
-class ProfitAndLossAdmin(ImportExportModelAdmin):
-    list_display = (
-        'start_date', 'end_date', 'sales_revenue', 'gross_profit',
-        'net_profit', 'is_final'
-    )
-    search_fields = ('notes',)
-    list_filter = ('is_final', ('start_date', DateFieldListFilter), ('end_date', DateFieldListFilter))
-    readonly_fields = (
-        'sales_revenue', 'other_revenue', 'cost_of_goods_sold', 'operating_expenses',
-        'other_expenses', 'gross_profit', 'net_profit', 'created_at', 'updated_at'
-    )
-    ordering = ('-end_date',)
-    raw_id_fields = ('created_by',)
-
-    def save_model(self, request, obj, form, change):
-        try:
-            with transaction.atomic():
-                if obj.end_date < obj.start_date:
-                    raise ValidationError("End date must be after start date")
-                super().save_model(request, obj, form, change)
-        except Exception as e:
-            logger.error(f"Error saving ProfitAndLoss {obj.start_date} to {obj.end_date}: {str(e)}")
-            messages.error(request, f"Error saving profit and loss statement: {str(e)}")

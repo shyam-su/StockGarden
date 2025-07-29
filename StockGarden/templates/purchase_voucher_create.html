@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Create Purchase Voucher</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="purchase-form">
+                        {% csrf_token %}
+                        
+                        <!-- Voucher Information Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">Voucher Information</h6>
+                            </div>
+                            
+                            <!-- Date and Vendor -->
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ voucher_form.date.id_for_label }}">{{ voucher_form.date.label }}</label>
+                                    {{ voucher_form.date }}
+                                    {% if voucher_form.date.errors %}
+                                        <div class="text-danger small">{{ voucher_form.date.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ voucher_form.vendor.id_for_label }}">{{ voucher_form.vendor.label }}</label>
+                                    {{ voucher_form.vendor }}
+                                    {% if voucher_form.vendor.errors %}
+                                        <div class="text-danger small">{{ voucher_form.vendor.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Discount and Payment Method -->
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ voucher_form.discount.id_for_label }}">{{ voucher_form.discount.label }}</label>
+                                    {{ voucher_form.discount }}
+                                    {% if voucher_form.discount.errors %}
+                                        <div class="text-danger small">{{ voucher_form.discount.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ voucher_form.payment_method.id_for_label }}">{{ voucher_form.payment_method.label }}</label>
+                                    {{ voucher_form.payment_method }}
+                                    {% if voucher_form.payment_method.errors %}
+                                        <div class="text-danger small">{{ voucher_form.payment_method.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ voucher_form.status.id_for_label }}">{{ voucher_form.status.label }}</label>
+                                    {{ voucher_form.status }}
+                                    {% if voucher_form.status.errors %}
+                                        <div class="text-danger small">{{ voucher_form.status.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Items Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">Item Details</h6>
+                            </div>
+                            
+                            <!-- Brand Selection with New Brand Option -->
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ item_form.brand.id_for_label }}">{{ item_form.brand.label }}</label>
+                                    {{ item_form.brand }}
+                                    {% if item_form.brand.errors %}
+                                        <div class="text-danger small">{{ item_form.brand.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ item_form.new_brand.id_for_label }}">{{ item_form.new_brand.label }}</label>
+                                    {{ item_form.new_brand }}
+                                    {% if item_form.new_brand.errors %}
+                                        <div class="text-danger small">{{ item_form.new_brand.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Category Selection with New Category Option -->
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ item_form.category.id_for_label }}">{{ item_form.category.label }}</label>
+                                    {{ item_form.category }}
+                                    {% if item_form.category.errors %}
+                                        <div class="text-danger small">{{ item_form.category.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ item_form.new_category.id_for_label }}">{{ item_form.new_category.label }}</label>
+                                    {{ item_form.new_category }}
+                                    {% if item_form.new_category.errors %}
+                                        <div class="text-danger small">{{ item_form.new_category.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Product Name and Condition -->
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ item_form.product_name.id_for_label }}">{{ item_form.product_name.label }}</label>
+                                    {{ item_form.product_name }}
+                                    {% if item_form.product_name.errors %}
+                                        <div class="text-danger small">{{ item_form.product_name.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ item_form.condition.id_for_label }}">{{ item_form.condition.label }}</label>
+                                    {{ item_form.condition }}
+                                    {% if item_form.condition.errors %}
+                                        <div class="text-danger small">{{ item_form.condition.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="col-md-12">
+                                <div class="form-group mb-3">
+                                    <label for="{{ item_form.description.id_for_label }}">{{ item_form.description.label }}</label>
+                                    {{ item_form.description }}
+                                    {% if item_form.description.errors %}
+                                        <div class="text-danger small">{{ item_form.description.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- IMEI and Warranty -->
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ item_form.imei.id_for_label }}">{{ item_form.imei.label }}</label>
+                                    {{ item_form.imei }}
+                                    {% if item_form.imei.errors %}
+                                        <div class="text-danger small">{{ item_form.imei.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ item_form.warranty.id_for_label }}">{{ item_form.warranty.label }}</label>
+                                    {{ item_form.warranty }}
+                                    {% if item_form.warranty.errors %}
+                                        <div class="text-danger small">{{ item_form.warranty.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Image -->
+                            <div class="col-md-12">
+                                <div class="form-group mb-3">
+                                    <label for="{{ item_form.image.id_for_label }}">{{ item_form.image.label }}</label>
+                                    {{ item_form.image }}
+                                    {% if item_form.image.errors %}
+                                        <div class="text-danger small">{{ item_form.image.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Quantity and Price -->
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ item_form.quantity.id_for_label }}">{{ item_form.quantity.label }}</label>
+                                    {{ item_form.quantity }}
+                                    {% if item_form.quantity.errors %}
+                                        <div class="text-danger small">{{ item_form.quantity.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ item_form.price.id_for_label }}">{{ item_form.price.label }}</label>
+                                    {{ item_form.price }}
+                                    {% if item_form.price.errors %}
+                                        <div class="text-danger small">{{ item_form.price.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ item_form.paid_amount.id_for_label }}">{{ item_form.paid_amount.label }}</label>
+                                    {{ item_form.paid_amount }}
+                                    {% if item_form.paid_amount.errors %}
+                                        <div class="text-danger small">{{ item_form.paid_amount.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">Create Purchase Voucher</button>
+                                <a href="{% url 'purchase_list' %}" class="btn btn-secondary">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-calculate total when quantity or price changes
+    const quantityInput = document.getElementById('quantity-input');
+    const priceInput = document.getElementById('price-input');
+    const paidAmountInput = document.getElementById('paid-amount');
+    
+    function calculateTotal() {
+        const quantity = parseFloat(quantityInput.value) || 0;
+        const price = parseFloat(priceInput.value) || 0;
+        const total = quantity * price;
+        
+        // You can add a total display field here if needed
+        console.log('Total: ', total);
+        
+        // Validate paid amount doesn't exceed total
+        const paidAmount = parseFloat(paidAmountInput.value) || 0;
+        if (paidAmount > total) {
+            paidAmountInput.setCustomValidity('Paid amount cannot exceed total price');
+        } else {
+            paidAmountInput.setCustomValidity('');
+        }
+    }
+    
+    if (quantityInput && priceInput) {
+        quantityInput.addEventListener('input', calculateTotal);
+        priceInput.addEventListener('input', calculateTotal);
+        paidAmountInput.addEventListener('input', calculateTotal);
+    }
+    
+    // Clear brand selection when new brand is entered
+    const brandSelect = document.getElementById('brand-select');
+    const newBrandInput = document.getElementById('new-brand');
+    
+    if (brandSelect && newBrandInput) {
+        newBrandInput.addEventListener('input', function() {
+            if (this.value) {
+                brandSelect.selectedIndex = 0; // Reset to empty option
+            }
+        });
+        
+        brandSelect.addEventListener('change', function() {
+            if (this.value) {
+                newBrandInput.value = ''; // Clear new brand input
+            }
+        });
+    }
+    
+    // Clear category selection when new category is entered
+    const categorySelect = document.getElementById('category-select');
+    const newCategoryInput = document.getElementById('new-category');
+    
+    if (categorySelect && newCategoryInput) {
+        newCategoryInput.addEventListener('input', function() {
+            if (this.value) {
+                categorySelect.selectedIndex = 0; // Reset to empty option
+            }
+        });
+        
+        categorySelect.addEventListener('change', function() {
+            if (this.value) {
+                newCategoryInput.value = ''; // Clear new category input
+            }
+        });
+    }
+});
+</script>
+
+{% endblock content %}

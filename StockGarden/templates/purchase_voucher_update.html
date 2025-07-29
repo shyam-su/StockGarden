@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Update Purchase Voucher</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="purchase-form">
+                        {% csrf_token %}
+                        
+                        <!-- Voucher Information Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">Voucher Information</h6>
+                            </div>
+                            
+                            <!-- Date and Vendor -->
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ voucher_form.date.id_for_label }}">{{ voucher_form.date.label }}</label>
+                                    {{ voucher_form.date }}
+                                    {% if voucher_form.date.errors %}
+                                        <div class="text-danger small">{{ voucher_form.date.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ voucher_form.vendor.id_for_label }}">{{ voucher_form.vendor.label }}</label>
+                                    {{ voucher_form.vendor }}
+                                    {% if voucher_form.vendor.errors %}
+                                        <div class="text-danger small">{{ voucher_form.vendor.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Discount and Payment Method -->
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ voucher_form.discount.id_for_label }}">{{ voucher_form.discount.label }}</label>
+                                    {{ voucher_form.discount }}
+                                    {% if voucher_form.discount.errors %}
+                                        <div class="text-danger small">{{ voucher_form.discount.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ voucher_form.payment_method.id_for_label }}">{{ voucher_form.payment_method.label }}</label>
+                                    {{ voucher_form.payment_method }}
+                                    {% if voucher_form.payment_method.errors %}
+                                        <div class="text-danger small">{{ voucher_form.payment_method.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="{{ voucher_form.status.id_for_label }}">{{ voucher_form.status.label }}</label>
+                                    {{ voucher_form.status }}
+                                    {% if voucher_form.status.errors %}
+                                        <div class="text-danger small">{{ voucher_form.status.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Items Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">Purchase Items</h6>
+                            </div>
+                            <div class="col-12">
+                                {{ formset.management_form }}
+                                <div id="purchase-items">
+                                    {% for form in formset %}
+                                        <div class="row purchase-item mb-3">
+                                            <div class="col-md-4">
+                                                <div class="form-group">
+                                                    <label for="{{ form.product.id_for_label }}">{{ form.product.label }}</label>
+                                                    {{ form.product }}
+                                                    {% if form.product.errors %}
+                                                        <div class="text-danger small">{{ form.product.errors }}</div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="{{ form.quantity.id_for_label }}">{{ form.quantity.label }}</label>
+                                                    {{ form.quantity }}
+                                                    {% if form.quantity.errors %}
+                                                        <div class="text-danger small">{{ form.quantity.errors }}</div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="{{ form.price.id_for_label }}">{{ form.price.label }}</label>
+                                                    {{ form.price }}
+                                                    {% if form.price.errors %}
+                                                        <div class="text-danger small">{{ form.price.errors }}</div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="form-group">
+                                                    {{ form.DELETE }}
+                                                    <button type="button" class="btn btn-danger btn-sm remove-item mt-4">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <button type="button" class="btn btn-success btn-sm" id="add-item">
+                                    <i class="fas fa-plus"></i> Add Item
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">Update Purchase Voucher</button>
+                                <a href="{% url 'purchase_voucher_list' %}" class="btn btn-secondary">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
